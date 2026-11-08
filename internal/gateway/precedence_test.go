@@ -50,3 +50,21 @@ func TestDuplicateMatcherCannotBeHiddenByPriority(t *testing.T) {
 		t.Fatal("duplicate matcher accepted")
 	}
 }
+
+func TestMethodSelectionFallsBackToBroaderRoute(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, r.Host) }))
+	defer backend.Close()
+	c := testutil.Config(backend.URL)
+	c.Routes = []config.Route{
+		{ID: "get-admin", Path: "/api/admin", Methods: []string{"GET"}, Priority: 10, HostHeader: "specific.example.com", Upstream: "demo"},
+		{ID: "api-fallback", Path: "/api", Prefix: true, HostHeader: "fallback.example.com", Upstream: "demo"},
+	}
+	s := compiled(t, c)
+	for method, want := range map[string]string{"GET": "specific.example.com", "POST": "fallback.example.com"} {
+		w := httptest.NewRecorder()
+		s.ServeHTTP(w, httptest.NewRequest(method, "http://example.com/api/admin", nil))
+		if w.Code != 200 || w.Body.String() != want {
+			t.Fatalf("%s: status=%d backend=%q, want %q", method, w.Code, w.Body.String(), want)
+		}
+	}
+}

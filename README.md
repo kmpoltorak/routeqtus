@@ -82,7 +82,9 @@ See [bootstrap and every operational field](docs/reference.md),
 
 Higher priority wins, then explicit host, longer path, and exact before prefix;
 methods select among matching candidates. Prefix `/api` matches `/api` and `/api/x`,
-not `/apix`. Missing paths return 404; method mismatches return 405 with `Allow`.
+not `/apix`. A method mismatch can fall through to a broader matching route;
+`methods` selects a route and does not provide access control. Missing paths return
+404; unmatched methods return 405 with `Allow` when no candidate accepts the method.
 Encoded separators, dot segments, repeated slashes, and ambiguous queries are rejected.
 Forwarding trust covers every X-Forwarded-For field line and rejects ambiguous schemes;
 see [proxy trust](docs/operations.md).
@@ -120,6 +122,7 @@ Diagnostics use a separate listener: `/healthz`, `/readyz`, `/status`, `/metrics
 Metric families include HELP/TYPE metadata; unwritten panics count as 5xx.
 Non-loopback diagnostics require an admin token. pprof is off and requires an admin
 token when enabled. Protect the diagnostic network; admin HTTP does not provide TLS.
+For Kubernetes rollouts, add a preStop propagation delay before SIGTERM.
 See [operations](docs/operations.md) for deadlines, TLS, shutdown, and deployment order.
 
 ## Limitations
