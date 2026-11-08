@@ -338,6 +338,7 @@ func (s *Snapshot) match(r *http.Request) (*route, []string) {
 	}
 	host = strings.TrimSuffix(host, ".")
 	allow := map[string]bool{}
+	// ponytail: scan sorted routes linearly; add an index only when deployment measurements justify its complexity.
 	for i := range s.routes {
 		v := &s.routes[i]
 		if !matches(v.Route, host, r.URL.Path) {

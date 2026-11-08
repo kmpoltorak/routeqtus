@@ -352,6 +352,7 @@ func (s *Store) Publish(ctx context.Context, c config.Config, expected int64, m 
 func (s *Store) History(ctx context.Context) ([]Revision, error) {
 	ctx, cancel := s.deadline(ctx)
 	defer cancel()
+	// ponytail: list only the latest 100 revisions to bound responses; add pagination when older history browsing is required.
 	rows, err := s.Pool.Query(ctx, "SELECT id,generation,schema_version,principal,author,description,created_at FROM config_revisions WHERE sealed ORDER BY generation DESC LIMIT 100")
 	if err != nil {
 		return nil, err

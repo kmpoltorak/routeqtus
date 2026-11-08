@@ -21,9 +21,9 @@ routeqtus demo backend: backend-a
 ```
 
 `make demo` generates random credentials in ignored `.env` and a seven-day local
-TLS certificate in ignored `.demo/tls`. It builds separate production and demo images, starts PostgreSQL and
-two demo targets, runs migrations, grants separate roles, starts `manage`, publishes
-`examples/config.json` against generation 0, and starts `serve`.
+TLS certificate in ignored `.demo/tls`. It builds separate production and demo images,
+starts PostgreSQL and two demo targets, runs migrations, grants separate roles, starts
+`manage`, publishes `examples/config.json` against generation 0, and starts `serve`.
 
 This initialization command deliberately fails on an already initialized database
 instead of overwriting its configuration. To restart existing processes, use
@@ -112,6 +112,10 @@ bin/routeqtus serve --config examples/bootstrap.yaml
 
 The default admin listener is `127.0.0.1:9090`; two native processes on the same host
 need different `admin.listen` addresses. Serve does not require the management token.
+
+For a TLS reverse proxy on the same host/network namespace, keep management bound
+to numeric loopback; see the [proxy trust boundary](docs/operations.md#processes-and-trust).
+Outside numeric loopback, management must terminate TLS itself.
 
 See [the API examples](docs/api.md), [configuration reference](docs/reference.md),
 [operations](docs/operations.md), and [extension guide](docs/extensions.md).

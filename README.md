@@ -30,12 +30,13 @@ go build -trimpath -o routeqtus ./cmd/routeqtus
 ./routeqtus version
 ```
 
+Changes listed as Unreleased in [release notes](docs/release_notes.md) require a source build.
 Release checks and packaging use a read-only repository token; only the artifact
 publication job can write releases.
 
 The production container runs without root, includes CA certificates, and excludes
-the demo backend. Compose builds a separate demo image for its two backend instances. PostgreSQL 17 or later
-is required. The tested environment and limitations are in [verification](docs/verification.md).
+the demo backend. Compose builds a separate demo image for its two backend instances.
+PostgreSQL 17 or later is required. The tested environment and limitations are in [verification](docs/verification.md).
 
 ## Quick start
 
@@ -93,6 +94,8 @@ not `/apix`. A method mismatch can fall through to a broader matching route;
 `methods` selects a route and does not provide access control. Missing paths return
 404; unmatched methods return 405 with `Allow` when no candidate accepts the method.
 Encoded separators, dot segments, repeated slashes, and ambiguous queries are rejected.
+Request paths containing a decoded `%` (including `%25` and double encodings) return
+400; encoded spaces and Unicode are supported.
 Forwarding trust covers every X-Forwarded-For field line and rejects ambiguous schemes;
 see [proxy trust](docs/operations.md).
 
@@ -118,6 +121,8 @@ report safe failure categories without printing DSNs, tokens, or server error te
 
 Management readiness reads a shared background database-health sample; readiness
 HTTP handlers do not acquire SQL connections.
+Management can also run behind a trusted TLS proxy forwarding to numeric loopback
+on the same host/network namespace; tokens remain required.
 
 `serve` reads a complete revision before opening its public listener. LISTEN/NOTIFY
 accelerates updates; jittered polling recovers missed signals. A dedicated session
@@ -162,6 +167,7 @@ See [operations](docs/operations.md) for deadlines, TLS, shutdown, and deploymen
 | `make fuzz`, `make vuln` | Bounded fuzzing; govulncheck |
 | `make bench`, `make loadbench` | Router microbenchmarks; proxy comparisons |
 | `make docs`, `make demo` | Regenerate OpenAPI; initialize local demo |
+| `make sabotage` | Temporarily weaken guards, require test failures, restore sources |
 
 Tests exercise public behavior with real HTTP servers, HTTP/2 TLS, SSE and WebSocket
 traffic, and isolated PostgreSQL databases. Integration tests require database-creation
@@ -171,11 +177,10 @@ Security regressions cover remote CLI HTTPS, diagnostics authentication, token a
 metadata byte limits, and latest-100 history with older-ID reads.
 Regressions also cover header precedence on HTTP, errors, and upgrades, plus database
 connection release after malformed stored values. Verification includes deliberate
-sabotage checks; results and commands are recorded.
-
-Direct dependencies are pgx/v5 for PostgreSQL pooling and the maintained YAML parser
-from `yaml/go-yaml`. HTTP, logging, CLI, TLS, metrics exposition, and JSON use Go's
-standard library. No ORM, router framework, or plugin loader is used.
+sabotage checks; results and commands are recorded. `make sabotage` requires an
+explicit disposable `ROUTEQTUS_TEST_DATABASE_URL` with database-creation privileges.
+It edits source files temporarily and restores them in `finally`; run it without
+concurrent edits/tests and inspect the working diff if the process is forcibly killed.
 
 Built with an AI coding assistant. I wrote the spec and reviewed every change.
 
