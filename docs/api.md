@@ -6,6 +6,26 @@ registry at `GET /v1/handler-types` and `GET /v1/handler-types/{type}/schema`.
 OpenAPI 3.0.3 is used for broad client compatibility. Its `nullable` keyword describes
 optional override values. The field coverage/default table is [reference.md](reference.md).
 
+## CLI reference
+
+| Command | Purpose |
+| --- | --- |
+| `serve --config PATH` | Read PostgreSQL, compile snapshots, serve public HTTP |
+| `manage --config PATH` | Run the authenticated Management API on its own listener |
+| `check --config PATH` | Validate bootstrap YAML offline; does not resolve secrets |
+| `migrate --config PATH` | Apply versioned SQL with migration-owner credentials |
+| `config validate --file PATH` | Validate through Management API without publication |
+| `config apply --file PATH --generation N` | Publish a complete JSON revision through HTTP |
+| `config show [--effective]` | Export configured values, or inspect resolved defaults |
+| `config status` | Read the committed revision and generation |
+| `config rollback --revision ID --generation N` | Revalidate history and publish a new generation |
+| `openapi` | Print the generated OpenAPI contract without opening the database |
+
+All `config` commands accept `--api` (default `http://127.0.0.1:9080`) and
+`--token-env` (default `ROUTEQTUS_MANAGEMENT_TOKEN`). Remote API URLs require HTTPS.
+`apply` and `rollback` accept `--description` and `--author`; the author is a client
+claim, separate from the token's authenticated service principal.
+
 ## Requests and publication
 
 Send `Authorization: Bearer $ROUTEQTUS_MANAGEMENT_TOKEN` on every configuration request.
