@@ -101,7 +101,10 @@ func TestControlPlaneAndReload(t *testing.T) {
 	compiler := testutil.Compiler(t)
 	svc := &configservice.Service{Store: s, Compiler: compiler}
 	token := strings.Repeat("t", 32)
-	api := httptest.NewServer(management.New(svc, token, "integration-service", 1<<20, 8))
+	health := s.WatchHealth(ctx, time.Hour)
+	defer health.Close()
+	eventually(t, time.Second, health.Ready)
+	api := httptest.NewServer(management.New(svc, token, "integration-service", 1<<20, 8, health.Ready))
 	defer api.Close()
 	request := func(method, path, etag string, body any, authorized bool) (int, http.Header, []byte) {
 		t.Helper()

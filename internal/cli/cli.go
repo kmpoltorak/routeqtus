@@ -65,7 +65,7 @@ func Run(ctx context.Context, args []string, out, stderr io.Writer) error {
 		if err != nil {
 			return err
 		}
-		a := management.New(&configservice.Service{Compiler: compiler}, "", "", 1, 1)
+		a := management.New(&configservice.Service{Compiler: compiler}, "", "", 1, 1, nil)
 		_, err = out.Write(append(a.Contract(), '\n'))
 		return err
 	}

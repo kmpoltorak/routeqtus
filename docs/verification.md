@@ -42,6 +42,14 @@ unchanged revision state on rejection. A 105-revision test verifies newest-100 o
 and an older known-ID read. Each guard was deliberately weakened through local overlays;
 the named regression failed, and normal sources passed afterward.
 
+## Cached management readiness
+
+A real PostgreSQL regression observed 100 SQL acquisitions for 100 readiness probes
+before the fix and zero after it. Management and diagnostics endpoints share a bounded
+background health sample. Tests cover database outage/recovery on both real process
+listeners, authentication, immediate unready state on monitor cancellation, and worker
+cleanup. Serving readiness continues to use its runtime snapshot state.
+
 ## Contract and failure coverage
 
 Tests cover routing precedence, host/method matching, 404/405/Allow, prefix boundaries,

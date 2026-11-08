@@ -64,7 +64,16 @@ triggers that reject changes to sealed revisions. Constraints supplement applica
 validation; only the API/compiler validates all routing and handler semantics.
 
 Create separate migration-owner, management, and read-only serving credentials.
-`examples/docker/permissions.sql` shows grants. Management can insert complete revisions
+`examples/docker/permissions.sql` shows grants.
+
+Management readiness on both listeners uses one background health monitor. It samples
+PostgreSQL at `config_sync.poll_interval` with `postgres.query_timeout`; a failed
+sample makes readiness false, and a later successful sample restores it. Detection
+can take up to one polling interval plus query time; readiness probes perform no SQL.
+Shutdown cancellation makes the cached state unready immediately and closes the
+monitor before the pool. Management `/readyz` remains authenticated.
+
+Management can insert complete revisions
 and update publication state; it cannot alter tables or delete revision history. Do not
 give it schema ownership. Supply DSNs only through the named environment variable.
 Native production DSNs must use `sslmode=verify-full` and a trusted database CA.

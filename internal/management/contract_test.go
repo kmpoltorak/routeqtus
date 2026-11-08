@@ -11,7 +11,7 @@ import (
 
 func TestPublishedContractMatchesRegistry(t *testing.T) {
 	compiler := testutil.Compiler(t)
-	a := New(&configservice.Service{Compiler: compiler}, "", "", 1, 1)
+	a := New(&configservice.Service{Compiler: compiler}, "", "", 1, 1, nil)
 	published, err := os.ReadFile("../../docs/openapi.json")
 	if err != nil {
 		t.Fatal(err)
