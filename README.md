@@ -30,7 +30,7 @@ go build -trimpath -o routeqtus ./cmd/routeqtus
 ./routeqtus version
 ```
 
-Changes listed as Unreleased in [release notes](docs/release_notes.md) require a source build.
+See [release notes](docs/release_notes.md) for changes and upgrade requirements.
 Release checks and packaging use a read-only repository token; only the artifact
 publication job can write releases.
 
