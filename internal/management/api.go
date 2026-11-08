@@ -26,11 +26,12 @@ type API struct {
 	Principal string
 	MaxBody   int64
 	OpenAPI   []byte
+	Ready     func() bool
 	slots     chan struct{}
 }
 
-func New(s *configservice.Service, token, principal string, body int64, concurrent int) *API {
-	a := &API{Service: s, Token: token, Principal: principal, MaxBody: body, slots: make(chan struct{}, concurrent)}
+func New(s *configservice.Service, token, principal string, body int64, concurrent int, ready func() bool) *API {
+	a := &API{Service: s, Token: token, Principal: principal, MaxBody: body, Ready: ready, slots: make(chan struct{}, concurrent)}
 	a.OpenAPI = a.Contract()
 	return a
 }
@@ -84,7 +85,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Path == "/readyz" && r.Method == "GET" {
-		if a.Service.Store.Ping(r.Context()) != nil {
+		if a.Ready == nil || !a.Ready() {
 			a.storeError(w, r, errors.New("unavailable"))
 			return
 		}

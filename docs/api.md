@@ -53,7 +53,7 @@ authenticated principal comes only from the server's bootstrap.
 | `/v1/handler-types`, `/v1/handler-types/{type}/schema` | GET | Supported versioned contracts |
 | `/openapi.json` | GET | Generated OpenAPI |
 | `/healthz` | GET | Unauthenticated management liveness |
-| `/readyz` | GET | Authenticated management/database readiness |
+| `/readyz` | GET | Authenticated cached management/database readiness |
 
 ## curl and CLI examples
 

@@ -88,10 +88,12 @@ func Run(parent context.Context, mode string, c bootstrap.Config, logger *slog.L
 	workerCtx, workerStop := context.WithCancel(ctx)
 	defer workerStop()
 	var rt *runtime.Runtime
+	var ready func() bool
 	var public *http.Server
 	var listener net.Listener
 	if mode == "serve" {
 		rt = runtime.New(store, compiler, c.Sync, logger)
+		ready = rt.Ready
 		defer rt.Close()
 		go rt.Run(workerCtx)
 		tick := time.NewTicker(10 * time.Millisecond)
@@ -113,7 +115,10 @@ func Run(parent context.Context, mode string, c bootstrap.Config, logger *slog.L
 		if len(token) < 32 {
 			return fmt.Errorf("management token environment reference must provide at least 32 bytes")
 		}
-		api := management.New(&configservice.Service{Store: store, Compiler: compiler}, token, c.Management.Principal, c.Management.MaxBodyBytes, c.Management.MaxInFlight)
+		health := store.WatchHealth(workerCtx, bootstrap.Duration(c.Sync.PollInterval))
+		defer health.Close()
+		ready = health.Ready
+		api := management.New(&configservice.Service{Store: store, Compiler: compiler}, token, c.Management.Principal, c.Management.MaxBodyBytes, c.Management.MaxInFlight, ready)
 		listener, err = net.Listen("tcp", c.Management.Listen)
 		if err != nil {
 			return fmt.Errorf("management listener: %w", err)
@@ -134,7 +139,7 @@ func Run(parent context.Context, mode string, c bootstrap.Config, logger *slog.L
 			return fmt.Errorf("admin token environment reference must provide at least 32 bytes")
 		}
 	}
-	admin := &http.Server{Handler: diagnostics(c, adminToken, store, rt), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelDebug)}
+	admin := &http.Server{Handler: diagnostics(c, adminToken, store, rt, ready), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16384, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelDebug)}
 	failures := make(chan error, 2)
 	go func() { failures <- admin.Serve(adminListener) }()
 	cert, key := c.Server.CertFile, c.Server.KeyFile
@@ -197,17 +202,12 @@ func deadline(next http.Handler, d time.Duration) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
-func diagnostics(c bootstrap.Config, token string, store *postgres.Store, rt *runtime.Runtime) http.Handler {
+func diagnostics(c bootstrap.Config, token string, store *postgres.Store, rt *runtime.Runtime, ready func() bool) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "alive\n") })
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
-		ready := true
-		if rt != nil {
-			ready = rt.Ready()
-		} else {
-			ready = store.Ping(r.Context()) == nil
-		}
-		if !ready {
+
+		if ready == nil || !ready() {
 			http.Error(w, "not ready", 503)
 			return
 		}

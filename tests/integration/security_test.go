@@ -84,7 +84,7 @@ func TestPublicationMetadataByteLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 	token := strings.Repeat("t", 32)
-	api := httptest.NewServer(management.New(&configservice.Service{Store: s, Compiler: testutil.Compiler(t)}, token, "metadata-test", 1<<20, 8))
+	api := httptest.NewServer(management.New(&configservice.Service{Store: s, Compiler: testutil.Compiler(t)}, token, "metadata-test", 1<<20, 8, nil))
 	defer api.Close()
 	for _, tc := range []struct {
 		author, description string
