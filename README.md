@@ -84,6 +84,8 @@ Higher priority wins, then explicit host, longer path, and exact before prefix;
 methods select among matching candidates. Prefix `/api` matches `/api` and `/api/x`,
 not `/apix`. Missing paths return 404; method mismatches return 405 with `Allow`.
 Encoded separators, dot segments, repeated slashes, and ambiguous queries are rejected.
+Forwarding trust covers every X-Forwarded-For field line and rejects ambiguous schemes;
+see [proxy trust](docs/operations.md).
 
 Global handlers run outside route handlers and also cover 404/405. Lists record
 entry order; code after `next` runs in reverse. Disabled handlers add no wrapper.

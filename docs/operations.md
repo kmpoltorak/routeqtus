@@ -140,8 +140,10 @@ Go's HTTP/1 parser has a documented small read-ahead allowance. The in-flight li
 rejects excess requests with 503; there is no unbounded admission queue.
 
 Forwarding trust defaults to empty. `Forwarded` is discarded. A trusted immediate
-peer permits interpreting X-Forwarded-For from right to left until the first untrusted
-hop, and a single `http`/`https` X-Forwarded-Proto. Invalid chains fall back to the peer.
+peer permits interpreting all X-Forwarded-For field lines in wire order, from right
+to left until the first untrusted hop. X-Forwarded-Proto is accepted only as one
+field line containing exactly `http` or `https`; repeated or comma-separated values
+fall back to the connection scheme. Invalid IP chains fall back to the peer.
 Outgoing X-Forwarded-Host uses the received Host. The gateway sets forwarding headers,
 configured request headers, and request IDs in Rewrite after hop-by-hop cleanup, so a
 client's Connection header cannot remove them. Targets always come from administrator
