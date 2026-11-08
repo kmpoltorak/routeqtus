@@ -32,6 +32,16 @@ those databases afterward. `make test-integration` creates and removes a loopbac
 container when no test DSN is supplied. Test credentials and cleartext PostgreSQL
 transport belong only to that local disposable environment.
 
+## Security boundary coverage
+
+Tests reject remote plaintext CLI URLs before a request, non-loopback diagnostics
+without a token reference, and unauthorized diagnostic requests. Process tests cover
+0/31/32-byte management and admin tokens. Real HTTP/PostgreSQL publication tests cover
+256-byte authors and 4096-byte descriptions, including UTF-8 byte boundaries and
+unchanged revision state on rejection. A 105-revision test verifies newest-100 ordering
+and an older known-ID read. Each guard was deliberately weakened through local overlays;
+the named regression failed, and normal sources passed afterward.
+
 ## Contract and failure coverage
 
 Tests cover routing precedence, host/method matching, 404/405/Allow, prefix boundaries,

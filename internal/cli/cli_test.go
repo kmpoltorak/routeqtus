@@ -62,3 +62,26 @@ func TestClientConnectionFailureReasons(t *testing.T) {
 		}
 	}
 }
+
+func TestClientURLTrustBoundary(t *testing.T) {
+	t.Setenv("ROUTEQTUS_CLI_TEST_TOKEN", strings.Repeat("t", 32))
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	for _, address := range []string{"http://example.com:9080", "http://192.0.2.1:9080", "http://127.0.0.1", "https://user:private-password@example.com", "https://example.com?token=private-token", "https://example.com/#secret"} {
+		var out bytes.Buffer
+		err := Run(ctx, []string{"config", "status", "--api", address, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN"}, &out, &out)
+		if err == nil || !strings.Contains(err.Error(), "API URL must use HTTPS") {
+			t.Fatalf("unsafe URL was not rejected before request: %q err=%v", address, err)
+		}
+		if strings.Contains(err.Error()+out.String(), "private-") {
+			t.Fatal("URL secret leaked")
+		}
+	}
+	for _, address := range []string{"https://example.com:9080", "http://127.0.0.1:9080", "http://[::1]:9080"} {
+		var out bytes.Buffer
+		err := Run(ctx, []string{"config", "status", "--api", address, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN"}, &out, &out)
+		if err == nil || !strings.Contains(err.Error(), "request canceled") {
+			t.Fatalf("safe URL did not reach canceled request: %q err=%v", address, err)
+		}
+	}
+}

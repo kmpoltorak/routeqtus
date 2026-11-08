@@ -35,3 +35,25 @@ func TestNullAliasesAndOversizeRejected(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminListenerTokenBoundary(t *testing.T) {
+	for _, tc := range []struct {
+		address, token string
+		valid          bool
+	}{
+		{"127.0.0.1:9090", "", true}, {"[::1]:9090", "", true},
+		{"0.0.0.0:9090", "", false}, {"[::]:9090", "", false},
+		{"192.0.2.1:9090", "", false}, {"localhost:9090", "", false},
+		{"0.0.0.0:9090", "ROUTEQTUS_ADMIN_TOKEN", true},
+	} {
+		p := filepath.Join(t.TempDir(), "bootstrap.yaml")
+		body := "admin:\n  listen: '" + tc.address + "'\n  auth_token_env: '" + tc.token + "'\n"
+		if err := os.WriteFile(p, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+		_, err := Load(p)
+		if (err == nil) != tc.valid {
+			t.Fatalf("address=%s token-ref=%q err=%v", tc.address, tc.token, err)
+		}
+	}
+}
