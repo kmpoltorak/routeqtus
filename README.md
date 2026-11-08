@@ -30,6 +30,9 @@ go build -trimpath -o routeqtus ./cmd/routeqtus
 ./routeqtus version
 ```
 
+Release checks and packaging use a read-only repository token; only the artifact
+publication job can write releases.
+
 The container runs without root and includes CA certificates. PostgreSQL 17 or later
 is required. The tested environment and limitations are in [verification](docs/verification.md).
 
