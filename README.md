@@ -77,6 +77,7 @@ claim, separate from the token's authenticated service principal.
 
 YAML rejects routing sections, unknown/duplicate keys, nulls, aliases, and extra
 documents. JSON imports reject unknown/duplicate keys and unsupported versions.
+Configuration decoding checks typed values and required fields separately.
 JSON is an import format, never an alternative runtime configuration source.
 Validation errors retain field paths and include known entity IDs; independent failures
 in the first invalid compilation phase are returned together.
