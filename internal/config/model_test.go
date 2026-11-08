@@ -35,3 +35,33 @@ func TestDurationAndDefaults(t *testing.T) {
 		t.Fatal("defaults mutated configured values or lost zero")
 	}
 }
+
+func TestDecodePresenceAndRawNumbers(t *testing.T) {
+	type document struct {
+		Value   *bool           `json:"value"`
+		Payload json.RawMessage `json:"payload" required:"true"`
+	}
+	for _, tc := range []struct {
+		data  string
+		valid bool
+	}{
+		{`{"payload":{},"value":null}`, true},
+		{`{"payload":[],"value":false}`, true},
+		{`{"payload":{"count":1e300}}`, true},
+		{`{"payload":{"count":1e10000}}`, false},
+		{`{"payload":null}`, false},
+		{`{"payload":{"x":1,"x":2}}`, false},
+		{`{"Payload":{}}`, false},
+		{`{"value":false}`, false},
+		{`{"payload":{}} {}`, false},
+	} {
+		var d document
+		err := DecodeTyped([]byte(tc.data), &d)
+		if (err == nil) != tc.valid {
+			t.Fatalf("%s: %v", tc.data, err)
+		}
+		if tc.data == `{"payload":[],"value":false}` && (d.Value == nil || *d.Value) {
+			t.Fatal("explicit false lost")
+		}
+	}
+}

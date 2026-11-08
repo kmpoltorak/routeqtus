@@ -65,6 +65,12 @@ func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
 	c.Handlers[0].Enabled = config.B(false)
 	c.Handlers[2].Options = []byte(`{"sample_every":17}`)
 	c.Handlers[3].Options = []byte(`{"request_set":{"X-Test":"request"},"request_remove":["X-Remove"],"response_set":{"X-Test":"response"},"response_remove":["X-Remove"]}`)
+	c.Upstreams[0].Targets = append(c.Upstreams[0].Targets, config.Target{ID: "b", URL: backend.URL})
+	second := c.Upstreams[0]
+	second.ID = "secondary"
+	second.Targets = []config.Target{c.Upstreams[0].Targets[1], c.Upstreams[0].Targets[0]}
+	c.Upstreams = append(c.Upstreams, second)
+	c.Routes = append(c.Routes, config.Route{ID: "secondary", Path: "/secondary", Upstream: "secondary", Handlers: []string{"headers", "powered"}})
 	slices.SortFunc(c.Handlers, func(a, b config.Handler) int { return cmp.Compare(a.ID, b.ID) })
 	compiler := testutil.Compiler(t)
 	token := strings.Repeat("x", 32)

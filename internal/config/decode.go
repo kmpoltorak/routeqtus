@@ -19,12 +19,9 @@ func Invalid(path, message string) error { return FieldError{path, message} }
 
 func Decode(data []byte) (Config, error) { var c Config; err := DecodeTyped(data, &c); return c, err }
 func DecodeTyped(data []byte, dst any) error {
-	if err := strictjson.Decode(data, dst); err != nil {
+	raw, err := strictjson.DecodeDocument(data, dst)
+	if err != nil {
 		return Invalid("/", err.Error())
-	}
-	var raw any
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
 	}
 	return required(raw, reflect.TypeOf(dst).Elem(), "")
 }

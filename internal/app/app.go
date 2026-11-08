@@ -148,7 +148,11 @@ func Run(parent context.Context, mode string, c bootstrap.Config, logger *slog.L
 			failures <- public.Serve(listener)
 		}
 	}()
-	logger.Info("process started", "mode", mode, "listen", public.Addr, "pool_max_conns", c.Postgres.MaxConns, "listen_connections", boolInt(mode == "serve" && c.Sync.Notifications))
+	listenConnections := 0
+	if mode == "serve" && c.Sync.Notifications {
+		listenConnections = 1
+	}
+	logger.Info("process started", "mode", mode, "listen", public.Addr, "pool_max_conns", c.Postgres.MaxConns, "listen_connections", listenConnections)
 	hup := make(chan os.Signal, 1)
 	signal.Notify(hup, syscall.SIGHUP)
 	defer signal.Stop(hup)
@@ -185,12 +189,6 @@ func Run(parent context.Context, mode string, c bootstrap.Config, logger *slog.L
 		return fmt.Errorf("listener failed")
 	}
 	return nil
-}
-func boolInt(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
 }
 func deadline(next http.Handler, d time.Duration) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

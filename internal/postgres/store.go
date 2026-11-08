@@ -206,45 +206,26 @@ func loadRevision(ctx context.Context, q querier, id int64) (config.Config, erro
 	if err != nil {
 		return c, err
 	}
-	for rows.Next() {
-		var raw []byte
-		var u config.Upstream
-		if err = rows.Scan(&raw); err != nil {
-			rows.Close()
-			return c, err
-		}
-		if err = json.Unmarshal(raw, &u); err != nil {
-			rows.Close()
-			return c, err
-		}
-		u.Targets = []config.Target{}
-		c.Upstreams = append(c.Upstreams, u)
-	}
-	err = rows.Err()
-	rows.Close()
+	c.Upstreams, err = pgx.CollectRows(rows, jsonRow[config.Upstream])
 	if err != nil {
 		return c, err
+	}
+	index := map[string]int{}
+	for i := range c.Upstreams {
+		c.Upstreams[i].Targets = []config.Target{}
+		index[c.Upstreams[i].ID] = i
 	}
 	rows, err = q.Query(ctx, "SELECT upstream_id,id,url FROM upstream_targets WHERE revision_id=$1 ORDER BY upstream_id,position", id)
 	if err != nil {
 		return c, err
 	}
-	index := map[string]int{}
-	for i, u := range c.Upstreams {
-		index[u.ID] = i
-	}
-	for rows.Next() {
-		var uid string
-		var t config.Target
-		if err = rows.Scan(&uid, &t.ID, &t.URL); err != nil {
-			rows.Close()
-			return c, err
-		}
+	var uid string
+	var target config.Target
+	_, err = pgx.ForEachRow(rows, []any{&uid, &target.ID, &target.URL}, func() error {
 		i := index[uid]
-		c.Upstreams[i].Targets = append(c.Upstreams[i].Targets, t)
-	}
-	err = rows.Err()
-	rows.Close()
+		c.Upstreams[i].Targets = append(c.Upstreams[i].Targets, target)
+		return nil
+	})
 	if err != nil {
 		return c, err
 	}
@@ -252,16 +233,11 @@ func loadRevision(ctx context.Context, q querier, id int64) (config.Config, erro
 	if err != nil {
 		return c, err
 	}
-	for rows.Next() {
+	c.Handlers, err = pgx.CollectRows(rows, func(row pgx.CollectableRow) (config.Handler, error) {
 		var h config.Handler
-		if err = rows.Scan(&h.ID, &h.Type, &h.Version, &h.Enabled, &h.Options); err != nil {
-			rows.Close()
-			return c, err
-		}
-		c.Handlers = append(c.Handlers, h)
-	}
-	err = rows.Err()
-	rows.Close()
+		err := row.Scan(&h.ID, &h.Type, &h.Version, &h.Enabled, &h.Options)
+		return h, err
+	})
 	if err != nil {
 		return c, err
 	}
@@ -269,48 +245,42 @@ func loadRevision(ctx context.Context, q querier, id int64) (config.Config, erro
 	if err != nil {
 		return c, err
 	}
-	index = map[string]int{}
-	for rows.Next() {
-		var raw []byte
-		var r config.Route
-		if err = rows.Scan(&raw); err != nil {
-			rows.Close()
-			return c, err
-		}
-		if err = json.Unmarshal(raw, &r); err != nil {
-			rows.Close()
-			return c, err
-		}
-		index[r.ID] = len(c.Routes)
-		c.Routes = append(c.Routes, r)
-	}
-	err = rows.Err()
-	rows.Close()
+	c.Routes, err = pgx.CollectRows(rows, jsonRow[config.Route])
 	if err != nil {
 		return c, err
+	}
+	index = map[string]int{}
+	for i, r := range c.Routes {
+		index[r.ID] = i
 	}
 	rows, err = q.Query(ctx, "SELECT route_id,handler_id FROM handler_bindings WHERE revision_id=$1 ORDER BY route_id NULLS FIRST,position", id)
 	if err != nil {
 		return c, err
 	}
-	for rows.Next() {
-		var rid *string
-		var hid string
-		if err = rows.Scan(&rid, &hid); err != nil {
-			rows.Close()
-			return c, err
-		}
+	var rid *string
+	var hid string
+	_, err = pgx.ForEachRow(rows, []any{&rid, &hid}, func() error {
 		if rid == nil {
 			c.GlobalHandlers = append(c.GlobalHandlers, hid)
 		} else {
 			i := index[*rid]
 			c.Routes[i].Handlers = append(c.Routes[i].Handlers, hid)
 		}
-	}
-	err = rows.Err()
-	rows.Close()
+		return nil
+	})
 	return c, err
 }
+
+func jsonRow[T any](row pgx.CollectableRow) (T, error) {
+	var value T
+	var data []byte
+	if err := row.Scan(&data); err != nil {
+		return value, err
+	}
+	err := json.Unmarshal(data, &value)
+	return value, err
+}
+
 func duration(d *config.Duration) any {
 	if d == nil {
 		return nil
