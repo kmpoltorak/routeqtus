@@ -1,0 +1,9 @@
+.git
+.env
+.demo
+bin
+dist
+*.out
+*.prof
+routeqtus_prompt.md
+PLAN.md

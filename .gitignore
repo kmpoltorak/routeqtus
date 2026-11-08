@@ -1,0 +1,8 @@
+routeqtus_prompt.md
+PLAN.md
+.env
+.demo/
+bin/
+dist/
+*.prof
+*.out

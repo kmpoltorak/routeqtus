@@ -1,0 +1,8 @@
+version: 1
+management:
+  listen: ":9080"
+  cert_file: "/demo/tls/cert.pem"
+  key_file: "/demo/tls/key.pem"
+  principal: "demo-management-service"
+admin:
+  listen: "127.0.0.1:9090"

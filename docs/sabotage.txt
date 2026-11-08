@@ -1,0 +1,13 @@
+sabotage check: removed if seen[key] { -> TestAmbiguousDocuments failed
+--- FAIL: TestAmbiguousDocuments (0.00s)
+    json_test.go:9: accepted {"x":1,"x":2}
+sabotage check: removed http.MaxBytesReader(writer, r.Body, s.limits.MaxBodyBytes) -> TestTimeoutCancellationAndBodyLimits failed
+--- FAIL: TestTimeoutCancellationAndBodyLimits (0.10s)
+    gateway_test.go:189: chunked=true status=204
+sabotage check: removed if s.trustedIP(peer) { -> TestForwarding failed
+--- FAIL: TestForwarding (0.00s)
+    gateway_test.go:96: 192.0.2.1|https||gateway|f33de2c19ffcab68e4265fb5f7c0cc6f
+sabotage check: removed if generation != expected { -> TestControlPlaneAndReload failed
+--- FAIL: TestControlPlaneAndReload (0.62s)
+    integration_test.go:225: map[200:1 500:1]
+All original source files restored. Run the complete checks after sabotage.

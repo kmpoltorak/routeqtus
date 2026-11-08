@@ -1,0 +1,24 @@
+goos: darwin
+goarch: amd64
+pkg: github.com/kmpoltorak/routeqtus/internal/gateway
+cpu: Intel(R) Core(TM) i7-1068NG7 CPU @ 2.30GHz
+BenchmarkRouter/routes=1/match=true-8         	12122481	        48.72 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1/match=true-8         	12223582	        50.71 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1/match=true-8         	11482816	        57.46 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1/match=false-8        	 6773145	        79.38 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1/match=false-8        	 9415765	        64.64 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1/match=false-8        	 9309319	        74.85 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=100/match=true-8       	  762750	       754.3 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=100/match=true-8       	  819726	       739.8 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=100/match=true-8       	  821043	       748.4 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=100/match=false-8      	 1000000	       540.6 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=100/match=false-8      	 1223535	       489.8 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=100/match=false-8      	 1227538	       489.6 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1000/match=true-8      	   83946	      7373 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1000/match=true-8      	   84447	      7347 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1000/match=true-8      	   81524	      7113 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1000/match=false-8     	  110727	      5362 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1000/match=false-8     	  113662	      5439 ns/op	      32 B/op	       1 allocs/op
+BenchmarkRouter/routes=1000/match=false-8     	  109574	      5346 ns/op	      32 B/op	       1 allocs/op
+PASS
+ok  	github.com/kmpoltorak/routeqtus/internal/gateway	11.442s
