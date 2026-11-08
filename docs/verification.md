@@ -102,6 +102,25 @@ The vulnerability check was retained without weakening its failure behavior.
   connection tests distinguish an untrusted TLS certificate and a refused connection.
   Error-classification tests ensure server messages, URLs, and credentials are omitted.
 
+## Deferred audit cleanup checks
+
+The row-loading refactor uses pgx collectors to close rows and propagate scan/decode
+errors. Field round-trip coverage includes two upstreams with different target orders
+and separate route handler bindings. `TestRevisionDecodeFailureReleasesConnection`
+loads a valid row followed by a malformed stored duration through a one-connection
+pool, then verifies that the error is returned and the pool still works.
+
+`TestResponseHeaderOrderAcrossProtocols` checks global/route precedence, header removal,
+and generated request IDs for HTTP 200, a 101 upgrade, and a gateway-generated 404.
+Both response paths use the same header operation.
+
+Configuration field-presence validation reuses the strict JSON scan's document tree,
+with a separate typed decode. Tests preserve required/case-sensitive fields, nullable
+pointers, explicit false, duplicate rejection, depth limits, and raw-number behavior.
+The generic configuration tree retains its former float64 range check, while direct
+raw JSON decoding still accepts valid JSON numbers beyond that range. The startup
+`listen_connections` log field remains numeric after removing its conversion helper.
+
 ## Validation limits
 
 These checks do not certify production capacity, external-generator saturation,

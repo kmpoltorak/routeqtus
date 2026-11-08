@@ -442,18 +442,7 @@ func (s *Snapshot) proxy(route config.Route, p *pool, logger *slog.Logger) *http
 		}
 	}, ModifyResponse: func(response *http.Response) error {
 		if st := middleware.Current(response.Request); st != nil {
-			for i := len(st.Headers) - 1; i >= 0; i-- {
-				h := st.Headers[i]
-				for _, k := range h.ResponseRemove {
-					response.Header.Del(k)
-				}
-				for k, v := range h.ResponseSet {
-					response.Header.Set(k, v)
-				}
-			}
-			if st.OutboundID {
-				response.Header.Set("X-Request-Id", st.RequestID)
-			}
+			st.ApplyResponseHeaders(response.Header)
 		}
 		return nil
 	}, ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {

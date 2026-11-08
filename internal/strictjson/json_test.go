@@ -1,6 +1,10 @@
 package strictjson
 
-import "testing"
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+)
 
 func TestAmbiguousDocuments(t *testing.T) {
 	for _, s := range []string{`{"x":1,"x":2}`, `{"x":{"a":1,"a":2}}`, `{} {}`, `[`, ``} {
@@ -28,4 +32,19 @@ func FuzzDecode(f *testing.F) {
 	f.Add(`{"a":1}`)
 	f.Add(`{"a":1,"a":2}`)
 	f.Fuzz(func(t *testing.T, s string) { var v any; _ = Decode([]byte(s), &v) })
+}
+
+func TestRawNumberAndDepthLimits(t *testing.T) {
+	var raw json.RawMessage
+	if err := Decode([]byte(`{"count":1e10000}`), &raw); err != nil {
+		t.Fatal("raw number rejected", err)
+	}
+	for _, n := range []int{64, 65} {
+		data := strings.Repeat("[", n) + "0" + strings.Repeat("]", n)
+		var v any
+		err := Decode([]byte(data), &v)
+		if (err == nil) != (n == 64) {
+			t.Fatalf("depth %d: %v", n, err)
+		}
+	}
 }

@@ -141,13 +141,7 @@ func (w *Writer) WriteHeader(code int) {
 	}
 	if code >= 200 || code == 101 {
 		w.State.Status = code
-		for i := len(w.State.Headers) - 1; i >= 0; i-- {
-			h := w.State.Headers[i]
-			apply(w.Header(), h.ResponseSet, h.ResponseRemove)
-		}
-		if w.State.OutboundID {
-			w.Header().Set("X-Request-Id", w.State.RequestID)
-		}
+		w.State.ApplyResponseHeaders(w.Header())
 	}
 	w.ResponseWriter.WriteHeader(code)
 }
@@ -202,6 +196,15 @@ func (s *State) Rewrite(r *http.Request) {
 	}
 	if s.OutboundID {
 		r.Header.Set("X-Request-Id", s.RequestID)
+	}
+}
+func (s *State) ApplyResponseHeaders(header http.Header) {
+	for i := len(s.Headers) - 1; i >= 0; i-- {
+		h := s.Headers[i]
+		apply(header, h.ResponseSet, h.ResponseRemove)
+	}
+	if s.OutboundID {
+		header.Set("X-Request-Id", s.RequestID)
 	}
 }
 func AllowedHeader(k string) bool {
