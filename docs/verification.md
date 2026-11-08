@@ -36,6 +36,8 @@ transport belong only to that local disposable environment.
 
 Tests cover routing precedence, host/method matching, 404/405/Allow, prefix boundaries,
 encoded separators, ambiguous queries, prefix stripping, Host rewriting, and round robin.
+`TestMethodSelectionFallsBackToBroaderRoute` verifies GET-specific matching and POST
+fallback to a broader any-method route; method matching is not an access-control layer.
 Handler tests cover schema examples, required/unknown options, ordering, disabled
 wrappers, control characters, and log secret redaction. HTTP tests use real listeners
 for cancellation, full deadlines, chunked bodies, HTTP/2 TLS, verified upstream TLS,
@@ -84,6 +86,21 @@ The first Linux CI run exposed an incompatible old govulncheck analyzer (v1.1.4)
 which panicked while analyzing Go 1.27 syntax. The pinned tool was upgraded to v1.9.0
 and the full source scan passed both natively and in the Go 1.27.3 Linux container.
 The vulnerability check was retained without weakening its failure behavior.
+
+## Follow-up audit regressions
+
+- `TestForwardingFieldLines` exercises multiple XFF field lines, invalid nearest hops,
+  trusted/untrusted peers, and repeated or comma-separated Proto values. Four cases
+  failed with the original first-line-only implementation and passed after the fix.
+- Panic metric/access-log tests failed when unwritten panics were counted as 2xx.
+  Tests also preserve written statuses, abort propagation, and zero in-flight cleanup.
+- Recovery-log tests verify a stack trace without the panic value; access-log tests
+  check the method while excluding credentials, bodies, and query strings.
+- Metric tests check HELP/TYPE metadata and values for both serve and manage exporters.
+  Restoring the old exporters through a local overlay made the tests fail.
+- Startup tests reject missing/invalid DSNs before the startup timeout. Real CLI
+  connection tests distinguish an untrusted TLS certificate and a refused connection.
+  Error-classification tests ensure server messages, URLs, and credentials are omitted.
 
 ## Validation limits
 

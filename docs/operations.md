@@ -127,6 +127,21 @@ contracts first. Then publish a supported `schema_version` and handler contract 
 Never publish an unsupported contract while old instances still serve. Roll back
 configuration before downgrading a binary that cannot read the new contracts.
 
+## Routing methods and fallback
+
+`methods` filters routing candidates; it is not an authorization rule. For example:
+
+| Route | Path | Prefix | Methods | Priority |
+| --- | --- | --- | --- | ---: |
+| get-admin | /api/admin | false | GET | 10 |
+| api-fallback | /api | true | any (omitted) | 0 |
+
+GET /api/admin selects get-admin. POST /api/admin skips it and selects api-fallback.
+Only when no matching candidate accepts the method does the gateway return 405 with
+Allow. Protect access through an actual authorization boundary, and avoid a permissive
+fallback if your backend relies on specific route coverage. This behavior is covered
+by `TestMethodSelectionFallsBackToBroaderRoute`.
+
 ## Request lifecycle
 
 Routes choose targets by atomic round robin. Transports and reverse proxies are built
@@ -171,6 +186,34 @@ configuration; request query/header values never select arbitrary backend URLs.
 SIGTERM/SIGINT first marks serving unready, stops synchronization and new connections,
 and drains ordinary requests and upgrades until `shutdown_timeout`. Remaining public
 and hijacked connections are closed, then transports and the database pool are closed.
+
+Kubernetes endpoint removal and load-balancer propagation are asynchronous. Routeqtus
+starts closing its public listener when it receives SIGTERM; it does not add an
+application-level propagation sleep. Give the platform time to remove the terminating
+Pod from traffic before sending SIGTERM. On Kubernetes 1.34 or later, merge this
+Pod-spec fragment into your Deployment:
+
+```yaml
+spec:
+  terminationGracePeriodSeconds: 30
+  containers:
+    - name: serve
+      lifecycle:
+        preStop:
+          sleep:
+            seconds: 5
+```
+
+The kubelet executes this built-in sleep hook before SIGTERM, so it works with the
+scratch image without a shell or sleep executable. Kubernetes 1.30-1.33 requires the
+`PodLifecycleSleepAction` feature gate, enabled by default in those versions; it is
+stable from 1.34. See [lifecycle hooks](https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/)
+and [feature-gate history](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/).
+The termination grace countdown includes both preStop and process shutdown. The 5s
+propagation delay and 30s grace above are illustrative, not measured platform limits;
+choose the delay for your actual load balancer, and leave time beyond that delay plus
+`server.shutdown_timeout`. Validate rolling updates with real traffic on your cluster;
+this repository's tests do not establish Kubernetes rollout guarantees.
 
 Process logs use slog JSON by default. Access logs are independently enabled by
 PostgreSQL handler bindings; they contain HTTP method, status, request/route IDs, duration, and size,
