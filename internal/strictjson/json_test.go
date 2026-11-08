@@ -48,3 +48,20 @@ func TestRawNumberAndDepthLimits(t *testing.T) {
 		}
 	}
 }
+
+func TestDecodedObjectKeyUniqueness(t *testing.T) {
+	for _, tc := range []struct {
+		data  string
+		valid bool
+	}{
+		{`{"x":1,"\u0078":2}`, false},
+		{`[{"x":1,"\u0078":2}]`, false},
+		{`[{"x":1},{"x":2}]`, true},
+		{`{"x":{"x":1}}`, true},
+	} {
+		var v any
+		if err := Decode([]byte(tc.data), &v); (err == nil) != tc.valid {
+			t.Fatalf("%s: %v", tc.data, err)
+		}
+	}
+}

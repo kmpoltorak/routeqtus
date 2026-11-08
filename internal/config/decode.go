@@ -15,8 +15,12 @@ func Decode(data []byte) (Config, error) {
 	return c, c.WithErrorContext(err)
 }
 func DecodeTyped(data []byte, dst any) error {
-	raw, err := strictjson.DecodeDocument(data, dst)
-	if err != nil {
+	if err := strictjson.Decode(data, dst); err != nil {
+		return Invalid("/", err.Error())
+	}
+	// ponytail: one extra control-plane parse keeps presence checks simple; revisit only if configuration parsing becomes a measured bottleneck.
+	var raw any
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return Invalid("/", err.Error())
 	}
 	return required(raw, reflect.TypeOf(dst).Elem(), "")

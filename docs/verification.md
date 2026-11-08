@@ -144,8 +144,10 @@ pool, then verifies that the error is returned and the pool still works.
 and generated request IDs for HTTP 200, a 101 upgrade, and a gateway-generated 404.
 Both response paths use the same header operation.
 
-Configuration field-presence validation reuses the strict JSON scan's document tree,
-with a separate typed decode. Tests preserve required/case-sensitive fields, nullable
+Configuration decoding uses a duplicate/depth scan, a typed decode, then a separate
+generic parse for field-presence validation. The extra control-plane parse replaces
+the recursive tree-collection flag; parsing is not part of proxy request handling.
+Tests preserve required/case-sensitive fields, nullable
 pointers, explicit false, duplicate rejection, depth limits, and raw-number behavior.
 The generic configuration tree retains its former float64 range check, while direct
 raw JSON decoding still accepts valid JSON numbers beyond that range. The startup
@@ -184,3 +186,17 @@ and joined errors, missing required fields, bindings, malformed IDs, and invalid
 while rejecting three stored revisions, checks each revision ID even for identical
 messages, and excludes target credentials. The baseline logged two entries with no
 revision IDs for three rejected revisions. Unit and focused PostgreSQL race checks pass.
+
+## Strict JSON simplification
+
+The selective rollback removes DecodeDocument and the recursive collect flag; row
+collectors, response-header reuse, numeric startup logging, and error context remain.
+Existing tests preserve raw JSON number range versus generic configuration float64
+range, required/null/case/false semantics, depth, duplicate keys, and trailing values.
+`TestDecodedObjectKeyUniqueness` additionally checks escaped equivalent keys and
+separate object scopes. Removing duplicate rejection makes its assertions fail.
+This favors simpler configuration code and restores the extra parse/allocation cost;
+no performance improvement is claimed. Management round trips and bounded fuzzing
+passed after the change; the bounded fuzz run completed 328463 executions.
+Sabotage overlays also removed required-field enforcement and bypassed the generic
+float64 range check; both existing characterization tests failed as intended.
