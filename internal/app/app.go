@@ -227,7 +227,7 @@ func diagnostics(c bootstrap.Config, token string, store *postgres.Store, rt *ru
 				rt.Metrics(w)
 			} else {
 				p := store.Pool.Stat()
-				fmt.Fprintf(w, "routeqtus_postgres_connections %d\n", p.TotalConns())
+				fmt.Fprintf(w, "# HELP routeqtus_postgres_connections Current pooled PostgreSQL connections.\n# TYPE routeqtus_postgres_connections gauge\nrouteqtus_postgres_connections %d\n", p.TotalConns())
 			}
 		})
 	}

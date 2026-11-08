@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -259,7 +260,7 @@ func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 								panic(p)
 							}
 							s := Current(r)
-							logger.Error("handler panic", "request_id", s.RequestID, "route_id", s.RouteID)
+							logger.Error("handler panic", "request_id", s.RequestID, "route_id", s.RouteID, "stack", string(debug.Stack()))
 							if s.Status != 0 {
 								panic(http.ErrAbortHandler)
 							}
@@ -286,13 +287,20 @@ func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					start := time.Now()
 					defer func() {
+						p := recover()
 						if (counter.Add(1)-1)%uint64(o.SampleEvery) == 0 {
 							s := Current(r)
 							status := s.Status
 							if status == 0 {
 								status = 200
+								if p != nil {
+									status = 500
+								}
 							}
-							logger.Info("request", "request_id", s.RequestID, "route_id", s.RouteID, "status", status, "duration_seconds", time.Since(start).Seconds(), "response_bytes", s.Bytes)
+							logger.Info("request", "request_id", s.RequestID, "route_id", s.RouteID, "method", r.Method, "status", status, "duration_seconds", time.Since(start).Seconds(), "response_bytes", s.Bytes)
+						}
+						if p != nil {
+							panic(p)
 						}
 					}()
 					next.ServeHTTP(w, r)

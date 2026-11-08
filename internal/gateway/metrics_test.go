@@ -16,10 +16,25 @@ func TestUnmatchedMetricsCannotCollideWithRouteID(t *testing.T) {
 	s.WriteMetrics(w)
 	seen := map[string]bool{}
 	for _, line := range strings.Split(strings.TrimSpace(w.Body.String()), "\n") {
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
 		key, _, _ := strings.Cut(line, " ")
 		if seen[key] {
 			t.Fatal("duplicate metric series", key)
 		}
 		seen[key] = true
+	}
+}
+
+func TestRequestMetricMetadata(t *testing.T) {
+	s := compiled(t, testutil.Config("http://example.com"))
+	w := httptest.NewRecorder()
+	s.WriteMetrics(w)
+	for name, kind := range map[string]string{"routeqtus_errors_total": "counter", "routeqtus_requests_total": "counter", "routeqtus_in_flight": "gauge", "routeqtus_request_duration_seconds": "histogram"} {
+		text := w.Body.String()
+		if strings.Count(text, "# TYPE "+name+" "+kind+"\n") != 1 || !strings.Contains(text, "# HELP "+name+" ") {
+			t.Fatal("missing metadata", name, text)
+		}
 	}
 }

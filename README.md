@@ -94,7 +94,7 @@ entry order; code after `next` runs in reverse. Disabled handlers add no wrapper
 | --- | --- |
 | `request_id` | `{}`; replace untrusted IDs with a generated ID |
 | `recover` | `{}`; recover before response start, preserve `http.ErrAbortHandler` |
-| `access_log` | `sample_every`; excludes bodies, URLs, query strings, and auth headers |
+| `access_log` | `sample_every`; includes method, excludes bodies, URLs, query strings, and auth headers |
 | `headers` | Allowed request/response set/remove maps and lists |
 | `powered_by` | `value`; example registered extension |
 
@@ -114,6 +114,7 @@ database confirmation restores readiness. Publication is atomic in PostgreSQL an
 per instance; it does not switch a cluster simultaneously.
 
 Diagnostics use a separate listener: `/healthz`, `/readyz`, `/status`, `/metrics`.
+Metric families include HELP/TYPE metadata; unwritten panics count as 5xx.
 Non-loopback diagnostics require an admin token. pprof is off and requires an admin
 token when enabled. Protect the diagnostic network; admin HTTP does not provide TLS.
 See [operations](docs/operations.md) for deadlines, TLS, shutdown, and deployment order.
