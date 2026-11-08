@@ -118,6 +118,11 @@ Field paths remain JSON Pointers. Valid known identifiers appear as optional
 Compilation reports independent entity failures from the first invalid phase
 (upstreams, then handlers, then routes). It stops before dependent phases to avoid
 cascading reference errors; this is not an exhaustive list of every bad field.
+Compiler reports retain at most 100 field errors and use an 8 KiB text budget;
+individual messages longer than 256 bytes end with `...` on a UTF-8 boundary.
+A final ordinary field error, such as `{"path":"/","message":"9900 more errors omitted"}`,
+counts errors omitted by either the number or byte budget. No Problem schema fields
+are added. The same report reaches runtime logs and the diagnostics status error.
 Stored JSON conversion failures return 503 and cannot publish a partial candidate.
 Runtime rejection logs include the known `revision_id` and entity context; repeated
 identical errors in different revisions are logged separately.

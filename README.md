@@ -81,7 +81,9 @@ documents. JSON imports reject unknown/duplicate keys and unsupported versions.
 Configuration decoding checks typed values and required fields separately.
 JSON is an import format, never an alternative runtime configuration source.
 Validation errors retain field paths and include known entity IDs; independent failures
-in the first invalid compilation phase are returned together.
+in the first invalid compilation phase are returned together. Compiler reports retain
+at most 100 fields plus a root omission entry, cap each message at 256 bytes, and
+bound the formatted report to 8 KiB.
 
 See [bootstrap and every operational field](docs/reference.md),
 [OpenAPI](docs/openapi.json), and [API examples](docs/api.md).
