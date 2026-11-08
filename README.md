@@ -158,6 +158,8 @@ Tests exercise public behavior with real HTTP servers, HTTP/2 TLS, SSE and WebSo
 traffic, and isolated PostgreSQL databases. Integration tests require database-creation
 privileges and never reuse the application's database. Their script starts a disposable
 loopback PostgreSQL container unless `ROUTEQTUS_TEST_DATABASE_URL` is supplied.
+Security regressions cover remote CLI HTTPS, diagnostics authentication, token and
+metadata byte limits, and latest-100 history with older-ID reads.
 Regressions also cover header precedence on HTTP, errors, and upgrades, plus database
 connection release after malformed stored values. Verification includes deliberate
 sabotage checks; results and commands are recorded.
