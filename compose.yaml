@@ -9,6 +9,13 @@ x-gateway: &gateway
   read_only: true
   cap_drop: [ALL]
   security_opt: [no-new-privileges:true]
+x-backend: &backend
+  <<: *gateway
+  image: routeqtus-demo:local
+  build:
+    context: .
+    target: demo
+  volumes: []
 services:
   postgres:
     image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
@@ -66,13 +73,11 @@ services:
     depends_on:
       postgres: {condition: service_healthy}
   backend-a:
-    <<: *gateway
-    entrypoint: [/demo-backend]
+    <<: *backend
     environment:
       DEMO_BACKEND_NAME: backend-a
   backend-b:
-    <<: *gateway
-    entrypoint: [/demo-backend]
+    <<: *backend
     environment:
       DEMO_BACKEND_NAME: backend-b
 volumes:

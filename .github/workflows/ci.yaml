@@ -21,6 +21,7 @@ jobs:
       - run: make fuzz vuln
       - run: make docs && git diff --exit-code docs/openapi.json docs/reference.md
       - run: docker build --tag routeqtus:ci .
+      - run: sh scripts/check-image.sh
       - run: sh scripts/check-examples.sh
   demo:
     runs-on: ubuntu-24.04

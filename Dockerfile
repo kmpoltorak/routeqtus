@@ -8,9 +8,15 @@ ARG VERSION=dev
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/kmpoltorak/routeqtus/internal/cli.Version=${VERSION}" -o /routeqtus ./cmd/routeqtus \
  && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /demo-backend ./cmd/demo-backend
 
-FROM scratch
+FROM scratch AS runtime
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /routeqtus /routeqtus
-COPY --from=build /demo-backend /demo-backend
 USER 65532:65532
 ENTRYPOINT ["/routeqtus"]
+
+FROM scratch AS demo
+COPY --from=build /demo-backend /demo-backend
+USER 65532:65532
+ENTRYPOINT ["/demo-backend"]
+
+FROM runtime AS production
