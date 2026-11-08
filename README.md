@@ -133,7 +133,7 @@ See [operations](docs/operations.md) for deadlines, TLS, shutdown, and deploymen
 | Target | Action |
 | --- | --- |
 | `make build`, `make run` | Static binary; run native `serve` |
-| `make check`, `make test` | Formatting/vet; unit and local HTTP tests |
+| `make check`, `make test` | Publication manifest, documentation links, formatting/vet; unit and HTTP tests |
 | `make test-race`, `make test-integration` | Race checks; disposable real PostgreSQL |
 | `make fuzz`, `make vuln` | Bounded fuzzing; govulncheck |
 | `make bench`, `make loadbench` | Router microbenchmarks; proxy comparisons |

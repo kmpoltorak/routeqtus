@@ -7,6 +7,7 @@ checks on Ubuntu. Run commands from the repository root.
 | Check | Command / evidence | Local result |
 | --- | --- | --- |
 | Formatting and static analysis | `make check` | Passed |
+| Publication manifest | `python3 scripts/check_publication.py` and archive checks | Excludes working material and checks local documentation links |
 | Unit and real local HTTP tests | `go test ./...` | Passed |
 | Unit/HTTP race detector | `go test -race ./...` | Passed |
 | PostgreSQL integration | `make test-integration` or `sh scripts/test-integration.sh` | Passed with isolated databases |
@@ -21,9 +22,9 @@ checks on Ubuntu. Run commands from the repository root.
 | OpenAPI/field reference | `make docs`; `TestPublishedContractMatchesRegistry` | Generated; runtime registry and file compared |
 | Every operational field | `TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres` | Passed, including TLS references, explicit zero/false, and ordering |
 | Request-path SQL | `TestDatabaseOutageAndNoRequestSQL` | 100 requests caused zero configuration pool acquisitions |
-| Live changes/outage | `TestRuntimeTrafficDuringPublicationAndOutage` | Zero traffic errors; [raw measurements](benchmark-control-plane.txt) |
-| Sabotage | `ROUTEQTUS_TEST_DATABASE_URL=... make sabotage` | Four deliberate behavior failures detected; [record](sabotage.txt) |
-| Performance | See [benchmarks](benchmarks.md) | Actual raw data, comparison, CPU profile, and limits recorded |
+| Live changes/outage | `TestRuntimeTrafficDuringPublicationAndOutage` | Zero traffic errors; summary in [benchmarks](benchmarks.md) |
+| Sabotage | `ROUTEQTUS_TEST_DATABASE_URL=... make sabotage` | Four deliberate behavior failures detected; sources restored |
+| Performance | See [benchmarks](benchmarks.md) | Measured results, method, and limits summarized |
 
 Integration tests require an administrative, disposable PostgreSQL connection with
 database-creation privileges. They create uniquely named databases and remove only
@@ -75,12 +76,7 @@ which panicked while analyzing Go 1.27 syntax. The pinned tool was upgraded to v
 and the full source scan passed both natively and in the Go 1.27.3 Linux container.
 The vulnerability check was retained without weakening its failure behavior.
 
-## Used skills and limits
-
-Applied skills: ponytail (minimal implementation), codebase-design (module interfaces),
-research (primary-source verification and `research.md`), ponytail-review (final review),
-and pr (reviewable PR description). The research skill used one background research
-agent. No optional skill/plugin was installed and agent configuration was not changed.
+## Validation limits
 
 These checks do not certify production capacity, external-generator saturation,
 Kubernetes/HPA behavior, multi-host failure recovery, database-version upgrade paths,

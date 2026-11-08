@@ -7,3 +7,12 @@ dist
 *.prof
 routeqtus_prompt.md
 PLAN.md
+*_prompt.md
+.local/
+__pycache__/
+*.pyc
+*.txt
+*.jsonl
+*.log
+*.pprof
+*.trace

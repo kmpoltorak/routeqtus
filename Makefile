@@ -5,6 +5,7 @@ build:
 run: build
 	bin/routeqtus serve --config examples/bootstrap.yaml
 check:
+	python3 scripts/check_publication.py
 	test -z "$$(gofmt -l internal cmd tests)"
 	go vet ./...
 test:

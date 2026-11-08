@@ -33,10 +33,10 @@ not a production capacity guarantee or autoscaling threshold.
 
 | Dataset | Cases | Requests | Errors | Skipped |
 | --- | ---: | ---: | ---: | ---: |
-| [http](benchmark-http.jsonl) | 90 | 1514724 | 0 | 0 |
-| [https](benchmark-https.jsonl) | 30 | 363738 | 0 | 0 |
-| [stream](benchmark-stream.jsonl) | 20 | 241773 | 0 | 0 |
-| [direct](benchmark-direct.jsonl) | 2 | 82904 | 0 | 0 |
+| HTTP | 90 | 1514724 | 0 | 0 |
+| HTTPS | 30 | 363738 | 0 | 0 |
+| STREAM | 20 | 241773 | 0 | 0 |
+| DIRECT | 2 | 82904 | 0 | 0 |
 
 SSE totals include high-throughput 404 cases. Count only match=true cases when
 evaluating stream samples; percentiles for one-client streams have very few samples.
@@ -65,24 +65,41 @@ separate generator and backend on representative hosts before deriving a capacit
 
 ## Routing allocations and CPU profile
 
-[Raw microbenchmarks](microbench.txt), [before](microbench-before.txt), and
-[benchstat comparison](microbench-summary.txt) report ns/op, B/op, and allocs/op.
+Router microbenchmarks and benchstat compare ns/op, B/op, and allocs/op.
+Raw measurements and profiles remain local; the published report contains their summary.
 The measured router cases now allocate 0 B/op and 0 allocs/op. They scan sorted routes;
 1000-route lookup remains linear. The removed allocation came from constructing a
 SplitHostPort error for a host without a port. Three samples do not establish
 a 95% confidence interval or statistical timing improvement.
 
-The [HTTP CPU profile summary](profile-http.txt) is dominated by loopback syscalls and
+| Routes | Match | Median ns/op | B/op | Allocs/op |
+| ---: | --- | ---: | ---: | ---: |
+| 1 | true | 29.48 | 0 | 0 |
+| 1 | false | 39.13 | 0 | 0 |
+| 100 | true | 716.80 | 0 | 0 |
+| 100 | false | 456.40 | 0 | 0 |
+| 1000 | true | 7018.00 | 0 | 0 |
+| 1000 | false | 5306.00 | 0 | 0 |
+
+The HTTP CPU profile is dominated by loopback syscalls and
 runtime scheduling in this co-located workload. It did not justify GC changes, unsafe,
 custom event loops, or replacing net/http. No such tuning was performed.
 
 ## Publication and database outage under traffic
 
-[Raw runtime/control-plane output](benchmark-control-plane.txt) measures four clients
+The runtime/control-plane test measures four clients
 against a real Runtime and local backend with real PostgreSQL. It records a stable
 phase, ten complete publications under traffic, and a database-unreachable phase
 within max_staleness. Each reports requests, errors, RPS, and p50/p95/p99. There were
-zero errors in those recorded phases. A separate test verifies new requests become
+zero errors in those recorded phases.
+
+| Phase | Requests | Errors | Requests/s | p50 ms | p95 ms | p99 ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Stable | 3884 | 0 | 12925 | 0.251 | 0.597 | 0.794 |
+| Publication | 3551 | 0 | 8204 | 0.382 | 1.057 | 1.402 |
+| Database outage | 3624 | 0 | 12065 | 0.267 | 0.658 | 0.869 |
+
+A separate test verifies new requests become
 503 after staleness and recover after database access returns.
 
 `TestDatabaseOutageAndNoRequestSQL` also holds synchronization idle and verifies
@@ -93,13 +110,14 @@ do not claim that a committed revision switches every replica simultaneously.
 ## Reproduce
 
 ```sh
-go run ./cmd/routeqtus-bench -routes=1,100,1000 -payloads=0,1024,65536 -concurrency=1,16 -duration=1s -warmup=200ms -cpuprofile=http.prof > http.jsonl
-go run ./cmd/routeqtus-bench -https -routes=1,100,1000 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > https.jsonl
-go run ./cmd/routeqtus-bench -stream -routes=1,1000 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > stream.jsonl
-go run ./cmd/routeqtus-bench -modes=direct -routes=1 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > direct.jsonl
-go test ./internal/gateway -run='^$' -bench=. -benchmem -benchtime=500ms -count=3 > microbench.txt
-go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e microbench.txt
-go tool pprof -top http.prof
+mkdir -p .local
+go run ./cmd/routeqtus-bench -routes=1,100,1000 -payloads=0,1024,65536 -concurrency=1,16 -duration=1s -warmup=200ms -cpuprofile=.local/http.prof > .local/http.jsonl
+go run ./cmd/routeqtus-bench -https -routes=1,100,1000 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/https.jsonl
+go run ./cmd/routeqtus-bench -stream -routes=1,1000 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/stream.jsonl
+go run ./cmd/routeqtus-bench -modes=direct -routes=1 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/direct.jsonl
+go test ./internal/gateway -run='^$' -bench=. -benchmem -benchtime=500ms -count=3 > .local/microbench.txt
+go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e .local/microbench.txt
+go tool pprof -top .local/http.prof
 ROUTEQTUS_TEST_DATABASE_URL=... go test -tags=integration ./tests/integration -run TestRuntimeTrafficDuringPublicationAndOutage -count=1 -v
 ```
 
@@ -108,7 +126,6 @@ permission. Use the local integration-container script for ordinary integration 
 
 ## Invalid first run
 
-[Initial invalid run](benchmark-initial-invalid.jsonl) is retained for transparency.
-Its generator kept too few idle connections for 16 clients and exhausted local
-ephemeral ports. It is excluded from the tables above. Fixing the generator pool
+An initial development run was rejected because its generator kept too few idle
+connections for 16 clients and exhausted local ephemeral ports. It is excluded from the tables above. Fixing the generator pool
 removed those errors; this was not evidence of gateway capacity or a backend outage.
