@@ -127,8 +127,8 @@ route's `request_timeout` to `"0s"` explicitly disables it for SSE or WebSockets
 is no short global public `WriteTimeout`. Context cancellation stops the transport;
 HTTP response-controller read/write deadlines also bound blocked socket I/O. The
 deadlines remain active through the server's final flush and unread-body cleanup;
-net/http resets them for the next request. Invalid requests receive the inherited
-deadline too. Explicit streaming routes can still disable their deadline with 0s. Timeout
+net/http resets them for the next request. Invalid requests and admission errors
+(unready or overloaded instances) receive the inherited deadline too. Timeout
 before response start maps to 504, another upstream failure to 502, and an observed
 body-limit violation to 413. An error after response start aborts the stream rather
 than appending a second error body. The client may observe connection termination

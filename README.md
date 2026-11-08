@@ -17,7 +17,7 @@ curl --fail --silent http://127.0.0.1:8080/api
 - Mutations require the generation of the complete configuration and commit atomically.
 - Invalid revisions preserve the last valid snapshot; stale instances reject new traffic.
 - Streaming responses, request bodies, and upgrades use bounded resources and deadlines,
-  including final response flushing and rejected request bodies.
+  including final response flushing, rejected request bodies, and admission errors.
 - Management requires a Bearer token; upstream TLS verification stays enabled.
 
 ## Install

@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
 	"github.com/kmpoltorak/routeqtus/internal/config"
+	"github.com/kmpoltorak/routeqtus/internal/runtime"
 	"github.com/kmpoltorak/routeqtus/internal/testutil"
 )
 
@@ -34,8 +36,11 @@ func (l *pipeListener) Addr() net.Addr { return l.conn.LocalAddr() }
 func TestDeadlineCoversFinalFlushAndRejectedBody(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, "small buffered response") }))
 	defer backend.Close()
-	for _, request := range []string{"GET / HTTP/1.1\r\nHost: example.com\r\n\r\n", "POST /a%2Fb HTTP/1.1\r\nHost: example.com\r\nTransfer-Encoding: chunked\r\n\r\n"} {
-		t.Run(request[:4], func(t *testing.T) {
+	for _, tc := range []struct {
+		name, request string
+		unready       bool
+	}{{"final-flush", "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n", false}, {"rejected-body", "POST /a%2Fb HTTP/1.1\r\nHost: example.com\r\nTransfer-Encoding: chunked\r\n\r\n", false}, {"unready", "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n", true}} {
+		t.Run(tc.name, func(t *testing.T) {
 			compiler := testutil.Compiler(t)
 			compiler.Limits.RequestTimeout = "100ms"
 			c := testutil.Config(backend.URL)
@@ -50,7 +55,13 @@ func TestDeadlineCoversFinalFlushAndRejectedBody(t *testing.T) {
 			listener := &pipeListener{conn: serverConn, done: make(chan struct{})}
 			closed := make(chan struct{})
 			var once sync.Once
-			server := &http.Server{Handler: snapshot, ReadHeaderTimeout: time.Second, ConnState: func(_ net.Conn, state http.ConnState) {
+			var handler http.Handler = snapshot
+			if tc.unready {
+				rt := runtime.New(nil, compiler, bootstrap.Defaults().Sync, compiler.Logger)
+				defer rt.Close()
+				handler = rt
+			}
+			server := &http.Server{Handler: handler, ReadHeaderTimeout: time.Second, ConnState: func(_ net.Conn, state http.ConnState) {
 				if state == http.StateClosed {
 					once.Do(func() { close(closed) })
 				}
@@ -58,7 +69,7 @@ func TestDeadlineCoversFinalFlushAndRejectedBody(t *testing.T) {
 			defer server.Close()
 			go server.Serve(listener)
 			_ = client.SetWriteDeadline(time.Now().Add(time.Second))
-			if _, err = io.WriteString(client, request); err != nil {
+			if _, err = io.WriteString(client, tc.request); err != nil {
 				t.Fatal(err)
 			}
 			// net.Pipe has no socket buffer: unread response/body I/O must hit its deadline.
