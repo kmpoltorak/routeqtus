@@ -6,8 +6,6 @@ bin/
 dist/
 *.prof
 *.out
-AGENTS.md
-CLAUDE.md
 *_prompt.md
 .local/
 __pycache__/

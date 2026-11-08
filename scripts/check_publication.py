@@ -31,6 +31,8 @@ def allowed(name, archive=False):
         return True
     if any(part in {".local", ".demo", ".agents", ".codex", ".aws", "__pycache__"} for part in parts):
         return False
+    if name in {"AGENTS.md", "CLAUDE.md"}:
+        return not archive
     if path.name.lower() in {"plan.md", "agents.md", "claude.md", "research.md", "review.md"} or "prompt" in path.name.lower():
         return False
     if path.suffix in {".txt", ".jsonl", ".prof", ".pprof", ".trace", ".log", ".out", ".pyc", ".pem", ".key", ".p12", ".pfx"}:
@@ -69,7 +71,10 @@ def check_archive(filename):
 
 def main():
     assert allowed("docs/openapi.json") and allowed("examples/config.json")
-    for name in ("PLAN.md", "routeqtus_prompt.md", "AGENTS.md", "CLAUDE.md", ".env", ".local/notes.md", "docs/run.txt", "docs/data.jsonl", "docs/review.md"):
+    for name in ("AGENTS.md", "CLAUDE.md"):
+        assert allowed(name), name
+        assert not allowed(name, archive=True), name
+    for name in ("PLAN.md", "routeqtus_prompt.md", "internal/AGENTS.md", "docs/CLAUDE.md", "agents.md", "claude.md", ".local/AGENTS.md", "../AGENTS.md", ".env", ".local/notes.md", "docs/run.txt", "docs/data.jsonl", "docs/review.md"):
         assert not allowed(name), name
         assert not allowed(name, archive=True), name
     paths = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
