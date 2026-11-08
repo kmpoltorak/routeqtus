@@ -3,6 +3,10 @@
 Routeqtus needs PostgreSQL and an explicitly published revision before `serve`
 accepts traffic. `manage` can start with an empty, migrated database.
 
+When upgrading to v0.1.1, correct any tabs in existing `powered_by.value` options
+before replacing processes. See [release notes](docs/release_notes.md#upgrade-notes)
+for validation compatibility and readiness changes.
+
 ## Local Docker demo
 
 Install Docker with Compose, OpenSSL, curl, and make. Run as a non-root user:

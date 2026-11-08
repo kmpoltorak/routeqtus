@@ -1,7 +1,14 @@
 # Release notes
 
-## Unreleased
+## v0.1.1 — 2026-11-08
 
+This patch release includes the fixes merged after v0.1.0 (PRs #5–#20).
+
+- Reject spoofed multiline X-Forwarded-For chains and ambiguous X-Forwarded-Proto values.
+- Count unwritten panics as 5xx in metrics/access logs; emit metric HELP/TYPE metadata.
+- Report safe startup/CLI connection failure categories without exposing credentials.
+- Batch revision inserts in one atomic transaction; preserve rollback and notifications.
+- Identify the two demo backend instances and clarify method fallback and Kubernetes draining.
 - Isolate release verification from write-enabled publication; publish verified artifacts only.
 - Cover token, TLS, metadata, diagnostics, and revision-history boundaries with regression tests.
 - Sample management database readiness in the background without SQL per probe.
@@ -14,6 +21,19 @@
 - Simplify strict JSON scanning while preserving its validation checks. Configuration
   parsing deliberately uses a separate presence-check parse again.
 - Document the trusted TLS-proxy-to-loopback topology and rejection of percent path names.
+
+### Upgrade notes
+
+- Correct tabs in existing `powered_by.value` options before upgrading. The new
+  validator rejects tabs and other ASCII controls; Unicode length counts characters.
+- Validation error objects retain their JSON Pointer and may add `route_id`,
+  `upstream_id`, or `handler_id`. Clients must accept these optional fields.
+- Bootstrap and database schema versions remain 1; no new migration is introduced.
+- Readiness detection uses `config_sync.poll_interval` plus the query-timeout budget.
+  Configure staleness/timeouts for actual load; autoscaling does not remove per-instance limits.
+
+See [verification](verification.md) for executed checks and [benchmarks](benchmarks.md)
+for measurements and their limits. No production or Kubernetes rollout is certified.
 
 ## v0.1.0
 
