@@ -181,6 +181,8 @@ sabotage checks; results and commands are recorded. `make sabotage` requires an
 explicit disposable `ROUTEQTUS_TEST_DATABASE_URL` with database-creation privileges.
 It edits source files temporarily and restores them in `finally`; run it without
 concurrent edits/tests and inspect the working diff if the process is forcibly killed.
+Root `AGENTS.md` and `CLAUDE.md` are published source instructions; release archives
+omit them. Plans, prompts, and raw working reports remain excluded.
 
 Built with an AI coding assistant. I wrote the spec and reviewed every change.
 

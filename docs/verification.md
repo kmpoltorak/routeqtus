@@ -242,6 +242,10 @@ The following skills were actually used during implementation and follow-up work
 | research | Primary-source checks for platform and workflow behavior |
 | diagnosing-bugs | Reproduce CI, runtime, and demo failures before fixing them |
 | pr | Concrete changes, before/after evidence, verification, and merge risk |
+| writing-for-agents | Check the shared AGENTS rules and CLAUDE import before source publication |
 
-Plans, prompts, local instructions, raw reports, logs, and benchmark inputs remain
-working material; they are excluded from the public source and release manifests.
+Plans, prompts, raw reports, logs, and benchmark inputs remain working material;
+they are excluded from the public source and release manifests. Root `AGENTS.md`
+and `CLAUDE.md` are explicitly allowed in source, while archives still exclude them.
+The publication self-check asserts this distinction and retains rejection of nested
+instruction files, lowercase variants, private directories, and traversal paths.
