@@ -32,6 +32,33 @@ those databases afterward. `make test-integration` creates and removes a loopbac
 container when no test DSN is supplied. Test credentials and cleartext PostgreSQL
 transport belong only to that local disposable environment.
 
+## Development commands
+
+| Target | Action |
+| --- | --- |
+| `make build`, `make run` | Static binary; run native `serve` |
+| `make check`, `make test` | Publication manifest, documentation links, formatting/vet; unit and HTTP tests |
+| `make test-race`, `make test-integration` | Race checks; disposable real PostgreSQL |
+| `make fuzz`, `make vuln` | Bounded fuzzing; govulncheck |
+| `make bench`, `make loadbench` | Router microbenchmarks; proxy comparisons |
+| `make docs`, `make demo` | Regenerate OpenAPI; initialize local demo |
+| `make sabotage` | Temporarily weaken guards, require test failures, restore sources |
+
+Tests exercise public behavior with real HTTP servers, HTTP/2 TLS, SSE and WebSocket
+traffic, and isolated PostgreSQL databases. Integration tests require database-creation
+privileges and never reuse the application's database. Their script starts a disposable
+loopback PostgreSQL container unless `ROUTEQTUS_TEST_DATABASE_URL` is supplied.
+Security regressions cover remote CLI HTTPS, diagnostics authentication, token and
+metadata byte limits, and latest-100 history with older-ID reads.
+Regressions also cover header precedence on HTTP, errors, and upgrades, plus database
+connection release after malformed stored values. Verification includes deliberate
+sabotage checks; results and commands are recorded. `make sabotage` requires an
+explicit disposable `ROUTEQTUS_TEST_DATABASE_URL` with database-creation privileges.
+It edits source files temporarily and restores them in `finally`; run it without
+concurrent edits/tests and inspect the working diff if the process is forcibly killed.
+Root `AGENTS.md` and `CLAUDE.md` are published source instructions; release archives
+omit them. Plans, prompts, and raw working reports remain excluded.
+
 ## Security boundary coverage
 
 Tests reject remote plaintext CLI URLs before a request, non-loopback diagnostics

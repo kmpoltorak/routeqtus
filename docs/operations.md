@@ -147,6 +147,34 @@ contracts first. Then publish a supported `schema_version` and handler contract 
 Never publish an unsupported contract while old instances still serve. Roll back
 configuration before downgrading a binary that cannot read the new contracts.
 
+## Routing and handlers
+
+Higher priority wins, then explicit host, longer path, and exact before prefix;
+methods select among matching candidates. Prefix `/api` matches `/api` and `/api/x`,
+not `/apix`. A method mismatch can fall through to a broader matching route;
+`methods` selects a route and does not provide access control. Missing paths return
+404; unmatched methods return 405 with `Allow` when no candidate accepts the method.
+Encoded separators, dot segments, repeated slashes, and ambiguous queries are rejected.
+Request paths containing a decoded `%` (including `%25` and double encodings) return
+400; encoded spaces and Unicode are supported.
+Forwarding trust covers every X-Forwarded-For field line and rejects ambiguous schemes;
+see [proxy trust](operations.md).
+
+Global handlers run outside route handlers and also cover 404/405. Lists record
+entry order; code after `next` runs in reverse. Disabled handlers add no wrapper.
+
+| Handler | Options |
+| --- | --- |
+| `request_id` | `{}`; replace untrusted IDs with a generated ID |
+| `recover` | `{}`; recover before response start, preserve `http.ErrAbortHandler` |
+| `access_log` | `sample_every`; includes method, excludes bodies, URLs, query strings, and auth headers |
+| `headers` | Allowed request/response set/remove maps and lists |
+| `powered_by` | `value`; example registered extension |
+
+Handler bounds are tested against their schemas. `powered_by.value` permits 1–128
+Unicode characters, permits HTAB, and rejects other ASCII control characters.
+Discover contracts at `/v1/handler-types`. See [extensions](extensions.md).
+
 ## Routing methods and fallback
 
 `methods` filters routing candidates; it is not an authorization rule. For example:
@@ -259,3 +287,18 @@ by the 10000-route configuration limit. Removed snapshots disappear from exposit
 route request counters/histograms reset on reload. Generation is a gauge, never a label.
 `admin.metrics: false` hides the endpoint; operational and per-route flags control
 request collection. There is no synchronous SQL or database log write per request.
+
+## Limitations
+
+- No gateway-level retry, active backend health checking, circuit breaker, or account system.
+- The standard HTTP transport can retry eligible requests on reused connection failures;
+  see [transport behavior](operations.md). Bodies are never replayed by gateway code.
+- Routing scans sorted candidates; [benchmarks](benchmarks.md) quantify local costs.
+- Revision writes are batched inside one transaction. Structural entity caps do not
+  guarantee publication within the default 2s SQL budget; size timeouts for your deployment.
+- Metrics counters belong to snapshots and reset on reload; historical revisions remain
+  in PostgreSQL. Revision history lists the latest 100; known IDs remain readable.
+- TLS secret references must exist in both management and serving environments. There is
+  no secret-value import/export or built-in encryption/key distribution service.
+- No production capacity, external generator saturation, multi-host deployment, or
+  Windows support claim. See [executed checks](verification.md).

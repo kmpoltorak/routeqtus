@@ -7,6 +7,21 @@ See [release notes](docs/release_notes.md#upgrade-notes) for validation and read
 changes when upgrading. Existing `powered_by.value` options containing HTAB remain
 valid; no tab-cleanup step is required.
 
+## Install
+
+For a prebuilt binary, download the archive for your OS/architecture and `checksums.txt`
+from [GitHub Releases](https://github.com/kmpoltorak/routeqtus/releases). Verify its
+SHA-256 checksum before extracting it. Archives contain the binary, examples, and
+public documentation; they do not include the source Makefile. Check the version:
+
+```sh
+./routeqtus version
+```
+
+The Docker demo and source-build commands below use a Git checkout. PostgreSQL 17
+or later is required. Native source builds use Go 1.27.3 and make. The production
+container includes CA certificates, runs without root, and excludes the demo backend.
+
 ## Local Docker demo
 
 Install Docker with Compose, OpenSSL, curl, and make. Run as a non-root user:
@@ -66,10 +81,18 @@ intend to discard this local demo's configuration.
 
 ## Native processes
 
-Install Go 1.27.3 and PostgreSQL 17 or later. Build and check the bootstrap offline:
+Use a source checkout, or the examples from an extracted release archive. For source:
 
 ```sh
+git clone https://github.com/kmpoltorak/routeqtus.git
+cd routeqtus
 make build
+```
+
+When using a release archive, skip the build and replace `bin/routeqtus` in the
+following commands with `./routeqtus`. Check the bootstrap offline:
+
+```sh
 bin/routeqtus check --config examples/bootstrap.yaml
 ```
 
@@ -90,11 +113,27 @@ postgres://routeqtus_serve@db.example.com:5432/routeqtus?sslmode=verify-full&ssl
 ```
 
 Provide the complete DSN, including authentication, through the named environment
-variable. Never put it in YAML or command arguments. Start `manage` with its own DSN
+variable. Never put it in YAML or command arguments.
+
+The default admin listener is `127.0.0.1:9090`; two native processes on the same host
+need different `admin.listen` addresses. Serve does not require the management token.
+Use separate bootstrap copies and change the management process admin address before starting both processes, for example:
+
+```sh
+mkdir -p .local/native
+cp examples/bootstrap.yaml .local/native/manage.yaml
+cp examples/bootstrap.yaml .local/native/serve.yaml
+```
+
+In `.local/native/manage.yaml`, set `admin.listen` to `127.0.0.1:9091`; leave
+`.local/native/serve.yaml` at `127.0.0.1:9090`. In each file, select the corresponding
+role's DSN environment reference.
+
+Start `manage` with its own DSN
 and a random Bearer token of at least 32 bytes in `ROUTEQTUS_MANAGEMENT_TOKEN`:
 
 ```sh
-bin/routeqtus manage --config examples/bootstrap.yaml
+bin/routeqtus manage --config .local/native/manage.yaml
 ```
 
 In another terminal with the same token, publish your configuration through HTTP:
@@ -111,11 +150,8 @@ structure, not backend reachability.
 With the read-only DSN in its environment, start the separate request-serving process:
 
 ```sh
-bin/routeqtus serve --config examples/bootstrap.yaml
+bin/routeqtus serve --config .local/native/serve.yaml
 ```
-
-The default admin listener is `127.0.0.1:9090`; two native processes on the same host
-need different `admin.listen` addresses. Serve does not require the management token.
 
 For a TLS reverse proxy on the same host/network namespace, keep management bound
 to numeric loopback; see the [proxy trust boundary](docs/operations.md#processes-and-trust).
