@@ -152,7 +152,7 @@ documents are rejected. No environment substitution is performed on YAML.
 | admin.pprof | false | Requires admin auth token, including on loopback |
 | admin.auth_token_env | empty | Required outside numeric loopback; token at least 32 bytes |
 | management.listen | 127.0.0.1:9080 | Requires direct TLS outside numeric loopback; a trusted same-namespace TLS proxy may forward to numeric loopback |
-| management.auth_token_env | ROUTEQTUS_MANAGEMENT_TOKEN | Token reference; manage needs at least 32 bytes, serve ignores it |
+| management.auth_token_env | ROUTETUS_MANAGEMENT_TOKEN | Token reference; manage needs at least 32 bytes, serve ignores it |
 | management.principal | management-token | Authenticated service identity, 1–128 bytes |
 | management.request_timeout | 10s | Positive, at most 24h |
 | management.max_body_bytes | 4194304 | 1–67108864 bytes |

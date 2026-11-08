@@ -3,7 +3,7 @@ package gateway_test
 import (
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestInvalidOptionsCannotBecomeEmptySnapshot(t *testing.T) {

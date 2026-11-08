@@ -22,13 +22,13 @@ optional override values. The field coverage/default table is [reference.md](ref
 | `openapi` | Print the generated OpenAPI contract without opening the database |
 
 All `config` commands accept `--api` (default `http://127.0.0.1:9080`) and
-`--token-env` (default `ROUTEQTUS_MANAGEMENT_TOKEN`). Remote API URLs require HTTPS.
+`--token-env` (default `ROUTETUS_MANAGEMENT_TOKEN`). Remote API URLs require HTTPS.
 `apply` and `rollback` accept `--description` and `--author`; the author is a client
 claim, separate from the token's authenticated service principal.
 
 ## Requests and publication
 
-Send `Authorization: Bearer $ROUTEQTUS_MANAGEMENT_TOKEN` on every configuration request.
+Send `Authorization: Bearer $ROUTETUS_MANAGEMENT_TOKEN` on every configuration request.
 For mutations, send the strong ETag of the complete configuration, e.g.
 `If-Match: "g-0"` for the first publication. GET responses concerning configured
 entities use the same generation ETag; editing a different resource invalidates it.
@@ -81,8 +81,8 @@ After starting `manage` against a fresh migrated database:
 
 ```sh
 export API=http://127.0.0.1:9080
-curl --fail-with-body -H "Authorization: Bearer $ROUTEQTUS_MANAGEMENT_TOKEN" "$API/v1/handler-types"
-curl --fail-with-body -X PUT -H "Authorization: Bearer $ROUTEQTUS_MANAGEMENT_TOKEN" \
+curl --fail-with-body -H "Authorization: Bearer $ROUTETUS_MANAGEMENT_TOKEN" "$API/v1/handler-types"
+curl --fail-with-body -X PUT -H "Authorization: Bearer $ROUTETUS_MANAGEMENT_TOKEN" \
   -H 'If-Match: "g-0"' -H 'Content-Type: application/json' \
   --data-binary @examples/config.json "$API/v1/config"
 ```
@@ -104,10 +104,10 @@ sh examples/api.sh
 Equivalent thin-client commands:
 
 ```sh
-bin/routeqtus config status --api "$API"
-bin/routeqtus config validate --api "$API" --file examples/config.json
-bin/routeqtus config apply --api "$API" --file examples/config.json --generation N --description 'Replace configuration'
-bin/routeqtus config rollback --api "$API" --revision ID --generation N
+bin/routetus config status --api "$API"
+bin/routetus config validate --api "$API" --file examples/config.json
+bin/routetus config apply --api "$API" --file examples/config.json --generation N --description 'Replace configuration'
+bin/routetus config rollback --api "$API" --revision ID --generation N
 ```
 
 Replace `N`/`ID` with observed values. Native CLI TLS trust uses standard Go system

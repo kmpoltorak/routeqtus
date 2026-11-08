@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestResourceConversionErrors(t *testing.T) {

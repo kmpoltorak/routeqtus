@@ -16,12 +16,12 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/kmpoltorak/routeqtus/internal/app"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/runtime"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/app"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/runtime"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestDatabaseOutageAndNoRequestSQL(t *testing.T) {
@@ -65,7 +65,7 @@ func TestDatabaseOutageAndNoRequestSQL(t *testing.T) {
 	t.Logf("%d proxy requests caused zero configuration SQL acquisitions", requests)
 	rt.Signal()
 	eventually(t, time.Second, func() bool { return rt.Status().AgeSeconds < .03 })
-	admin, err := pgx.Connect(ctx, os.Getenv("ROUTEQTUS_TEST_DATABASE_URL"))
+	admin, err := pgx.Connect(ctx, os.Getenv("ROUTETUS_TEST_DATABASE_URL"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func TestFirstRunAndManagementRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := bootstrap.Defaults()
-	b.Postgres.DSNEnv = "ROUTEQTUS_INTEGRATION_DSN"
+	b.Postgres.DSNEnv = "ROUTETUS_INTEGRATION_DSN"
 	b.Postgres.QueryTimeout = "1s"
 	b.Server.Listen = freeAddress(t)
 	b.Admin.Listen = freeAddress(t)
@@ -124,7 +124,7 @@ func TestFirstRunAndManagementRestart(t *testing.T) {
 	b.Sync.StartupTimeout = "500ms"
 	b.Server.ShutdownTimeout = "500ms"
 	token := strings.Repeat("m", 32)
-	b.Management.AuthTokenEnv = "ROUTEQTUS_PROCESS_TOKEN"
+	b.Management.AuthTokenEnv = "ROUTETUS_PROCESS_TOKEN"
 	t.Setenv(b.Management.AuthTokenEnv, token)
 	logger := testutil.Compiler(t).Logger
 	start := time.Now()
@@ -163,7 +163,7 @@ func TestFirstRunAndManagementRestart(t *testing.T) {
 	}
 	serveBoot := b
 	serveBoot.Admin.Listen = freeAddress(t)
-	serveBoot.Management.AuthTokenEnv = "ROUTEQTUS_UNUSED_SERVE_TOKEN"
+	serveBoot.Management.AuthTokenEnv = "ROUTETUS_UNUSED_SERVE_TOKEN"
 	serveCtx, stopServe := context.WithCancel(ctx)
 	serveDone := make(chan error, 1)
 	go func() { serveDone <- app.Run(serveCtx, "serve", serveBoot, logger) }()
@@ -207,8 +207,8 @@ func TestFirstRunAndManagementRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	missing := b
-	missing.Postgres.DSNEnv = "ROUTEQTUS_MISSING_DSN"
-	t.Setenv(missing.Postgres.DSNEnv, "postgres://postgres@127.0.0.1:1/routeqtus?sslmode=disable")
+	missing.Postgres.DSNEnv = "ROUTETUS_MISSING_DSN"
+	t.Setenv(missing.Postgres.DSNEnv, "postgres://postgres@127.0.0.1:1/routetus?sslmode=disable")
 	missing.Sync.StartupTimeout = "50ms"
 	if err = app.Run(ctx, "serve", missing, logger); err == nil {
 		t.Fatal("start without database accepted")

@@ -24,9 +24,9 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/middleware"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/middleware"
 )
 
 type Compiler struct {
@@ -652,27 +652,27 @@ func (s *RouteStats) Observe(status int, d time.Duration) {
 	}
 }
 func (s *Snapshot) WriteMetrics(w http.ResponseWriter) {
-	fmt.Fprint(w, "# HELP routeqtus_errors_total Requests ending in a server error or aborted response.\n# TYPE routeqtus_errors_total counter\n"+
-		"# HELP routeqtus_requests_total Requests by final status class; unwritten panics count as 5xx.\n# TYPE routeqtus_requests_total counter\n"+
-		"# HELP routeqtus_in_flight Requests currently using this snapshot.\n# TYPE routeqtus_in_flight gauge\n"+
-		"# HELP routeqtus_request_duration_seconds Request handling duration in seconds.\n# TYPE routeqtus_request_duration_seconds histogram\n")
+	fmt.Fprint(w, "# HELP routetus_errors_total Requests ending in a server error or aborted response.\n# TYPE routetus_errors_total counter\n"+
+		"# HELP routetus_requests_total Requests by final status class; unwritten panics count as 5xx.\n# TYPE routetus_requests_total counter\n"+
+		"# HELP routetus_in_flight Requests currently using this snapshot.\n# TYPE routetus_in_flight gauge\n"+
+		"# HELP routetus_request_duration_seconds Request handling duration in seconds.\n# TYPE routetus_request_duration_seconds histogram\n")
 	for i := range s.Stats {
 		st := &s.Stats[i]
 		if !st.Enabled {
 			continue
 		}
 		labels := "route_id=" + strconv.Quote(st.ID)
-		fmt.Fprintf(w, "routeqtus_errors_total{%s} %d\n", labels, st.Errors.Load())
+		fmt.Fprintf(w, "routetus_errors_total{%s} %d\n", labels, st.Errors.Load())
 		var count uint64
 		for c := 1; c <= 5; c++ {
 			n := st.Requests[c].Load()
 			count += n
-			fmt.Fprintf(w, "routeqtus_requests_total{%s,status_class=%q} %d\n", labels, strconv.Itoa(c)+"xx", n)
+			fmt.Fprintf(w, "routetus_requests_total{%s,status_class=%q} %d\n", labels, strconv.Itoa(c)+"xx", n)
 		}
-		fmt.Fprintf(w, "routeqtus_in_flight{%s} %d\nrouteqtus_request_duration_seconds_sum{%s} %g\nrouteqtus_request_duration_seconds_count{%s} %d\n", labels, st.InFlight.Load(), labels, float64(st.Nanos.Load())/1e9, labels, count)
+		fmt.Fprintf(w, "routetus_in_flight{%s} %d\nroutetus_request_duration_seconds_sum{%s} %g\nroutetus_request_duration_seconds_count{%s} %d\n", labels, st.InFlight.Load(), labels, float64(st.Nanos.Load())/1e9, labels, count)
 		for j, b := range buckets {
-			fmt.Fprintf(w, "routeqtus_request_duration_seconds_bucket{%s,le=%q} %d\n", labels, strconv.FormatFloat(b, 'g', -1, 64), st.Buckets[j].Load())
+			fmt.Fprintf(w, "routetus_request_duration_seconds_bucket{%s,le=%q} %d\n", labels, strconv.FormatFloat(b, 'g', -1, 64), st.Buckets[j].Load())
 		}
-		fmt.Fprintf(w, "routeqtus_request_duration_seconds_bucket{%s,le=\"+Inf\"} %d\n", labels, count)
+		fmt.Fprintf(w, "routetus_request_duration_seconds_bucket{%s,le=\"+Inf\"} %d\n", labels, count)
 	}
 }

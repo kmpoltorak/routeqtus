@@ -1,8 +1,8 @@
-name: routeqtus
+name: routetus
 x-gateway: &gateway
-  image: routeqtus:local
+  image: routetus:local
   build: .
-  user: "${ROUTEQTUS_UID:-65532}:${ROUTEQTUS_GID:-65532}"
+  user: "${ROUTETUS_UID:-65532}:${ROUTETUS_GID:-65532}"
   volumes:
     - ./examples:/examples:ro
     - ./.demo:/demo:ro
@@ -11,7 +11,7 @@ x-gateway: &gateway
   security_opt: [no-new-privileges:true]
 x-backend: &backend
   <<: *gateway
-  image: routeqtus-demo:local
+  image: routetus-demo:local
   build:
     context: .
     target: demo
@@ -21,7 +21,7 @@ services:
     image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_DB: routeqtus
+      POSTGRES_DB: routetus
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run make demo first}
       SERVE_DB_PASSWORD: ${SERVE_DB_PASSWORD:?Run make demo first}
       MANAGE_DB_PASSWORD: ${MANAGE_DB_PASSWORD:?Run make demo first}
@@ -29,7 +29,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./examples/docker/init-roles.sql:/docker-entrypoint-initdb.d/roles.sql:ro
     healthcheck:
-      test: [CMD-SHELL, "pg_isready -U postgres -d routeqtus"]
+      test: [CMD-SHELL, "pg_isready -U postgres -d routetus"]
       interval: 2s
       timeout: 2s
       retries: 15
@@ -39,20 +39,20 @@ services:
     command: [migrate, --config, /examples/bootstrap.yaml]
     environment:
       # Local demo network only. Production requires sslmode=verify-full.
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/routeqtus?sslmode=disable
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/routetus?sslmode=disable
   permissions:
     image: postgres:17.11-alpine@sha256:3540c0362c809df084ffac0ae69fe794515f9de92692f02178bcdce0ef0302ac
     profiles: [tools]
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
     volumes: [./examples/docker/permissions.sql:/permissions.sql:ro]
-    command: [psql, -h, postgres, -U, postgres, -d, routeqtus, -v, ON_ERROR_STOP=1, -f, /permissions.sql]
+    command: [psql, -h, postgres, -U, postgres, -d, routetus, -v, ON_ERROR_STOP=1, -f, /permissions.sql]
   manage:
     <<: *gateway
     command: [manage, --config, /examples/docker/manage.yaml]
     environment:
-      DATABASE_URL: postgres://routeqtus_manage:${MANAGE_DB_PASSWORD}@postgres:5432/routeqtus?sslmode=disable
-      ROUTEQTUS_MANAGEMENT_TOKEN: ${ROUTEQTUS_MANAGEMENT_TOKEN:?Run make demo first}
+      DATABASE_URL: postgres://routetus_manage:${MANAGE_DB_PASSWORD}@postgres:5432/routetus?sslmode=disable
+      ROUTETUS_MANAGEMENT_TOKEN: ${ROUTETUS_MANAGEMENT_TOKEN:?Run make demo first}
     ports: ["127.0.0.1:9080:9080"]
     depends_on:
       postgres: {condition: service_healthy}
@@ -62,13 +62,13 @@ services:
     command: [config, apply, --api, "https://manage:9080", --file, /examples/config.json, --generation, "0", --description, "Initial demo configuration"]
     environment:
       SSL_CERT_FILE: /demo/tls/cert.pem
-      ROUTEQTUS_MANAGEMENT_TOKEN: ${ROUTEQTUS_MANAGEMENT_TOKEN}
+      ROUTETUS_MANAGEMENT_TOKEN: ${ROUTETUS_MANAGEMENT_TOKEN}
   serve:
     <<: *gateway
     command: [serve, --config, /examples/docker/serve.yaml]
     environment:
-      DATABASE_URL: postgres://routeqtus_serve:${SERVE_DB_PASSWORD}@postgres:5432/routeqtus?sslmode=disable
-      ROUTEQTUS_ADMIN_TOKEN: ${ROUTEQTUS_ADMIN_TOKEN:?Run make demo first}
+      DATABASE_URL: postgres://routetus_serve:${SERVE_DB_PASSWORD}@postgres:5432/routetus?sslmode=disable
+      ROUTETUS_ADMIN_TOKEN: ${ROUTETUS_ADMIN_TOKEN:?Run make demo first}
     ports: ["127.0.0.1:8080:8080", "127.0.0.1:9090:9090"]
     depends_on:
       postgres: {condition: service_healthy}

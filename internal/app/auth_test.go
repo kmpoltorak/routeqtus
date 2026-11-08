@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
 	"net/http/httptest"
 	"strings"
 	"testing"

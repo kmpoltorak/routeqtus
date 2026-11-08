@@ -1,7 +1,7 @@
-REVOKE ALL ON SCHEMA routeqtus FROM PUBLIC;
-GRANT USAGE ON SCHEMA routeqtus TO routeqtus_serve, routeqtus_manage;
-GRANT SELECT ON ALL TABLES IN SCHEMA routeqtus TO routeqtus_serve;
-GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA routeqtus TO routeqtus_manage;
-GRANT UPDATE ON routeqtus.config_revisions, routeqtus.gateway_state TO routeqtus_manage;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA routeqtus TO routeqtus_manage;
+REVOKE ALL ON SCHEMA routetus FROM PUBLIC;
+GRANT USAGE ON SCHEMA routetus TO routetus_serve, routetus_manage;
+GRANT SELECT ON ALL TABLES IN SCHEMA routetus TO routetus_serve;
+GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA routetus TO routetus_manage;
+GRANT UPDATE ON routetus.config_revisions, routetus.gateway_state TO routetus_manage;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA routetus TO routetus_manage;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;

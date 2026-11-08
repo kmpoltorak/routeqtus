@@ -17,14 +17,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/extensions"
-	"github.com/kmpoltorak/routeqtus/internal/gateway"
-	"github.com/kmpoltorak/routeqtus/internal/management"
-	"github.com/kmpoltorak/routeqtus/internal/middleware"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/runtime"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/extensions"
+	"github.com/kmpoltorak/routetus/internal/gateway"
+	"github.com/kmpoltorak/routetus/internal/management"
+	"github.com/kmpoltorak/routetus/internal/middleware"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/runtime"
 )
 
 func Compiler(c bootstrap.Config, logger *slog.Logger) (*gateway.Compiler, error) {
@@ -228,7 +228,7 @@ func diagnostics(c bootstrap.Config, token string, store *postgres.Store, rt *ru
 				rt.Metrics(w)
 			} else {
 				p := store.Pool.Stat()
-				fmt.Fprintf(w, "# HELP routeqtus_postgres_connections Current pooled PostgreSQL connections.\n# TYPE routeqtus_postgres_connections gauge\nrouteqtus_postgres_connections %d\n", p.TotalConns())
+				fmt.Fprintf(w, "# HELP routetus_postgres_connections Current pooled PostgreSQL connections.\n# TYPE routetus_postgres_connections gauge\nroutetus_postgres_connections %d\n", p.TotalConns())
 			}
 		})
 	}

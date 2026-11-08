@@ -13,12 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/app"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/management"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/app"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/management"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestProcessTokenMinimum(t *testing.T) {
@@ -30,11 +30,11 @@ func TestProcessTokenMinimum(t *testing.T) {
 		for _, n := range []int{0, 31, 32} {
 			t.Run(fmt.Sprintf("%s-%d", kind, n), func(t *testing.T) {
 				c := bootstrap.Defaults()
-				c.Postgres.DSNEnv = "ROUTEQTUS_INTEGRATION_DSN"
+				c.Postgres.DSNEnv = "ROUTETUS_INTEGRATION_DSN"
 				c.Admin.Listen = freeAddress(t)
 				c.Management.Listen = freeAddress(t)
-				c.Management.AuthTokenEnv = "ROUTEQTUS_TEST_MANAGE_TOKEN"
-				c.Admin.AuthTokenEnv = "ROUTEQTUS_TEST_ADMIN_TOKEN"
+				c.Management.AuthTokenEnv = "ROUTETUS_TEST_MANAGE_TOKEN"
+				c.Admin.AuthTokenEnv = "ROUTETUS_TEST_ADMIN_TOKEN"
 				t.Setenv(c.Management.AuthTokenEnv, strings.Repeat("m", 32))
 				t.Setenv(c.Admin.AuthTokenEnv, strings.Repeat("a", 32))
 				env := c.Management.AuthTokenEnv
@@ -129,7 +129,7 @@ func TestPublicationMetadataByteLimits(t *testing.T) {
 			t.Fatal("oversized metadata changed generation")
 		}
 		var rows int64
-		if e = s.Pool.QueryRow(ctx, "SELECT count(*) FROM routeqtus.config_revisions").Scan(&rows); e != nil || rows != after.Generation {
+		if e = s.Pool.QueryRow(ctx, "SELECT count(*) FROM routetus.config_revisions").Scan(&rows); e != nil || rows != after.Generation {
 			t.Fatal("failed metadata leaked revision", rows, e)
 		}
 	}

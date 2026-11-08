@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/management"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/management"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
@@ -36,9 +36,9 @@ func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("ROUTEQTUS_TEST_CA", string(certificate))
-	t.Setenv("ROUTEQTUS_TEST_CERT", string(certificate))
-	t.Setenv("ROUTEQTUS_TEST_KEY", string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: key})))
+	t.Setenv("ROUTETUS_TEST_CA", string(certificate))
+	t.Setenv("ROUTETUS_TEST_CERT", string(certificate))
+	t.Setenv("ROUTETUS_TEST_KEY", string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: key})))
 	c := testutil.Config(backend.URL)
 	c.Metrics = config.B(false)
 	c.TrustedProxies = []string{"198.51.100.0/24"}
@@ -51,7 +51,7 @@ func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
 	u.MaxIdleConns = 9
 	u.MaxIdleConnsPerHost = 2
 	u.ProxyFromEnvironment = true
-	u.TLS = config.TLS{ServerName: "example.com", CAEnv: "ROUTEQTUS_TEST_CA", CertEnv: "ROUTEQTUS_TEST_CERT", KeyEnv: "ROUTEQTUS_TEST_KEY"}
+	u.TLS = config.TLS{ServerName: "example.com", CAEnv: "ROUTETUS_TEST_CA", CertEnv: "ROUTETUS_TEST_CERT", KeyEnv: "ROUTETUS_TEST_KEY"}
 	r := &c.Routes[0]
 	r.Host = "example.com"
 	r.Methods = []string{"GET", "POST"}

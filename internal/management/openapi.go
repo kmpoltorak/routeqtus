@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/middleware"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/middleware"
+	"github.com/kmpoltorak/routetus/internal/postgres"
 )
 
 func (a *API) Contract() []byte {
@@ -89,7 +89,7 @@ func (a *API) Contract() []byte {
 		add(p, "get", nil, map[string]any{"type": "object"}, false)
 	}
 	paths["/healthz"].(map[string]any)["get"].(map[string]any)["security"] = []any{}
-	doc := map[string]any{"openapi": "3.0.3", "info": map[string]any{"title": "Routeqtus Management API", "version": "1.0.0", "description": "Configuration is published as complete immutable revisions. GET configured values for round-trip export; GET effective values only for inspection. Secrets are environment references: secret values are never accepted or returned. Null optional overrides inherit defaults; zero durations explicitly disable supported timeouts."}, "security": []any{map[string]any{"bearerAuth": []any{}}}, "paths": paths, "components": map[string]any{"securitySchemes": map[string]any{"bearerAuth": map[string]any{"type": "http", "scheme": "bearer"}}, "schemas": schemas}}
+	doc := map[string]any{"openapi": "3.0.3", "info": map[string]any{"title": "Routetus Management API", "version": "1.0.0", "description": "Configuration is published as complete immutable revisions. GET configured values for round-trip export; GET effective values only for inspection. Secrets are environment references: secret values are never accepted or returned. Null optional overrides inherit defaults; zero durations explicitly disable supported timeouts."}, "security": []any{map[string]any{"bearerAuth": []any{}}}, "paths": paths, "components": map[string]any{"securitySchemes": map[string]any{"bearerAuth": map[string]any{"type": "http", "scheme": "bearer"}}, "schemas": schemas}}
 	b, err := json.MarshalIndent(doc, "", "  ")
 	if err != nil {
 		panic(err)

@@ -18,7 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/config"
 )
 
 type Middleware func(http.Handler) http.Handler
@@ -310,7 +310,7 @@ func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 				})
 			}, nil
 		}},
-		{Name: "headers", Version: 1, Schema: config.Schema(Headers{}), Example: Headers{ResponseSet: map[string]string{"X-Gateway": "routeqtus"}}, Factory: func(b json.RawMessage) (Middleware, error) {
+		{Name: "headers", Version: 1, Schema: config.Schema(Headers{}), Example: Headers{ResponseSet: map[string]string{"X-Gateway": "routetus"}}, Factory: func(b json.RawMessage) (Middleware, error) {
 			var o Headers
 			if err := config.DecodeTyped(b, &o); err != nil {
 				return nil, err

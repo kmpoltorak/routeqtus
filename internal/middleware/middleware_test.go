@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/config"
 )
 
 func TestLogsNeverContainRequestSecrets(t *testing.T) {

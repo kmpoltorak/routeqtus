@@ -26,16 +26,16 @@ func TestRevisionDecodeFailureReleasesConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 	var revision int64
-	if err = s.Pool.QueryRow(ctx, "INSERT INTO routeqtus.config_revisions(schema_version,principal,generation) VALUES(1,'decode-failure-test',1) RETURNING id").Scan(&revision); err != nil {
+	if err = s.Pool.QueryRow(ctx, "INSERT INTO routetus.config_revisions(schema_version,principal,generation) VALUES(1,'decode-failure-test',1) RETURNING id").Scan(&revision); err != nil {
 		t.Fatal(err)
 	}
 	for _, row := range []struct{ id, timeout string }{{"good", "1s"}, {"z-bad", "invalid-duration"}} {
-		_, err = s.Pool.Exec(ctx, `INSERT INTO routeqtus.upstreams(revision_id,id,dial_timeout,max_conns,max_idle_conns,max_idle_conns_per_host,proxy_from_environment,tls_server_name,tls_ca_env,tls_cert_env,tls_key_env) VALUES($1,$2,$3,1,1,1,false,'','','','')`, revision, row.id, row.timeout)
+		_, err = s.Pool.Exec(ctx, `INSERT INTO routetus.upstreams(revision_id,id,dial_timeout,max_conns,max_idle_conns,max_idle_conns_per_host,proxy_from_environment,tls_server_name,tls_ca_env,tls_cert_env,tls_key_env) VALUES($1,$2,$3,1,1,1,false,'','','','')`, revision, row.id, row.timeout)
 		if err != nil {
 			t.Fatal(err)
 		}
 	}
-	if _, err = s.Pool.Exec(ctx, "UPDATE routeqtus.config_revisions SET sealed=true WHERE id=$1", revision); err != nil {
+	if _, err = s.Pool.Exec(ctx, "UPDATE routetus.config_revisions SET sealed=true WHERE id=$1", revision); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = s.Revision(ctx, revision); err == nil || !strings.Contains(err.Error(), "duration") {

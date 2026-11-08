@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestUnmatchedMetricsCannotCollideWithRouteID(t *testing.T) {
@@ -31,7 +31,7 @@ func TestRequestMetricMetadata(t *testing.T) {
 	s := compiled(t, testutil.Config("http://example.com"))
 	w := httptest.NewRecorder()
 	s.WriteMetrics(w)
-	for name, kind := range map[string]string{"routeqtus_errors_total": "counter", "routeqtus_requests_total": "counter", "routeqtus_in_flight": "gauge", "routeqtus_request_duration_seconds": "histogram"} {
+	for name, kind := range map[string]string{"routetus_errors_total": "counter", "routetus_requests_total": "counter", "routetus_in_flight": "gauge", "routetus_request_duration_seconds": "histogram"} {
 		text := w.Body.String()
 		if strings.Count(text, "# TYPE "+name+" "+kind+"\n") != 1 || !strings.Contains(text, "# HELP "+name+" ") {
 			t.Fatal("missing metadata", name, text)

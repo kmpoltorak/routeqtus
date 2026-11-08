@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/runtime"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/runtime"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestRuntimeTrafficDuringPublicationAndOutage(t *testing.T) {
@@ -115,7 +115,7 @@ func TestRuntimeTrafficDuringPublicationAndOutage(t *testing.T) {
 		t.Fatal(err)
 	}
 	eventually(t, 2*time.Second, func() bool { return rt.Status().Applied == st.Generation })
-	admin, err := pgx.Connect(ctx, os.Getenv("ROUTEQTUS_TEST_DATABASE_URL"))
+	admin, err := pgx.Connect(ctx, os.Getenv("ROUTETUS_TEST_DATABASE_URL"))
 	if err != nil {
 		t.Fatal(err)
 	}

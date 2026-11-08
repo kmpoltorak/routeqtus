@@ -16,14 +16,14 @@ checks on Ubuntu. Run commands from the repository root.
 | Request-path fuzzing | `go test ./internal/gateway -run='^$' -fuzz=FuzzRequestPath -fuzztime=5s` | Passed; 175676 executions in recorded run |
 | Vulnerability scan | `go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...` | No vulnerabilities found |
 | Static build | `make build` (`CGO_ENABLED=0`) | Passed |
-| Container | `docker build --tag routeqtus:ci .`; `sh scripts/check-image.sh` | Default production filesystem excludes demo backend, retains CAs, and uses numeric non-root user |
+| Container | `docker build --tag routetus:ci .`; `sh scripts/check-image.sh` | Default production filesystem excludes demo backend, retains CAs, and uses numeric non-root user |
 | Complete demo | `make demo` on a fresh demo database | Passed; expected backend output observed |
 | API examples | `sh examples/api.sh` against TLS demo | Passed, including expected 422 and 412 responses |
 | OpenAPI/field reference | `make docs`; `TestPublishedContractMatchesRegistry` | Generated; runtime registry and file compared |
 | Every operational field | `TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres` | Passed, including TLS references, explicit zero/false, and ordering |
 | Request-path SQL | `TestDatabaseOutageAndNoRequestSQL` | 100 requests caused zero configuration pool acquisitions |
 | Live changes/outage | `TestRuntimeTrafficDuringPublicationAndOutage` | Zero traffic errors; summary in [benchmarks](benchmarks.md) |
-| Sabotage | `ROUTEQTUS_TEST_DATABASE_URL=... make sabotage` | Four deliberate behavior failures detected; sources restored |
+| Sabotage | `ROUTETUS_TEST_DATABASE_URL=... make sabotage` | Four deliberate behavior failures detected; sources restored |
 | Performance | See [benchmarks](benchmarks.md) | Measured results, method, and limits summarized |
 
 Integration tests require an administrative, disposable PostgreSQL connection with
@@ -47,13 +47,13 @@ transport belong only to that local disposable environment.
 Tests exercise public behavior with real HTTP servers, HTTP/2 TLS, SSE and WebSocket
 traffic, and isolated PostgreSQL databases. Integration tests require database-creation
 privileges and never reuse the application's database. Their script starts a disposable
-loopback PostgreSQL container unless `ROUTEQTUS_TEST_DATABASE_URL` is supplied.
+loopback PostgreSQL container unless `ROUTETUS_TEST_DATABASE_URL` is supplied.
 Security regressions cover remote CLI HTTPS, diagnostics authentication, token and
 metadata byte limits, and latest-100 history with older-ID reads.
 Regressions also cover header precedence on HTTP, errors, and upgrades, plus database
 connection release after malformed stored values. Verification includes deliberate
 sabotage checks; results and commands are recorded. `make sabotage` requires an
-explicit disposable `ROUTEQTUS_TEST_DATABASE_URL` with database-creation privileges.
+explicit disposable `ROUTETUS_TEST_DATABASE_URL` with database-creation privileges.
 It edits source files temporarily and restores them in `finally`; run it without
 concurrent edits/tests and inspect the working diff if the process is forcibly killed.
 Root `AGENTS.md` and `CLAUDE.md` are published source instructions; release archives
@@ -302,3 +302,16 @@ serve process, observes readiness, and receives the unchanged interior tab throu
 an actual proxied response header. Before the fix it failed with a startup timeout.
 RFC 9110 [field values](https://www.rfc-editor.org/rfc/rfc9110.html#section-5.5)
 permit interior HTAB; no validation looseness beyond the old header behavior is added.
+
+## Routetus naming checks
+
+`TestRoutetusUsage` checks the public CLI name. `TestDefaultManagementTokenEnvironment`
+authenticates a real HTTP request using the default ROUTETUS_MANAGEMENT_TOKEN reference.
+Both failed before the rename and passed afterward; restoring the previous default or
+an incorrect usage name through local overlays made the intended assertions fail.
+Unit/race and full PostgreSQL normal/race checks passed under the new module path,
+SQL schema, notification channel, and environment names. A fresh Routetus Compose
+project passed migration, role grants, publication, and serving; TLS API examples and
+both named backend responses passed. Production-image checks verify the new binary,
+CA bundle, numeric non-root user, and absence of the demo backend. The rename uses
+fresh test data rather than a compatibility migration. Existing releases remain immutable.

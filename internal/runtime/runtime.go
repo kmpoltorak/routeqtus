@@ -11,9 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/gateway"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/gateway"
+	"github.com/kmpoltorak/routetus/internal/postgres"
 )
 
 type active struct {

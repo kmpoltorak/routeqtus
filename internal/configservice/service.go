@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/gateway"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/gateway"
+	"github.com/kmpoltorak/routetus/internal/postgres"
 )
 
 type Service struct {

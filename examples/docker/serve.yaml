@@ -1,4 +1,4 @@
 version: 1
 admin:
   listen: ":9090"
-  auth_token_env: "ROUTEQTUS_ADMIN_TOKEN"
+  auth_token_env: "ROUTETUS_ADMIN_TOKEN"

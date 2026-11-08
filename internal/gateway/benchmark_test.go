@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/config"
 )
 
 func BenchmarkRouter(b *testing.B) {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestTruncatedStreamAbortsWithoutSecondErrorResponse(t *testing.T) {
@@ -33,7 +33,7 @@ func TestTruncatedStreamAbortsWithoutSecondErrorResponse(t *testing.T) {
 	}
 	metrics := httptest.NewRecorder()
 	snapshot.WriteMetrics(metrics)
-	if !strings.Contains(metrics.Body.String(), `routeqtus_errors_total{route_id="demo"} 1`) {
+	if !strings.Contains(metrics.Body.String(), `routetus_errors_total{route_id="demo"} 1`) {
 		t.Fatal(metrics.Body.String())
 	}
 }
@@ -47,8 +47,8 @@ func TestUpstreamTLSIsVerified(t *testing.T) {
 	if w.Code != 502 {
 		t.Fatal("untrusted certificate accepted", w.Code)
 	}
-	t.Setenv("ROUTEQTUS_TLS_TEST_CA", string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: backend.Certificate().Raw})))
-	c.Upstreams[0].TLS.CAEnv = "ROUTEQTUS_TLS_TEST_CA"
+	t.Setenv("ROUTETUS_TLS_TEST_CA", string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: backend.Certificate().Raw})))
+	c.Upstreams[0].TLS.CAEnv = "ROUTETUS_TLS_TEST_CA"
 	good := compiled(t, c)
 	w = httptest.NewRecorder()
 	good.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))

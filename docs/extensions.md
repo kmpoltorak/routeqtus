@@ -13,7 +13,7 @@ The factory enforces the value constraint and returns a prepared closure.
 Its operational representation is already in `examples/config.json`:
 
 ```json
-{"id":"powered","type":"powered_by","version":1,"options":{"value":"Routeqtus"}}
+{"id":"powered","type":"powered_by","version":1,"options":{"value":"Routetus"}}
 ```
 
 The route's `handlers: ["powered"]` binds it in entry order. Publishing through

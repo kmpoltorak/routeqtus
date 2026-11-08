@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-image=${1:-routeqtus:ci}
+image=${1:-routetus:ci}
 staging=$(mktemp -d)
 container=$(docker create "$image" version)
 trap 'docker rm "$container" >/dev/null; rm -rf "$staging"' EXIT INT TERM
@@ -10,7 +10,7 @@ import sys
 import tarfile
 with tarfile.open(sys.argv[1]) as archive:
     files = {member.name.removeprefix('./') for member in archive.getmembers()}
-assert 'routeqtus' in files, 'Production gateway binary missing'
+assert 'routetus' in files, 'Production gateway binary missing'
 assert 'etc/ssl/certs/ca-certificates.crt' in files, 'Production CA bundle missing'
 assert 'demo-backend' not in files, 'Demo backend leaked into production image'
 PY

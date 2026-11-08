@@ -36,7 +36,7 @@ jobs:
           sh scripts/package-release.sh "$VERSION"
           mkdir release-artifacts
           for target in linux_amd64 linux_arm64 darwin_amd64 darwin_arm64; do
-            cp "dist/routeqtus_${VERSION}_${target}.tar.gz" release-artifacts/
+            cp "dist/routetus_${VERSION}_${target}.tar.gz" release-artifacts/
           done
           cp dist/checksums.txt docs/release_notes.md release-artifacts/
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -67,4 +67,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.verify.outputs.version }}
-        run: gh release create "$VERSION" routeqtus_"$VERSION"_linux_amd64.tar.gz routeqtus_"$VERSION"_linux_arm64.tar.gz routeqtus_"$VERSION"_darwin_amd64.tar.gz routeqtus_"$VERSION"_darwin_arm64.tar.gz checksums.txt --repo "$GITHUB_REPOSITORY" --verify-tag --title "Routeqtus $VERSION" --notes-file release_notes.md
+        run: gh release create "$VERSION" routetus_"$VERSION"_linux_amd64.tar.gz routetus_"$VERSION"_linux_arm64.tar.gz routetus_"$VERSION"_darwin_amd64.tar.gz routetus_"$VERSION"_darwin_arm64.tar.gz checksums.txt --repo "$GITHUB_REPOSITORY" --verify-tag --title "Routetus $VERSION" --notes-file release_notes.md

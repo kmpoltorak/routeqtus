@@ -16,13 +16,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/app"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/management"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/app"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/management"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestValidationReportAcrossAPIStatusAndLog(t *testing.T) {
@@ -45,7 +45,7 @@ func TestValidationReportAcrossAPIStatusAndLog(t *testing.T) {
 	}
 	defer listener.Close(ctx)
 	boot := bootstrap.Defaults()
-	boot.Postgres.DSNEnv = "ROUTEQTUS_INTEGRATION_DSN"
+	boot.Postgres.DSNEnv = "ROUTETUS_INTEGRATION_DSN"
 	boot.Server.Listen, boot.Admin.Listen = freeAddress(t), freeAddress(t)
 	boot.Sync.Notifications = false
 	boot.Sync.PollInterval = "20ms"

@@ -74,7 +74,7 @@ func Defaults() Config {
 		Version:    1,
 		Server:     Server{Listen: ":8080", ReadHeaderTimeout: "5s", IdleTimeout: "60s", RequestTimeout: "15s", ShutdownTimeout: "10s", MaxHeaderBytes: 16384, MaxBodyBytes: 16777216, MaxInFlight: 2048},
 		Admin:      Admin{Listen: "127.0.0.1:9090", Metrics: true},
-		Management: Management{Listen: "127.0.0.1:9080", AuthTokenEnv: "ROUTEQTUS_MANAGEMENT_TOKEN", Principal: "management-token", RequestTimeout: "10s", MaxBodyBytes: 4194304, MaxInFlight: 32},
+		Management: Management{Listen: "127.0.0.1:9080", AuthTokenEnv: "ROUTETUS_MANAGEMENT_TOKEN", Principal: "management-token", RequestTimeout: "10s", MaxBodyBytes: 4194304, MaxInFlight: 32},
 		Logging:    Logging{Level: "info", Format: "json"},
 		Postgres:   Postgres{DSNEnv: "DATABASE_URL", MaxConns: 4, ConnectTimeout: "3s", QueryTimeout: "2s", MaxConnLifetime: "30m"},
 		Sync:       Sync{StartupTimeout: "30s", PollInterval: "10s", MaxStaleness: "5m", Notifications: true},

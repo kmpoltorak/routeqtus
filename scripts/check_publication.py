@@ -44,7 +44,7 @@ def allowed(name, archive=False):
     if parts[0] == "examples":
         return str(PurePosixPath(*parts[1:])) in EXAMPLES
     if archive:
-        return len(parts) == 1 and parts[0] in {"routeqtus", "LICENSE", "README.md", "getting_started.md"}
+        return len(parts) == 1 and parts[0] in {"routetus", "LICENSE", "README.md", "getting_started.md"}
     return name in ROOT_FILES or parts[0] in SOURCE_DIRS
 
 
@@ -58,11 +58,11 @@ def check_archive(filename):
             if not member.isfile() or not allowed(name, archive=True):
                 raise ValueError(f"Unapproved release entry: {name}")
             seen.add(name)
-            if name != "routeqtus":
+            if name != "routetus":
                 data = archive.extractfile(member).read()
                 if SECRET.search(data):
                     raise ValueError(f"Possible secret material in release: {name}")
-    expected = {"routeqtus", "LICENSE", "README.md", "getting_started.md"}
+    expected = {"routetus", "LICENSE", "README.md", "getting_started.md"}
     expected.update("docs/" + name for name in DOCS)
     expected.update("examples/" + name for name in EXAMPLES)
     if seen != expected:
@@ -74,7 +74,7 @@ def main():
     for name in ("AGENTS.md", "CLAUDE.md"):
         assert allowed(name), name
         assert not allowed(name, archive=True), name
-    for name in ("PLAN.md", "routeqtus_prompt.md", "internal/AGENTS.md", "docs/CLAUDE.md", "agents.md", "claude.md", ".local/AGENTS.md", "../AGENTS.md", ".env", ".local/notes.md", "docs/run.txt", "docs/data.jsonl", "docs/review.md"):
+    for name in ("PLAN.md", "routetus_prompt.md", "internal/AGENTS.md", "docs/CLAUDE.md", "agents.md", "claude.md", ".local/AGENTS.md", "../AGENTS.md", ".env", ".local/notes.md", "docs/run.txt", "docs/data.jsonl", "docs/review.md"):
         assert not allowed(name), name
         assert not allowed(name, archive=True), name
     paths = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
