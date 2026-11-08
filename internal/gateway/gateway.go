@@ -63,7 +63,7 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	defer func() {
 		if err != nil {
 			s.Close()
-			err = input.WithErrorContext(err)
+			err = validationReport(input.WithErrorContext(err))
 		}
 	}()
 	if input.SchemaVersion != 1 {
