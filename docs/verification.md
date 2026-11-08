@@ -48,6 +48,9 @@ PATCH/null, rollback, and whole-configuration dependency validation. Reload test
 cover traffic during updates, invalid revisions, polling without notifications,
 notification-session termination/reconnect, two-instance convergence, staleness,
 recovery, snapshot pinning/retirement, and shutdown of active WebSockets. Process tests
+also ensure that a stalled metrics client cannot block snapshot publication. Protocol tests
+verify WebSocket exchange against a TLS backend advertising HTTP/2 as well as plain HTTP.
+Process tests
 exercise empty/missing-database startup, first publication, and manage restart while
 serve continues routing.
 

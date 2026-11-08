@@ -55,6 +55,10 @@ validation, database transactions, compilation, proxy handling, metrics, and cle
 
 ## Lean changes applied
 
+A slow metrics scrape was also reproduced holding the snapshot publication lock.
+Metrics now pins a snapshot and releases the lock before writing to the network;
+the PostgreSQL regression verifies publication while a metrics writer is stalled.
+
 Removed a counter wrapper and a status-encoding wrapper; used the standard atomic
 counter and JSON encoder directly. Router microbenchmarks identified one allocation
 from trying to split a host without a port. A colon check avoids constructing that

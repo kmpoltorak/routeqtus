@@ -301,10 +301,15 @@ func (r *Runtime) Wait(ctx context.Context) {
 }
 func (r *Runtime) Metrics(w http.ResponseWriter) {
 	r.mu.RLock()
-	if r.current != nil {
-		r.current.snapshot.WriteMetrics(w)
+	a := r.current
+	if a != nil {
+		a.refs.Add(1)
 	}
 	r.mu.RUnlock()
+	if a != nil {
+		defer a.release()
+		a.snapshot.WriteMetrics(w)
+	}
 	s := r.Status()
 	writeSyncMetrics(w, s, r.success.Load(), r.errors.Load(), r.Store)
 }
