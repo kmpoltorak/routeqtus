@@ -59,10 +59,7 @@ func write(w http.ResponseWriter, status int, v any) {
 }
 func fail(w http.ResponseWriter, r *http.Request, status int, code, message string, err error) {
 	p := problem{Code: code, Message: message, RequestID: w.Header().Get("X-Request-Id"), Fields: []config.FieldError{}}
-	var f config.FieldError
-	if errors.As(err, &f) {
-		p.Fields = append(p.Fields, f)
-	}
+	p.Fields = append(p.Fields, config.FieldErrors(err)...)
 	write(w, status, p)
 }
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -211,7 +208,12 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		v, err := representation(c, r.URL.Path)
 		if err != nil {
-			fail(w, r, 404, "not_found", "resource not found", nil)
+			var conversion conversionError
+			if errors.As(err, &conversion) {
+				a.storeError(w, r, err)
+			} else {
+				fail(w, r, 404, "not_found", "resource not found", nil)
+			}
 			return
 		}
 		write(w, 200, v)
@@ -240,7 +242,10 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	candidate, err := mutate(c, r.URL.Path, r.Method, b)
 	if err != nil {
 		var e resourceError
-		if errors.As(err, &e) {
+		var conversion conversionError
+		if errors.As(err, &conversion) {
+			a.storeError(w, r, err)
+		} else if errors.As(err, &e) {
 			fail(w, r, e.status, e.code, e.Error(), nil)
 		} else {
 			fail(w, r, 422, "invalid_configuration", "configuration rejected", err)

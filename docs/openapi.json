@@ -567,10 +567,22 @@
             "items": {
               "additionalProperties": false,
               "properties": {
+                "handler_id": {
+                  "description": "Valid handler or binding ID, when known.",
+                  "type": "string"
+                },
                 "message": {
                   "type": "string"
                 },
                 "path": {
+                  "type": "string"
+                },
+                "route_id": {
+                  "description": "Valid route ID, when known; path remains a JSON Pointer.",
+                  "type": "string"
+                },
+                "upstream_id": {
+                  "description": "Valid upstream ID, when known.",
                   "type": "string"
                 }
               },
