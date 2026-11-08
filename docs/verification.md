@@ -16,7 +16,7 @@ checks on Ubuntu. Run commands from the repository root.
 | Request-path fuzzing | `go test ./internal/gateway -run='^$' -fuzz=FuzzRequestPath -fuzztime=5s` | Passed; 175676 executions in recorded run |
 | Vulnerability scan | `go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...` | No vulnerabilities found |
 | Static build | `make build` (`CGO_ENABLED=0`) | Passed |
-| Container | `docker build --tag routeqtus:local .` | Passed; numeric non-root user and bundled CAs |
+| Container | `docker build --tag routeqtus:ci .`; `sh scripts/check-image.sh` | Default production filesystem excludes demo backend, retains CAs, and uses numeric non-root user |
 | Complete demo | `make demo` on a fresh demo database | Passed; expected backend output observed |
 | API examples | `sh examples/api.sh` against TLS demo | Passed, including expected 422 and 412 responses |
 | OpenAPI/field reference | `make docs`; `TestPublishedContractMatchesRegistry` | Generated; runtime registry and file compared |

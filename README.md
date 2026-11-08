@@ -33,7 +33,8 @@ go build -trimpath -o routeqtus ./cmd/routeqtus
 Release checks and packaging use a read-only repository token; only the artifact
 publication job can write releases.
 
-The container runs without root and includes CA certificates. PostgreSQL 17 or later
+The production container runs without root, includes CA certificates, and excludes
+the demo backend. Compose builds a separate demo image for its two backend instances. PostgreSQL 17 or later
 is required. The tested environment and limitations are in [verification](docs/verification.md).
 
 ## Quick start

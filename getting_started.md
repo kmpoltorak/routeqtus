@@ -21,7 +21,7 @@ routeqtus demo backend: backend-a
 ```
 
 `make demo` generates random credentials in ignored `.env` and a seven-day local
-TLS certificate in ignored `.demo/tls`. It builds the image, starts PostgreSQL and
+TLS certificate in ignored `.demo/tls`. It builds separate production and demo images, starts PostgreSQL and
 two demo targets, runs migrations, grants separate roles, starts `manage`, publishes
 `examples/config.json` against generation 0, and starts `serve`.
 
