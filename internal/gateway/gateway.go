@@ -347,15 +347,17 @@ func (s *Snapshot) dispatch(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Snapshot) ServeHTTP(w http.ResponseWriter, r *http.Request) { s.ServeTracked(w, r, nil) }
 func (s *Snapshot) ServeTracked(w http.ResponseWriter, r *http.Request, track func(net.Conn) net.Conn) {
+	invalid := ""
 	if !validPath(r.URL.Path, r.URL.RawPath) {
-		http.Error(w, "invalid request path", 400)
-		return
+		invalid = "invalid request path"
+	} else if _, err := url.ParseQuery(r.URL.RawQuery); err != nil {
+		invalid = "invalid query"
 	}
-	if _, err := url.ParseQuery(r.URL.RawQuery); err != nil {
-		http.Error(w, "invalid query", 400)
-		return
+	var v *route
+	var allow []string
+	if invalid == "" {
+		v, allow = s.match(r)
 	}
-	v, allow := s.match(r)
 	st := &middleware.State{Track: track}
 	idx := len(s.Stats) - 1
 	timeout := bootstrap.Duration(s.limits.RequestTimeout)
@@ -367,11 +369,6 @@ func (s *Snapshot) ServeTracked(w http.ResponseWriter, r *http.Request, track fu
 		}
 	}
 	writer := &middleware.Writer{ResponseWriter: w, State: st}
-	if r.ContentLength > s.limits.MaxBodyBytes {
-		http.Error(writer, "request body too large", 413)
-		return
-	}
-	r.Body = &limitedBody{ReadCloser: http.MaxBytesReader(writer, r.Body, s.limits.MaxBodyBytes), state: st, controller: http.NewResponseController(writer)}
 	if timeout > 0 {
 		deadline := time.Now().Add(timeout)
 		ctx, cancel := context.WithDeadline(r.Context(), deadline)
@@ -382,8 +379,17 @@ func (s *Snapshot) ServeTracked(w http.ResponseWriter, r *http.Request, track fu
 			_ = rc.SetReadDeadline(deadline)
 		}
 		_ = rc.SetWriteDeadline(deadline)
-		defer func() { _ = rc.SetReadDeadline(time.Time{}); _ = rc.SetWriteDeadline(time.Time{}) }()
+		// net/http still flushes and closes unread bodies after ServeHTTP returns.
 	}
+	if invalid != "" {
+		http.Error(writer, invalid, 400)
+		return
+	}
+	if r.ContentLength > s.limits.MaxBodyBytes {
+		http.Error(writer, "request body too large", 413)
+		return
+	}
+	r.Body = &limitedBody{ReadCloser: http.MaxBytesReader(writer, r.Body, s.limits.MaxBodyBytes), state: st, controller: http.NewResponseController(writer)}
 	r = middleware.WithState(r, st)
 	r = r.WithContext(context.WithValue(r.Context(), selectionKey{}, selection{v, allow}))
 	stat := &s.Stats[idx]
