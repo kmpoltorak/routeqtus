@@ -100,6 +100,9 @@ Discover contracts at `/v1/handler-types`. See [extensions](docs/extensions.md).
 
 ## Operation
 
+Invalid or missing database DSNs fail immediately. Startup and CLI connection errors
+report safe failure categories without printing DSNs, tokens, or server error text.
+
 `serve` reads a complete revision before opening its public listener. LISTEN/NOTIFY
 accelerates updates; jittered polling recovers missed signals. A dedicated session
 connection is required for notifications; disable them behind transaction pooling.

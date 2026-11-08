@@ -18,6 +18,7 @@ import (
 	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
 	"github.com/kmpoltorak/routeqtus/internal/configservice"
 	"github.com/kmpoltorak/routeqtus/internal/management"
+	"github.com/kmpoltorak/routeqtus/internal/neterror"
 )
 
 var Version = "dev"
@@ -161,7 +162,7 @@ func client(ctx context.Context, args []string, out, stderr io.Writer) error {
 	httpClient := &http.Client{Timeout: 30 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	res, err := httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("Management API request failed")
+		return fmt.Errorf("Management API request failed: %s", neterror.Reason(err))
 	}
 	defer res.Body.Close()
 	if _, err = io.Copy(out, io.LimitReader(res.Body, 64<<20)); err != nil {
