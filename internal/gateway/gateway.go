@@ -63,6 +63,7 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	defer func() {
 		if err != nil {
 			s.Close()
+			err = input.WithErrorContext(err)
 		}
 	}()
 	if input.SchemaVersion != 1 {
@@ -83,59 +84,82 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 		}
 		s.trusted = append(s.trusted, v)
 	}
+	var validation []error
 	pools := map[string]*pool{}
 	for i, u := range d.Upstreams {
-		field := fmt.Sprintf("/upstreams/%d", i)
-		if !identifier.MatchString(u.ID) || pools[u.ID] != nil {
-			return nil, config.Invalid(field+"/id", "invalid or duplicate upstream ID")
-		}
-		if len(u.Targets) < 1 || len(u.Targets) > config.MaxTargets {
-			return nil, config.Invalid(field+"/targets", fmt.Sprintf("must have 1-%d targets", config.MaxTargets))
-		}
-		for _, n := range []int{u.MaxConns, u.MaxIdleConns, u.MaxIdleConnsPerHost} {
-			if n < 1 || n > config.MaxConnections {
-				return nil, config.Invalid(field, "connection limit outside range")
+		entityErr := func() error {
+			field := fmt.Sprintf("/upstreams/%d", i)
+			if !identifier.MatchString(u.ID) || pools[u.ID] != nil {
+				return config.Invalid(field+"/id", "invalid or duplicate upstream ID")
 			}
-		}
-		tlsConfig, e := upstreamTLS(u.TLS)
-		if e != nil {
-			return nil, config.Invalid(field+"/tls", e.Error())
-		}
-		t := &http.Transport{DialContext: (&net.Dialer{Timeout: time.Duration(*u.DialTimeout), KeepAlive: 30 * time.Second}).DialContext, TLSClientConfig: tlsConfig, ForceAttemptHTTP2: true, TLSHandshakeTimeout: time.Duration(*u.TLSHandshakeTimeout), ResponseHeaderTimeout: time.Duration(*u.ResponseHeaderTimeout), IdleConnTimeout: time.Duration(*u.IdleTimeout), MaxConnsPerHost: u.MaxConns, MaxIdleConns: u.MaxIdleConns, MaxIdleConnsPerHost: u.MaxIdleConnsPerHost, ExpectContinueTimeout: time.Second}
-		if u.ProxyFromEnvironment {
-			t.Proxy = http.ProxyFromEnvironment
-		}
-		s.transports = append(s.transports, t)
-		p := &pool{transport: t}
-		ids := map[string]bool{}
-		for j, target := range u.Targets {
-			if !identifier.MatchString(target.ID) || ids[target.ID] {
-				return nil, config.Invalid(fmt.Sprintf("%s/targets/%d/id", field, j), "invalid or duplicate target ID")
+			if len(u.Targets) < 1 || len(u.Targets) > config.MaxTargets {
+				return config.Invalid(field+"/targets", fmt.Sprintf("must have 1-%d targets", config.MaxTargets))
 			}
-			ids[target.ID] = true
-			v, e := url.Parse(target.URL)
-			if e != nil || v.Host == "" || !validHost(strings.ToLower(v.Host)) || (v.Scheme != "http" && v.Scheme != "https") || v.User != nil || v.RawQuery != "" || v.Fragment != "" || v.Opaque != "" || v.ForceQuery || !validPath(v.Path, v.RawPath) {
-				return nil, config.Invalid(fmt.Sprintf("%s/targets/%d/url", field, j), "invalid target URL")
+			for _, n := range []int{u.MaxConns, u.MaxIdleConns, u.MaxIdleConnsPerHost} {
+				if n < 1 || n > config.MaxConnections {
+					return config.Invalid(field, "connection limit outside range")
+				}
 			}
-			p.targets = append(p.targets, v)
+			tlsConfig, e := upstreamTLS(u.TLS)
+			if e != nil {
+				return config.Invalid(field+"/tls", e.Error())
+			}
+			t := &http.Transport{DialContext: (&net.Dialer{Timeout: time.Duration(*u.DialTimeout), KeepAlive: 30 * time.Second}).DialContext, TLSClientConfig: tlsConfig, ForceAttemptHTTP2: true, TLSHandshakeTimeout: time.Duration(*u.TLSHandshakeTimeout), ResponseHeaderTimeout: time.Duration(*u.ResponseHeaderTimeout), IdleConnTimeout: time.Duration(*u.IdleTimeout), MaxConnsPerHost: u.MaxConns, MaxIdleConns: u.MaxIdleConns, MaxIdleConnsPerHost: u.MaxIdleConnsPerHost, ExpectContinueTimeout: time.Second}
+			if u.ProxyFromEnvironment {
+				t.Proxy = http.ProxyFromEnvironment
+			}
+			s.transports = append(s.transports, t)
+			p := &pool{transport: t}
+			ids := map[string]bool{}
+			for j, target := range u.Targets {
+				if !identifier.MatchString(target.ID) || ids[target.ID] {
+					return config.Invalid(fmt.Sprintf("%s/targets/%d/id", field, j), "invalid or duplicate target ID")
+				}
+				ids[target.ID] = true
+				v, e := url.Parse(target.URL)
+				if e != nil || v.Host == "" || !validHost(strings.ToLower(v.Host)) || (v.Scheme != "http" && v.Scheme != "https") || v.User != nil || v.RawQuery != "" || v.Fragment != "" || v.Opaque != "" || v.ForceQuery || !validPath(v.Path, v.RawPath) {
+					return config.Invalid(fmt.Sprintf("%s/targets/%d/url", field, j), "invalid target URL")
+				}
+				p.targets = append(p.targets, v)
+			}
+			pools[u.ID] = p
+
+			return nil
+		}()
+		if entityErr != nil {
+			validation = append(validation, entityErr)
 		}
-		pools[u.ID] = p
 	}
+	if len(validation) > 0 {
+		return nil, errors.Join(validation...)
+	}
+
 	instances := map[string]middleware.Middleware{}
 	for i, h := range d.Handlers {
-		field := fmt.Sprintf("/handlers/%d", i)
-		if !identifier.MatchString(h.ID) {
-			return nil, config.Invalid(field+"/id", "invalid handler ID")
+		entityErr := func() error {
+			field := fmt.Sprintf("/handlers/%d", i)
+			if !identifier.MatchString(h.ID) {
+				return config.Invalid(field+"/id", "invalid handler ID")
+			}
+			if _, ok := instances[h.ID]; ok {
+				return config.Invalid(field+"/id", "duplicate handler ID")
+			}
+			m, e := c.Registry.Build(h)
+			if e != nil {
+				return config.Invalid(field+"/options", fmt.Sprintf("handler %s (%s): %s", h.ID, h.Type, e))
+			}
+			instances[h.ID] = m
+
+			return nil
+		}()
+		if entityErr != nil {
+			validation = append(validation, entityErr)
 		}
-		if _, ok := instances[h.ID]; ok {
-			return nil, config.Invalid(field+"/id", "duplicate handler ID")
-		}
-		m, e := c.Registry.Build(h)
-		if e != nil {
-			return nil, config.Invalid(field+"/options", fmt.Sprintf("handler %s (%s): %s", h.ID, h.Type, e))
-		}
-		instances[h.ID] = m
 	}
+	if len(validation) > 0 {
+		return nil, errors.Join(validation...)
+	}
+
 	resolve := func(ids []string, field string) ([]middleware.Middleware, error) {
 		ms := []middleware.Middleware{}
 		seen := map[string]bool{}
@@ -157,50 +181,61 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	}
 	ids := map[string]bool{}
 	for i, r := range d.Routes {
-		field := fmt.Sprintf("/routes/%d", i)
-		if !identifier.MatchString(r.ID) || ids[r.ID] {
-			return nil, config.Invalid(field+"/id", "invalid or duplicate route ID")
-		}
-		ids[r.ID] = true
-		if r.Path == "" || !strings.HasPrefix(r.Path, "/") || !validPath(r.Path, "") || strings.Contains(r.Path, "%") || strings.HasSuffix(r.Path, "/") && r.Path != "/" && r.Prefix {
-			return nil, config.Invalid(field+"/path", "invalid or ambiguous route path")
-		}
-		if r.Priority < -config.MaxPriority || r.Priority > config.MaxPriority {
-			return nil, config.Invalid(field+"/priority", "outside range")
-		}
-		if r.StripPrefix && !r.Prefix {
-			return nil, config.Invalid(field+"/strip_prefix", "requires prefix=true")
-		}
-		if !validHost(r.Host) || !validHost(r.HostHeader) {
-			return nil, config.Invalid(field+"/host", "invalid host or host_header")
-		}
-		if strings.Contains(r.Host, ":") {
-			return nil, config.Invalid(field+"/host", "host matcher must not contain a port")
-		}
-		methods := map[string]bool{}
-		for _, m := range r.Methods {
-			if !method.MatchString(m) || methods[m] {
-				return nil, config.Invalid(field+"/methods", "invalid or duplicate method")
+		entityErr := func() error {
+			field := fmt.Sprintf("/routes/%d", i)
+			if !identifier.MatchString(r.ID) || ids[r.ID] {
+				return config.Invalid(field+"/id", "invalid or duplicate route ID")
 			}
-			methods[m] = true
-		}
-		p := pools[r.Upstream]
-		if p == nil {
-			return nil, config.Invalid(field+"/upstream", "unknown upstream")
-		}
-		for _, old := range s.routes {
-			if r.Host == old.Host && r.Path == old.Path && r.Prefix == old.Prefix && overlapMethods(r.Methods, old.Methods) {
-				return nil, config.Invalid(field, "ambiguous route conflicts with "+old.ID)
+			ids[r.ID] = true
+			if r.Path == "" || !strings.HasPrefix(r.Path, "/") || !validPath(r.Path, "") || strings.Contains(r.Path, "%") || strings.HasSuffix(r.Path, "/") && r.Path != "/" && r.Prefix {
+				return config.Invalid(field+"/path", "invalid or ambiguous route path")
 			}
+			if r.Priority < -config.MaxPriority || r.Priority > config.MaxPriority {
+				return config.Invalid(field+"/priority", "outside range")
+			}
+			if r.StripPrefix && !r.Prefix {
+				return config.Invalid(field+"/strip_prefix", "requires prefix=true")
+			}
+			if !validHost(r.Host) || !validHost(r.HostHeader) {
+				return config.Invalid(field+"/host", "invalid host or host_header")
+			}
+			if strings.Contains(r.Host, ":") {
+				return config.Invalid(field+"/host", "host matcher must not contain a port")
+			}
+			methods := map[string]bool{}
+			for _, m := range r.Methods {
+				if !method.MatchString(m) || methods[m] {
+					return config.Invalid(field+"/methods", "invalid or duplicate method")
+				}
+				methods[m] = true
+			}
+			p := pools[r.Upstream]
+			if p == nil {
+				return config.Invalid(field+"/upstream", "unknown upstream")
+			}
+			for _, old := range s.routes {
+				if r.Host == old.Host && r.Path == old.Path && r.Prefix == old.Prefix && overlapMethods(r.Methods, old.Methods) {
+					return config.Invalid(field, "ambiguous route conflicts with "+old.ID)
+				}
+			}
+			ms, e := resolve(r.Handlers, field+"/handlers")
+			if e != nil {
+				return e
+			}
+			proxy := s.proxy(r, p, c.Logger)
+			s.Stats = append(s.Stats, RouteStats{ID: r.ID, Enabled: s.metrics && *r.Metrics})
+			s.routes = append(s.routes, route{Route: r, handler: middleware.Chain(proxy, ms), stat: len(s.Stats) - 1})
+
+			return nil
+		}()
+		if entityErr != nil {
+			validation = append(validation, entityErr)
 		}
-		ms, e := resolve(r.Handlers, field+"/handlers")
-		if e != nil {
-			return nil, e
-		}
-		proxy := s.proxy(r, p, c.Logger)
-		s.Stats = append(s.Stats, RouteStats{ID: r.ID, Enabled: s.metrics && *r.Metrics})
-		s.routes = append(s.routes, route{Route: r, handler: middleware.Chain(proxy, ms), stat: len(s.Stats) - 1})
 	}
+	if len(validation) > 0 {
+		return nil, errors.Join(validation...)
+	}
+
 	sort.Slice(s.routes, func(i, j int) bool { return less(s.routes[i].Route, s.routes[j].Route) })
 	s.Stats = append(s.Stats, RouteStats{ID: "", Enabled: s.metrics})
 	s.handler = middleware.Chain(http.HandlerFunc(s.dispatch), global)

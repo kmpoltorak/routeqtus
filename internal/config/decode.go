@@ -9,15 +9,11 @@ import (
 	"github.com/kmpoltorak/routeqtus/internal/strictjson"
 )
 
-type FieldError struct {
-	Path    string `json:"path"`
-	Message string `json:"message"`
+func Decode(data []byte) (Config, error) {
+	var c Config
+	err := DecodeTyped(data, &c)
+	return c, c.WithErrorContext(err)
 }
-
-func (e FieldError) Error() string       { return e.Path + ": " + e.Message }
-func Invalid(path, message string) error { return FieldError{path, message} }
-
-func Decode(data []byte) (Config, error) { var c Config; err := DecodeTyped(data, &c); return c, err }
 func DecodeTyped(data []byte, dst any) error {
 	raw, err := strictjson.DecodeDocument(data, dst)
 	if err != nil {

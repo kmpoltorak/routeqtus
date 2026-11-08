@@ -17,11 +17,21 @@ type resourceError struct {
 func (e resourceError) Error() string { return strings.ReplaceAll(e.code, "_", " ") }
 func missing() error                  { return resourceError{404, "not_found"} }
 func conflict() error                 { return resourceError{409, "resource_conflict"} }
-func wire(c config.Config) map[string]any {
-	b, _ := json.Marshal(c)
+
+type conversionError struct{ err error }
+
+func (e conversionError) Error() string { return "stored configuration cannot be represented" }
+func (e conversionError) Unwrap() error { return e.err }
+func wire(c config.Config) (map[string]any, error) {
+	b, err := json.Marshal(c)
+	if err != nil {
+		return nil, conversionError{err}
+	}
 	var v map[string]any
-	_ = json.Unmarshal(b, &v)
-	return v
+	if err = json.Unmarshal(b, &v); err != nil {
+		return nil, conversionError{err}
+	}
+	return v, nil
 }
 
 type location struct {
@@ -86,7 +96,10 @@ func locate(root map[string]any, p string) (location, error) {
 	return location{}, missing()
 }
 func representation(c config.Config, p string) (any, error) {
-	root := wire(c)
+	root, err := wire(c)
+	if err != nil {
+		return nil, err
+	}
 	l, err := locate(root, p)
 	if err != nil {
 		return nil, err
@@ -106,7 +119,10 @@ func representation(c config.Config, p string) (any, error) {
 	return l.parent[l.key].([]any)[l.index], nil
 }
 func mutate(c config.Config, p, method string, b []byte) (config.Config, error) {
-	root := wire(c)
+	root, err := wire(c)
+	if err != nil {
+		return c, err
+	}
 	l, err := locate(root, p)
 	if err != nil {
 		return c, err

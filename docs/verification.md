@@ -169,3 +169,18 @@ from that run. It checks checksums and publishes without checking out source or
 running project/build code. Pull requests touching the release workflow exercise
 verification and packaging without publishing. `TestReleasePrivilegeIsolation` checks
 the permission/dependency boundary and restricts the write-enabled job's steps.
+
+## Configuration error regressions
+
+`TestResourceConversionErrors` covers malformed RawMessage and numbers outside
+float64 range, including preservation of the conversion cause. A real PostgreSQL
+case stored a valid JSONB value outside that range: its GET previously returned 200
+with value 0. It now returns a safe 503, and PATCH leaves revision/history unchanged.
+`TestIndependentErrorsHaveEntityContextAndDoNotPublish` checks two failures in each
+compilation phase, stable IDs with JSON Pointers, no revisions, and no notification.
+The baseline returned only one error per candidate. Context tests also cover wrapped
+and joined errors, missing required fields, bindings, malformed IDs, and invalid indices.
+`TestRuntimeRejectionLogsRevisionAndKeepsSnapshot` preserves working proxy traffic
+while rejecting three stored revisions, checks each revision ID even for identical
+messages, and excludes target credentials. The baseline logged two entries with no
+revision IDs for three rejected revisions. Unit and focused PostgreSQL race checks pass.

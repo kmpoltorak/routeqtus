@@ -29,23 +29,24 @@ func (a *active) release() {
 }
 
 type Runtime struct {
-	Store       *postgres.Store
-	Compiler    *gateway.Compiler
-	Sync        bootstrap.Sync
-	Logger      *slog.Logger
-	mu          sync.RWMutex
-	current     *active
-	closing     atomic.Bool
-	desired     atomic.Int64
-	confirmed   atomic.Pointer[time.Time]
-	success     atomic.Uint64
-	errors      atomic.Uint64
-	inflight    atomic.Int64
-	slots       chan struct{}
-	signals     chan struct{}
-	connMu      sync.Mutex
-	connections map[net.Conn]bool
-	lastError   string
+	Store             *postgres.Store
+	Compiler          *gateway.Compiler
+	Sync              bootstrap.Sync
+	Logger            *slog.Logger
+	mu                sync.RWMutex
+	current           *active
+	closing           atomic.Bool
+	desired           atomic.Int64
+	confirmed         atomic.Pointer[time.Time]
+	success           atomic.Uint64
+	errors            atomic.Uint64
+	inflight          atomic.Int64
+	slots             chan struct{}
+	signals           chan struct{}
+	connMu            sync.Mutex
+	connections       map[net.Conn]bool
+	lastError         string
+	lastErrorRevision int64
 }
 type Status struct {
 	Applied       int64     `json:"applied_generation"`
@@ -87,7 +88,7 @@ func (r *Runtime) Status() Status {
 func (r *Runtime) synchronize(ctx context.Context) {
 	st, err := r.Store.State(ctx)
 	if err != nil {
-		r.reject("database synchronization unavailable")
+		r.reject("database synchronization unavailable", 0)
 		return
 	}
 	r.desired.Store(st.Generation)
@@ -99,24 +100,25 @@ func (r *Runtime) synchronize(ctx context.Context) {
 		return
 	}
 	if st.RevisionID == 0 {
-		r.reject("no active configuration revision")
+		r.reject("no active configuration revision", 0)
 		return
 	}
-	st, c, err := r.Store.Load(ctx)
+	loaded, c, err := r.Store.Load(ctx)
 	if err != nil {
-		r.reject("configuration read failed")
+		r.reject("configuration read failed", st.RevisionID)
 		return
 	}
+	st = loaded
 	r.desired.Store(st.Generation)
 	snapshot, err := r.Compiler.Compile(c)
 	if err != nil {
-		r.reject("revision rejected: " + err.Error())
+		r.reject("revision rejected: "+err.Error(), st.RevisionID)
 		return
 	}
 	latest, err := r.Store.State(ctx)
 	if err != nil {
 		snapshot.Close()
-		r.reject("publication confirmation unavailable")
+		r.reject("publication confirmation unavailable", st.RevisionID)
 		return
 	}
 	if latest != st {
@@ -135,6 +137,7 @@ func (r *Runtime) synchronize(ctx context.Context) {
 	old := r.current
 	r.current = a
 	r.lastError = ""
+	r.lastErrorRevision = 0
 	r.mu.Unlock()
 	r.confirm()
 	if old != nil {
@@ -148,16 +151,22 @@ func (r *Runtime) confirm() {
 	r.success.Add(1)
 	r.mu.Lock()
 	r.lastError = ""
+	r.lastErrorRevision = 0
 	r.mu.Unlock()
 }
-func (r *Runtime) reject(message string) {
+func (r *Runtime) reject(message string, revisionID int64) {
 	r.errors.Add(1)
 	r.mu.Lock()
-	changed := r.lastError != message
+	changed := r.lastError != message || r.lastErrorRevision != revisionID
 	r.lastError = message
+	r.lastErrorRevision = revisionID
 	r.mu.Unlock()
 	if changed {
-		r.Logger.Error(message, "desired_generation", r.desired.Load())
+		attributes := []any{"desired_generation", r.desired.Load()}
+		if revisionID != 0 {
+			attributes = append(attributes, "revision_id", revisionID)
+		}
+		r.Logger.Error(message, attributes...)
 	}
 }
 func (r *Runtime) Run(ctx context.Context) {

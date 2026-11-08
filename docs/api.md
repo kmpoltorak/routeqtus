@@ -97,7 +97,7 @@ CLI. It never writes to PostgreSQL directly; only `migrate` uses a direct databa
 ## Errors and secrets
 
 ```json
-{"code":"invalid_configuration","message":"configuration rejected","request_id":"...","fields":[{"path":"/routes/0/upstream","message":"unknown upstream"}]}
+{"code":"invalid_configuration","message":"configuration rejected","request_id":"...","fields":[{"path":"/routes/0/upstream","message":"unknown upstream","route_id":"hello","upstream_id":"missing"}]}
 ```
 
 | HTTP | Meaning |
@@ -111,7 +111,16 @@ CLI. It never writes to PostgreSQL directly; only `migrate` uses a direct databa
 | 413 | Management document exceeds size limit |
 | 422 | Unsupported/unknown fields, invalid type/range/reference, required-field removal, routing/handler conflict |
 | 428 | Mutation omitted If-Match |
-| 503 | Database unavailable or concurrency exhausted |
+| 503 | Database unavailable, stored configuration conversion failed, or concurrency exhausted |
+
+Field paths remain JSON Pointers. Valid known identifiers appear as optional
+`route_id`, `upstream_id`, and `handler_id`; absent or malformed IDs are omitted.
+Compilation reports independent entity failures from the first invalid phase
+(upstreams, then handlers, then routes). It stops before dependent phases to avoid
+cascading reference errors; this is not an exhaustive list of every bad field.
+Stored JSON conversion failures return 503 and cannot publish a partial candidate.
+Runtime rejection logs include the known `revision_id` and entity context; repeated
+identical errors in different revisions are logged separately.
 
 Storage errors do not return SQL, parameters, or DSNs. Operational secrets are only
 environment references; no API field accepts a private-key value, database password,
