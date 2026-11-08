@@ -343,36 +343,27 @@ func (s *Store) Publish(ctx context.Context, c config.Config, expected int64, m 
 	if err != nil {
 		return Publication{}, err
 	}
+	batch := &pgx.Batch{}
 	for _, u := range c.Upstreams {
-		_, err = tx.Exec(ctx, `INSERT INTO upstreams VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, id, u.ID, duration(u.DialTimeout), duration(u.TLSHandshakeTimeout), duration(u.ResponseHeaderTimeout), duration(u.IdleTimeout), u.MaxConns, u.MaxIdleConns, u.MaxIdleConnsPerHost, u.ProxyFromEnvironment, u.TLS.ServerName, u.TLS.CAEnv, u.TLS.CertEnv, u.TLS.KeyEnv)
-		if err != nil {
-			return Publication{}, err
-		}
+		batch.Queue(`INSERT INTO upstreams VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, id, u.ID, duration(u.DialTimeout), duration(u.TLSHandshakeTimeout), duration(u.ResponseHeaderTimeout), duration(u.IdleTimeout), u.MaxConns, u.MaxIdleConns, u.MaxIdleConnsPerHost, u.ProxyFromEnvironment, u.TLS.ServerName, u.TLS.CAEnv, u.TLS.CertEnv, u.TLS.KeyEnv)
 		for i, t := range u.Targets {
-			if _, err = tx.Exec(ctx, "INSERT INTO upstream_targets VALUES($1,$2,$3,$4,$5)", id, u.ID, t.ID, t.URL, i); err != nil {
-				return Publication{}, err
-			}
+			batch.Queue("INSERT INTO upstream_targets VALUES($1,$2,$3,$4,$5)", id, u.ID, t.ID, t.URL, i)
 		}
 	}
 	for _, h := range c.Handlers {
-		if _, err = tx.Exec(ctx, "INSERT INTO handlers VALUES($1,$2,$3,$4,$5,$6)", id, h.ID, h.Type, h.Version, h.Enabled, []byte(h.Options)); err != nil {
-			return Publication{}, err
-		}
+		batch.Queue("INSERT INTO handlers VALUES($1,$2,$3,$4,$5,$6)", id, h.ID, h.Type, h.Version, h.Enabled, []byte(h.Options))
 	}
 	for _, r := range c.Routes {
-		if _, err = tx.Exec(ctx, "INSERT INTO routes VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)", id, r.ID, r.Host, nonnil(r.Methods), r.Path, r.Prefix, r.Priority, r.StripPrefix, r.HostHeader, r.Upstream, duration(r.RequestTimeout), r.Metrics); err != nil {
-			return Publication{}, err
-		}
+		batch.Queue("INSERT INTO routes VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)", id, r.ID, r.Host, nonnil(r.Methods), r.Path, r.Prefix, r.Priority, r.StripPrefix, r.HostHeader, r.Upstream, duration(r.RequestTimeout), r.Metrics)
 		for i, h := range r.Handlers {
-			if _, err = tx.Exec(ctx, "INSERT INTO handler_bindings VALUES($1,$2,$3,$4)", id, r.ID, i, h); err != nil {
-				return Publication{}, err
-			}
+			batch.Queue("INSERT INTO handler_bindings VALUES($1,$2,$3,$4)", id, r.ID, i, h)
 		}
 	}
 	for i, h := range c.GlobalHandlers {
-		if _, err = tx.Exec(ctx, "INSERT INTO handler_bindings VALUES($1,NULL,$2,$3)", id, i, h); err != nil {
-			return Publication{}, err
-		}
+		batch.Queue("INSERT INTO handler_bindings VALUES($1,NULL,$2,$3)", id, i, h)
+	}
+	if err = tx.SendBatch(ctx, batch).Close(); err != nil {
+		return Publication{}, err
 	}
 	if _, err = tx.Exec(ctx, "UPDATE config_revisions SET sealed=true WHERE id=$1", id); err != nil {
 		return Publication{}, err

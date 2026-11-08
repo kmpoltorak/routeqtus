@@ -57,6 +57,11 @@ notification-session termination/reconnect, two-instance convergence, staleness,
 recovery, snapshot pinning/retirement, and shutdown of active WebSockets. A separate
 regression ensures that a stalled metrics client cannot block publication. Protocol tests
 verify WebSocket exchange against a TLS backend advertising HTTP/2 as well as plain HTTP.
+`TestLargeRevisionPublication` publishes and loads 2000/10000 routes with a 1ms
+delay per socket read, checks late-row rollback without notification, and verifies
+retry and generation advancement. The 2000-route case failed at the 2s budget before
+batching and passed after it; [measurements](benchmarks.md#large-revision-publication)
+include the larger case and separate timeout budgets.
 Process tests
 exercise empty/missing-database startup, first publication, and manage restart while
 serve continues routing.

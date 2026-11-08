@@ -77,9 +77,20 @@ pool acquisition, transaction, and LISTEN establishment has a deadline.
 
 Publication locks the singleton state row, checks expected generation, inserts all
 entities and bindings, seals the revision, updates the active pointer, increments
-generation, and executes `pg_notify` inside the same transaction. Rollback revalidates
-old data and publishes a new immutable revision. Sequence ID gaps do not indicate
+generation, and executes `pg_notify` inside the same transaction. Entity inserts use a single
+ordered pgx batch, avoiding one network round trip per row. Batch errors are drained
+and the transaction rolls back before any active-state change or notification.
+Rollback revalidates old data and publishes a new immutable revision. Sequence ID gaps do not indicate
 lost publications and are not used to determine ordering.
+
+`postgres.query_timeout` bounds each complete publication or load operation, including
+pool acquisition. The default 2s is not a guarantee for the structural maximum of
+10000 routes/upstreams/handlers. Publication validation/compilation also consumes the
+management request budget outside the SQL transaction. Size `postgres.query_timeout`,
+`management.request_timeout`, client deadlines, and synchronization startup/staleness
+budgets together using representative data and database latency. Queue memory grows
+with revision rows within the existing entity and management-body bounds.
+See [large-revision measurements](benchmarks.md#large-revision-publication).
 
 ## Synchronization and failure
 
