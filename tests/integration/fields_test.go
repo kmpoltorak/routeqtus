@@ -74,7 +74,7 @@ func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
 	slices.SortFunc(c.Handlers, func(a, b config.Handler) int { return cmp.Compare(a.ID, b.ID) })
 	compiler := testutil.Compiler(t)
 	token := strings.Repeat("x", 32)
-	api := httptest.NewServer(management.New(&configservice.Service{Store: s, Compiler: compiler}, token, "field-test", 1<<20, 8))
+	api := httptest.NewServer(management.New(&configservice.Service{Store: s, Compiler: compiler}, token, "field-test", 1<<20, 8, nil))
 	defer api.Close()
 	data, _ := json.Marshal(c)
 	req, _ := http.NewRequest("PUT", api.URL+"/v1/config", bytes.NewReader(data))

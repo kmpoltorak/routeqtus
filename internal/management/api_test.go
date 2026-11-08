@@ -57,7 +57,7 @@ func TestMergeAndWholeCandidate(t *testing.T) {
 }
 func TestHandlerSchemaAndValidatorConformance(t *testing.T) {
 	compiler := testutil.Compiler(t)
-	a := New(&configservice.Service{Compiler: compiler}, "", "", 1024, 1)
+	a := New(&configservice.Service{Compiler: compiler}, "", "", 1024, 1, nil)
 	var contract map[string]any
 	if err := json.Unmarshal(a.Contract(), &contract); err != nil {
 		t.Fatal(err)
@@ -104,7 +104,7 @@ func TestHandlerSchemaAndValidatorConformance(t *testing.T) {
 	}
 }
 func TestBodyLimitsAndDuplicateKeys(t *testing.T) {
-	a := New(&configservice.Service{Compiler: testutil.Compiler(t)}, "", "", 16, 1)
+	a := New(&configservice.Service{Compiler: testutil.Compiler(t)}, "", "", 16, 1, nil)
 	for _, tc := range []struct {
 		b    string
 		code int

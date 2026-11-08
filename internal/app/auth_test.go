@@ -11,7 +11,7 @@ func TestDiagnosticsAuthentication(t *testing.T) {
 	token := strings.Repeat("private-admin-token", 2)
 	c := bootstrap.Defaults()
 	c.Admin.Pprof = true
-	h := diagnostics(c, token, nil, nil)
+	h := diagnostics(c, token, nil, nil, nil)
 	for _, path := range []string{"/healthz", "/readyz", "/status", "/metrics", "/debug/pprof/"} {
 		for _, auth := range []string{"", "Bearer wrong", "Basic " + token, "bearer " + token} {
 			r := httptest.NewRequest("GET", path, nil)
@@ -29,5 +29,23 @@ func TestDiagnosticsAuthentication(t *testing.T) {
 	h.ServeHTTP(w, r)
 	if w.Code != 200 || w.Body.String() != "alive\n" {
 		t.Fatal(w.Code, w.Body.String())
+	}
+}
+
+func TestDiagnosticsReadinessUsesCachedState(t *testing.T) {
+	ready := true
+	h := diagnostics(bootstrap.Defaults(), "", nil, nil, func() bool { return ready })
+	for i := 0; i < 100; i++ {
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, httptest.NewRequest("GET", "/readyz", nil))
+		if w.Code != 200 {
+			t.Fatal(w.Code)
+		}
+	}
+	ready = false
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/readyz", nil))
+	if w.Code != 503 {
+		t.Fatal(w.Code)
 	}
 }

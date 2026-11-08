@@ -18,7 +18,7 @@ func TestManagementMetricMetadata(t *testing.T) {
 	}
 	defer pool.Close()
 	w := httptest.NewRecorder()
-	diagnostics(bootstrap.Defaults(), "", &postgres.Store{Pool: pool}, nil).ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
+	diagnostics(bootstrap.Defaults(), "", &postgres.Store{Pool: pool}, nil, nil).ServeHTTP(w, httptest.NewRequest("GET", "/metrics", nil))
 	for _, want := range []string{"# HELP routeqtus_postgres_connections ", "# TYPE routeqtus_postgres_connections gauge\n", "routeqtus_postgres_connections 0\n"} {
 		if !strings.Contains(w.Body.String(), want) {
 			t.Fatal("missing", want, w.Body.String())
