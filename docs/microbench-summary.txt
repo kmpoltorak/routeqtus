@@ -1,0 +1,43 @@
+goos: darwin
+goarch: amd64
+pkg: github.com/kmpoltorak/routeqtus/internal/gateway
+cpu: Intel(R) Core(TM) i7-1068NG7 CPU @ 2.30GHz
+                                 │ docs/microbench-before.txt │          docs/microbench.txt          │
+                                 │           sec/op           │    sec/op     vs base                 │
+Router/routes=1/match=true-8                     50.71n ± ∞ ¹   29.48n ± ∞ ¹        ~ (p=0.100 n=3) ²
+Router/routes=1/match=false-8                    74.85n ± ∞ ¹   39.13n ± ∞ ¹        ~ (p=0.100 n=3) ²
+Router/routes=100/match=true-8                   748.4n ± ∞ ¹   716.8n ± ∞ ¹        ~ (p=0.100 n=3) ²
+Router/routes=100/match=false-8                  489.8n ± ∞ ¹   456.4n ± ∞ ¹        ~ (p=0.100 n=3) ²
+Router/routes=1000/match=true-8                  7.347µ ± ∞ ¹   7.018µ ± ∞ ¹        ~ (p=0.100 n=3) ²
+Router/routes=1000/match=false-8                 5.362µ ± ∞ ¹   5.306µ ± ∞ ¹        ~ (p=0.100 n=3) ²
+geomean                                          616.3n         491.2n        -20.30%
+¹ need >= 6 samples for confidence interval at level 0.95
+² need >= 4 samples to detect a difference at alpha level 0.05
+
+                                 │ docs/microbench-before.txt │       docs/microbench.txt       │
+                                 │            B/op            │    B/op     vs base             │
+Router/routes=1/match=true-8                      32.00 ± ∞ ¹   0.00 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=1/match=false-8                     32.00 ± ∞ ¹   0.00 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=100/match=true-8                    32.00 ± ∞ ¹   0.00 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=100/match=false-8                   32.00 ± ∞ ¹   0.00 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=1000/match=true-8                   32.00 ± ∞ ¹   0.00 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=1000/match=false-8                  32.00 ± ∞ ¹   0.00 ± ∞ ¹  ~ (p=0.100 n=3) ²
+geomean                                           32.00                     ?               ³ ⁴
+¹ need >= 6 samples for confidence interval at level 0.95
+² need >= 4 samples to detect a difference at alpha level 0.05
+³ summaries must be >0 to compute geomean
+⁴ ratios must be >0 to compute geomean
+
+                                 │ docs/microbench-before.txt │       docs/microbench.txt        │
+                                 │         allocs/op          │  allocs/op   vs base             │
+Router/routes=1/match=true-8                      1.000 ± ∞ ¹   0.000 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=1/match=false-8                     1.000 ± ∞ ¹   0.000 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=100/match=true-8                    1.000 ± ∞ ¹   0.000 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=100/match=false-8                   1.000 ± ∞ ¹   0.000 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=1000/match=true-8                   1.000 ± ∞ ¹   0.000 ± ∞ ¹  ~ (p=0.100 n=3) ²
+Router/routes=1000/match=false-8                  1.000 ± ∞ ¹   0.000 ± ∞ ¹  ~ (p=0.100 n=3) ²
+geomean                                           1.000                      ?               ³ ⁴
+¹ need >= 6 samples for confidence interval at level 0.95
+² need >= 4 samples to detect a difference at alpha level 0.05
+³ summaries must be >0 to compute geomean
+⁴ ratios must be >0 to compute geomean

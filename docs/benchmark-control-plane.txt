@@ -1,0 +1,7 @@
+=== RUN   TestRuntimeTrafficDuringPublicationAndOutage
+    traffic_test.go:99: phase=stable concurrency=4 requests=3884 errors=0 elapsed_s=0.300 rps=12925 p50_ms=0.251 p95_ms=0.597 p99_ms=0.794
+    traffic_test.go:100: phase=publication concurrency=4 requests=3551 errors=0 elapsed_s=0.433 rps=8204 p50_ms=0.382 p95_ms=1.057 p99_ms=1.402
+    traffic_test.go:125: phase=database-outage-last-known-good concurrency=4 requests=3624 errors=0 elapsed_s=0.300 rps=12065 p50_ms=0.267 p95_ms=0.658 p99_ms=0.869
+--- PASS: TestRuntimeTrafficDuringPublicationAndOutage (1.26s)
+PASS
+ok  	github.com/kmpoltorak/routeqtus/tests/integration	1.910s

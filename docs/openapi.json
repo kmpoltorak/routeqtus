@@ -1,0 +1,3313 @@
+{
+  "components": {
+    "schemas": {
+      "Config": {
+        "additionalProperties": false,
+        "properties": {
+          "global_handlers": {
+            "description": "Handler IDs in entry order; also wrap 404 and 405.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "handlers": {
+            "items": {
+              "$ref": "#/components/schemas/Handler"
+            },
+            "type": "array"
+          },
+          "metrics": {
+            "default": true,
+            "description": "Collect request metrics; bootstrap can independently disable the endpoint.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "routes": {
+            "description": "Complete routing table.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "handlers": {
+                  "description": "Route handlers in entry order, inside global handlers.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "host": {
+                  "description": "Optional lowercase DNS host without port; empty matches all hosts.",
+                  "type": "string"
+                },
+                "host_header": {
+                  "description": "Explicit outgoing Host; empty uses selected target host.",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Unique route identifier.",
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                  "type": "string"
+                },
+                "methods": {
+                  "description": "Uppercase HTTP methods; empty matches all methods.",
+                  "items": {
+                    "pattern": "^[A-Z][A-Z0-9_-]{0,31}$",
+                    "type": "string"
+                  },
+                  "type": "array",
+                  "uniqueItems": true
+                },
+                "metrics": {
+                  "default": true,
+                  "description": "Collect route metrics when operational and bootstrap metrics are enabled.",
+                  "nullable": true,
+                  "type": "boolean"
+                },
+                "path": {
+                  "description": "Decoded absolute path without dot segments, repeated slashes, or percent escapes.",
+                  "type": "string"
+                },
+                "prefix": {
+                  "default": false,
+                  "description": "Segment-boundary prefix matcher; otherwise exact.",
+                  "type": "boolean"
+                },
+                "priority": {
+                  "default": 0,
+                  "description": "Higher values win before host/path specificity; range -1000000 to 1000000.",
+                  "maximum": 1000000,
+                  "minimum": -1000000,
+                  "type": "integer"
+                },
+                "request_timeout": {
+                  "description": "Full request deadline; null inherits bootstrap, 0s explicitly enables long streams.",
+                  "format": "duration",
+                  "nullable": true,
+                  "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+                  "type": "string"
+                },
+                "strip_prefix": {
+                  "default": false,
+                  "description": "Remove matched prefix; requires prefix=true.",
+                  "type": "boolean"
+                },
+                "upstream": {
+                  "description": "Existing upstream ID.",
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "path",
+                "upstream",
+                "handlers"
+              ],
+              "type": "object"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          },
+          "schema_version": {
+            "description": "Configuration contract version.",
+            "enum": [
+              1
+            ],
+            "type": "integer"
+          },
+          "trusted_proxies": {
+            "description": "Trusted peer CIDRs; empty trusts no incoming forwarding headers.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "upstreams": {
+            "description": "Named backend pools.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "dial_timeout": {
+                  "default": "3s",
+                  "description": "TCP connect timeout; zero disables.",
+                  "format": "duration",
+                  "nullable": true,
+                  "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "Unique stable identifier: 1-64 ASCII letters, digits, underscore, or hyphen.",
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                  "type": "string"
+                },
+                "idle_timeout": {
+                  "default": "60s",
+                  "description": "Idle connection timeout; zero disables.",
+                  "format": "duration",
+                  "nullable": true,
+                  "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+                  "type": "string"
+                },
+                "max_conns": {
+                  "default": 128,
+                  "description": "Maximum connections per target; 0 selects default, range 1-100000.",
+                  "maximum": 100000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "max_idle_conns": {
+                  "default": 128,
+                  "description": "Pool-wide idle connection limit; 0 selects default, range 1-100000.",
+                  "maximum": 100000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "max_idle_conns_per_host": {
+                  "default": 32,
+                  "description": "Idle connections per target; 0 selects default, range 1-100000.",
+                  "maximum": 100000,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "proxy_from_environment": {
+                  "default": false,
+                  "description": "Explicitly enable HTTP_PROXY/HTTPS_PROXY/NO_PROXY.",
+                  "type": "boolean"
+                },
+                "response_header_timeout": {
+                  "default": "10s",
+                  "description": "Wait for upstream response headers; zero disables.",
+                  "format": "duration",
+                  "nullable": true,
+                  "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+                  "type": "string"
+                },
+                "targets": {
+                  "description": "At least one target, selected by lock-free round robin.",
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "id": {
+                        "description": "Unique identifier within its upstream.",
+                        "maxLength": 64,
+                        "minLength": 1,
+                        "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                        "type": "string"
+                      },
+                      "url": {
+                        "description": "Absolute http/https URL with optional base path; no userinfo, query, or fragment.",
+                        "format": "uri",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "url"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 1024,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "tls": {
+                  "additionalProperties": false,
+                  "description": "Verified upstream TLS; environment references never expose secret values.",
+                  "properties": {
+                    "ca_env": {
+                      "description": "Environment variable containing additional PEM CA certificates.",
+                      "pattern": "^([A-Za-z_][A-Za-z0-9_]*)?$",
+                      "type": "string"
+                    },
+                    "cert_env": {
+                      "description": "Environment variable containing a PEM client certificate; requires key_env.",
+                      "pattern": "^([A-Za-z_][A-Za-z0-9_]*)?$",
+                      "type": "string"
+                    },
+                    "key_env": {
+                      "description": "Environment variable containing a PEM client key; requires cert_env.",
+                      "pattern": "^([A-Za-z_][A-Za-z0-9_]*)?$",
+                      "type": "string"
+                    },
+                    "server_name": {
+                      "description": "Override verified TLS server name; empty uses target host.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "type": "object"
+                },
+                "tls_handshake_timeout": {
+                  "default": "5s",
+                  "description": "TLS handshake timeout; zero disables.",
+                  "format": "duration",
+                  "nullable": true,
+                  "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "targets"
+              ],
+              "type": "object"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          }
+        },
+        "required": [
+          "schema_version",
+          "upstreams",
+          "handlers",
+          "global_handlers",
+          "routes"
+        ],
+        "type": "object"
+      },
+      "Handler": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "default": true,
+                "description": "False removes this handler from the request chain.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Unique instance identifier.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              "options": {
+                "$ref": "#/components/schemas/HandlerOptions_access_log"
+              },
+              "type": {
+                "enum": [
+                  "access_log"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Handler contract version.",
+                "enum": [
+                  1
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version",
+              "options"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "default": true,
+                "description": "False removes this handler from the request chain.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Unique instance identifier.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              "options": {
+                "$ref": "#/components/schemas/HandlerOptions_headers"
+              },
+              "type": {
+                "enum": [
+                  "headers"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Handler contract version.",
+                "enum": [
+                  1
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version",
+              "options"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "default": true,
+                "description": "False removes this handler from the request chain.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Unique instance identifier.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              "options": {
+                "$ref": "#/components/schemas/HandlerOptions_powered_by"
+              },
+              "type": {
+                "enum": [
+                  "powered_by"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Handler contract version.",
+                "enum": [
+                  1
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version",
+              "options"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "default": true,
+                "description": "False removes this handler from the request chain.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Unique instance identifier.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              "options": {
+                "$ref": "#/components/schemas/HandlerOptions_recover"
+              },
+              "type": {
+                "enum": [
+                  "recover"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Handler contract version.",
+                "enum": [
+                  1
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version",
+              "options"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "default": true,
+                "description": "False removes this handler from the request chain.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Unique instance identifier.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              "options": {
+                "$ref": "#/components/schemas/HandlerOptions_request_id"
+              },
+              "type": {
+                "enum": [
+                  "request_id"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Handler contract version.",
+                "enum": [
+                  1
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version",
+              "options"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "HandlerOptions_access_log": {
+        "additionalProperties": false,
+        "properties": {
+          "sample_every": {
+            "default": 1,
+            "description": "Log one in N requests; range 1-1000000. Zero selects default.",
+            "maximum": 1000000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "HandlerOptions_headers": {
+        "additionalProperties": false,
+        "properties": {
+          "request_remove": {
+            "description": "Allowed outgoing request headers to remove.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "request_set": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Allowed outgoing request headers to set after hop-by-hop cleanup.",
+            "type": "object"
+          },
+          "response_remove": {
+            "description": "Allowed response headers to remove.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "response_set": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Allowed response headers to set.",
+            "type": "object"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "HandlerOptions_powered_by": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "description": "X-Powered-By value, 1-128 characters without control characters.",
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n\\u0000]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
+      "HandlerOptions_recover": {
+        "additionalProperties": false,
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "HandlerOptions_request_id": {
+        "additionalProperties": false,
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "Problem": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                }
+              },
+              "required": [],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "message": {
+            "type": "string"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "Publication": {
+        "properties": {
+          "generation": {
+            "format": "int64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "revision_id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "description": "Committed in PostgreSQL; instances apply asynchronously.",
+            "enum": [
+              "committed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision_id",
+          "generation",
+          "status"
+        ],
+        "type": "object"
+      },
+      "Revision": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "generation": {
+            "type": "integer"
+          },
+          "principal": {
+            "type": "string"
+          },
+          "revision_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "type": "integer"
+          },
+          "schema_version": {
+            "type": "integer"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "Route": {
+        "additionalProperties": false,
+        "properties": {
+          "handlers": {
+            "description": "Route handlers in entry order, inside global handlers.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "host": {
+            "description": "Optional lowercase DNS host without port; empty matches all hosts.",
+            "type": "string"
+          },
+          "host_header": {
+            "description": "Explicit outgoing Host; empty uses selected target host.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique route identifier.",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "type": "string"
+          },
+          "methods": {
+            "description": "Uppercase HTTP methods; empty matches all methods.",
+            "items": {
+              "pattern": "^[A-Z][A-Z0-9_-]{0,31}$",
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
+          "metrics": {
+            "default": true,
+            "description": "Collect route metrics when operational and bootstrap metrics are enabled.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "path": {
+            "description": "Decoded absolute path without dot segments, repeated slashes, or percent escapes.",
+            "type": "string"
+          },
+          "prefix": {
+            "default": false,
+            "description": "Segment-boundary prefix matcher; otherwise exact.",
+            "type": "boolean"
+          },
+          "priority": {
+            "default": 0,
+            "description": "Higher values win before host/path specificity; range -1000000 to 1000000.",
+            "maximum": 1000000,
+            "minimum": -1000000,
+            "type": "integer"
+          },
+          "request_timeout": {
+            "description": "Full request deadline; null inherits bootstrap, 0s explicitly enables long streams.",
+            "format": "duration",
+            "nullable": true,
+            "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+            "type": "string"
+          },
+          "strip_prefix": {
+            "default": false,
+            "description": "Remove matched prefix; requires prefix=true.",
+            "type": "boolean"
+          },
+          "upstream": {
+            "description": "Existing upstream ID.",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "path",
+          "upstream",
+          "handlers"
+        ],
+        "type": "object"
+      },
+      "Settings": {
+        "additionalProperties": false,
+        "properties": {
+          "metrics": {
+            "default": true,
+            "description": "Collect request metrics; bootstrap can independently disable the endpoint.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "trusted_proxies": {
+            "description": "Trusted peer CIDRs; empty trusts no incoming forwarding headers.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Target": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Unique identifier within its upstream.",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "type": "string"
+          },
+          "url": {
+            "description": "Absolute http/https URL with optional base path; no userinfo, query, or fragment.",
+            "format": "uri",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url"
+        ],
+        "type": "object"
+      },
+      "Upstream": {
+        "additionalProperties": false,
+        "properties": {
+          "dial_timeout": {
+            "default": "3s",
+            "description": "TCP connect timeout; zero disables.",
+            "format": "duration",
+            "nullable": true,
+            "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique stable identifier: 1-64 ASCII letters, digits, underscore, or hyphen.",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "type": "string"
+          },
+          "idle_timeout": {
+            "default": "60s",
+            "description": "Idle connection timeout; zero disables.",
+            "format": "duration",
+            "nullable": true,
+            "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+            "type": "string"
+          },
+          "max_conns": {
+            "default": 128,
+            "description": "Maximum connections per target; 0 selects default, range 1-100000.",
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "max_idle_conns": {
+            "default": 128,
+            "description": "Pool-wide idle connection limit; 0 selects default, range 1-100000.",
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "max_idle_conns_per_host": {
+            "default": 32,
+            "description": "Idle connections per target; 0 selects default, range 1-100000.",
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "proxy_from_environment": {
+            "default": false,
+            "description": "Explicitly enable HTTP_PROXY/HTTPS_PROXY/NO_PROXY.",
+            "type": "boolean"
+          },
+          "response_header_timeout": {
+            "default": "10s",
+            "description": "Wait for upstream response headers; zero disables.",
+            "format": "duration",
+            "nullable": true,
+            "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+            "type": "string"
+          },
+          "targets": {
+            "description": "At least one target, selected by lock-free round robin.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "description": "Unique identifier within its upstream.",
+                  "maxLength": 64,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                  "type": "string"
+                },
+                "url": {
+                  "description": "Absolute http/https URL with optional base path; no userinfo, query, or fragment.",
+                  "format": "uri",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "url"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1024,
+            "minItems": 1,
+            "type": "array"
+          },
+          "tls": {
+            "additionalProperties": false,
+            "description": "Verified upstream TLS; environment references never expose secret values.",
+            "properties": {
+              "ca_env": {
+                "description": "Environment variable containing additional PEM CA certificates.",
+                "pattern": "^([A-Za-z_][A-Za-z0-9_]*)?$",
+                "type": "string"
+              },
+              "cert_env": {
+                "description": "Environment variable containing a PEM client certificate; requires key_env.",
+                "pattern": "^([A-Za-z_][A-Za-z0-9_]*)?$",
+                "type": "string"
+              },
+              "key_env": {
+                "description": "Environment variable containing a PEM client key; requires cert_env.",
+                "pattern": "^([A-Za-z_][A-Za-z0-9_]*)?$",
+                "type": "string"
+              },
+              "server_name": {
+                "description": "Override verified TLS server name; empty uses target host.",
+                "type": "string"
+              }
+            },
+            "required": [],
+            "type": "object"
+          },
+          "tls_handshake_timeout": {
+            "default": "5s",
+            "description": "TLS handshake timeout; zero disables.",
+            "format": "duration",
+            "nullable": true,
+            "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "targets"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Configuration is published as complete immutable revisions. GET configured values for round-trip export; GET effective values only for inspection. Secrets are environment references: secret values are never accepted or returned. Null optional overrides inherit defaults; zero durations explicitly disable supported timeouts.",
+    "title": "Routeqtus Management API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/healthz": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        },
+        "security": []
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/config": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Config"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "patch": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "description": "JSON Merge Patch. Null removes optional overrides; null on required fields is rejected."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Config"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/config/effective": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Config"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/config/validate": {
+      "post": {
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Config"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "valid": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/global-handlers": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "patch": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "description": "JSON Merge Patch. Null removes optional overrides; null on required fields is rejected."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/handler-types": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "example": {},
+                      "name": {
+                        "type": "string"
+                      },
+                      "schema": {
+                        "additionalProperties": {},
+                        "type": "object"
+                      },
+                      "version": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [],
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/handler-types/{type}/schema": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Typed handler options schema.",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/handlers": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Handler"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "post": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Handler"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/handlers/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Handler"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "description": "RFC 7396: omitted unchanged; null removes an optional value; required fields cannot be removed; arrays replace in full."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Handler"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/revisions": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "description": "Latest 100 immutable revisions with generation, authenticated principal, declared author, description, and timestamp.",
+                  "items": {
+                    "$ref": "#/components/schemas/Revision"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/revisions/{revision_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "revision_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Config"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/rollback": {
+      "post": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "revision_id": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "revision_id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/routes": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Route"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "post": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Route"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/routes/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Route"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "description": "RFC 7396: omitted unchanged; null removes an optional value; required fields cannot be removed; arrays replace in full."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Route"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/routes/{id}/handlers": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "description": "JSON Merge Patch. Null removes optional overrides; null on required fields is rejected."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/settings": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Settings"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "patch": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "description": "JSON Merge Patch. Null removes optional overrides; null on required fields is rejected."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Settings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/status": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "generation": {
+                      "type": "integer"
+                    },
+                    "revision_id": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/upstreams": {
+      "get": {
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Upstream"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "post": {
+        "parameters": [
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Upstream"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/upstreams/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Upstream"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "description": "RFC 7396: omitted unchanged; null removes an optional value; required fields cannot be removed; arrays replace in full."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Upstream"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/upstreams/{id}/targets": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Target"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Target"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    },
+    "/v1/upstreams/{id}/targets/{target_id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Target"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/merge-patch+json": {
+              "schema": {
+                "description": "RFC 7396: omitted unchanged; null removes an optional value; required fields cannot be removed; arrays replace in full."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "target_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Strong ETag for the complete configuration; e.g. \"g-0\". Wildcards are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"g-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Target"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Publication"
+                }
+              }
+            },
+            "description": "Success",
+            "headers": {
+              "ETag": {
+                "description": "Generation of the complete configuration.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "400 invalid JSON; 401 authentication; 404 missing resource; 409 resource conflict; 412 stale precondition; 413 size limit; 422 validation; 428 missing precondition; 503 storage or concurrency limit."
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ]
+}

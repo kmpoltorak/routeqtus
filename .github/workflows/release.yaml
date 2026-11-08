@@ -1,0 +1,28 @@
+name: Release
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make check test test-race
+      - run: make test-integration
+      - run: make vuln
+      - name: Package release
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: sh scripts/package-release.sh "$VERSION"
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.ref_name }}
+        run: gh release create "$VERSION" dist/*.tar.gz dist/checksums.txt --verify-tag --title "Routeqtus $VERSION" --notes-file docs/release_notes.md
