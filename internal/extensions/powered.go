@@ -5,14 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
+	"unicode/utf8"
 
 	"github.com/kmpoltorak/routeqtus/internal/config"
 	"github.com/kmpoltorak/routeqtus/internal/middleware"
 )
 
 type Powered struct {
-	Value string `json:"value" required:"true" doc:"X-Powered-By value, 1-128 characters without control characters."`
+	Value string `json:"value" required:"true" doc:"X-Powered-By value, 1-128 Unicode characters without ASCII control characters."`
 }
+
+var poweredValue = regexp.MustCompile(config.PoweredValuePattern)
 
 func Register(r *middleware.Registry) error {
 	return r.Register(middleware.Type{Name: "powered_by", Version: 1, Schema: config.Schema(Powered{}), Example: Powered{Value: "Routeqtus"}, Factory: func(b json.RawMessage) (middleware.Middleware, error) {
@@ -20,8 +24,9 @@ func Register(r *middleware.Registry) error {
 		if err := config.DecodeTyped(b, &o); err != nil {
 			return nil, err
 		}
-		if len(o.Value) < 1 || len(o.Value) > 128 || !middleware.ValidHeaderValue(o.Value) {
-			return nil, fmt.Errorf("value must have 1-128 characters without control characters")
+		characters := utf8.RuneCountInString(o.Value)
+		if characters < 1 || characters > config.MaxPoweredCharacters || !poweredValue.MatchString(o.Value) {
+			return nil, fmt.Errorf("value must have 1-%d characters without ASCII control characters", config.MaxPoweredCharacters)
 		}
 		h := middleware.Headers{ResponseSet: map[string]string{"X-Powered-By": o.Value}}
 		return func(next http.Handler) http.Handler {

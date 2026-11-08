@@ -55,35 +55,35 @@ func schema(t reflect.Type) map[string]any {
 			}
 			switch f.Name {
 			case "ID", "Upstream":
-				p["pattern"] = "^[A-Za-z0-9_-]{1,64}$"
+				p["pattern"] = IdentifierPattern
 				p["minLength"] = 1
-				p["maxLength"] = 64
+				p["maxLength"] = MaxIdentifierLength
 			case "Priority":
-				p["minimum"] = -1000000
-				p["maximum"] = 1000000
+				p["minimum"] = -MaxPriority
+				p["maximum"] = MaxPriority
 			case "MaxConns", "MaxIdleConns", "MaxIdleConnsPerHost":
 				p["minimum"] = 0
-				p["maximum"] = 100000
+				p["maximum"] = MaxConnections
 			case "SampleEvery":
 				p["minimum"] = 0
-				p["maximum"] = 1000000
+				p["maximum"] = MaxSampleEvery
 			case "Value":
 				p["minLength"] = 1
-				p["maxLength"] = 128
-				p["pattern"] = "^[^\\r\\n\\u0000]+$"
+				p["maxLength"] = MaxPoweredCharacters
+				p["pattern"] = PoweredValuePattern
 			case "URL":
 				p["format"] = "uri"
 			case "CAEnv", "CertEnv", "KeyEnv":
 				p["pattern"] = "^([A-Za-z_][A-Za-z0-9_]*)?$"
 			case "Methods":
 				p["uniqueItems"] = true
-				p["items"] = map[string]any{"type": "string", "pattern": "^[A-Z][A-Z0-9_-]{0,31}$"}
+				p["items"] = map[string]any{"type": "string", "pattern": HTTPMethodPattern}
 			case "Targets":
 				p["minItems"] = 1
-				p["maxItems"] = 1024
+				p["maxItems"] = MaxTargets
 			case "Routes", "Upstreams", "Handlers":
 				if f.Type.Kind() == reflect.Slice && f.Type.Elem().Kind() == reflect.Struct {
-					p["maxItems"] = 10000
+					p["maxItems"] = MaxEntities
 				}
 			}
 			props[name] = p

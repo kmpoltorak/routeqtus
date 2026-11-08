@@ -55,8 +55,8 @@ type pool struct {
 	transport *http.Transport
 }
 
-var identifier = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
-var method = regexp.MustCompile(`^[A-Z][A-Z0-9_-]{0,31}$`)
+var identifier = regexp.MustCompile(config.IdentifierPattern)
+var method = regexp.MustCompile(config.HTTPMethodPattern)
 
 func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	s := &Snapshot{limits: c.Limits}
@@ -68,8 +68,8 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	if input.SchemaVersion != 1 {
 		return nil, config.Invalid("/schema_version", "unsupported version")
 	}
-	if len(input.Routes) > 10000 || len(input.Upstreams) > 10000 || len(input.Handlers) > 10000 {
-		return nil, config.Invalid("/", "at most 10000 routes, upstreams, or handlers")
+	if len(input.Routes) > config.MaxEntities || len(input.Upstreams) > config.MaxEntities || len(input.Handlers) > config.MaxEntities {
+		return nil, config.Invalid("/", fmt.Sprintf("at most %d routes, upstreams, or handlers", config.MaxEntities))
 	}
 	d, e := input.Effective()
 	if e != nil {
@@ -89,11 +89,11 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 		if !identifier.MatchString(u.ID) || pools[u.ID] != nil {
 			return nil, config.Invalid(field+"/id", "invalid or duplicate upstream ID")
 		}
-		if len(u.Targets) < 1 || len(u.Targets) > 1024 {
-			return nil, config.Invalid(field+"/targets", "must have 1-1024 targets")
+		if len(u.Targets) < 1 || len(u.Targets) > config.MaxTargets {
+			return nil, config.Invalid(field+"/targets", fmt.Sprintf("must have 1-%d targets", config.MaxTargets))
 		}
 		for _, n := range []int{u.MaxConns, u.MaxIdleConns, u.MaxIdleConnsPerHost} {
-			if n < 1 || n > 100000 {
+			if n < 1 || n > config.MaxConnections {
 				return nil, config.Invalid(field, "connection limit outside range")
 			}
 		}
@@ -165,7 +165,7 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 		if r.Path == "" || !strings.HasPrefix(r.Path, "/") || !validPath(r.Path, "") || strings.Contains(r.Path, "%") || strings.HasSuffix(r.Path, "/") && r.Path != "/" && r.Prefix {
 			return nil, config.Invalid(field+"/path", "invalid or ambiguous route path")
 		}
-		if r.Priority < -1000000 || r.Priority > 1000000 {
+		if r.Priority < -config.MaxPriority || r.Priority > config.MaxPriority {
 			return nil, config.Invalid(field+"/priority", "outside range")
 		}
 		if r.StripPrefix && !r.Prefix {

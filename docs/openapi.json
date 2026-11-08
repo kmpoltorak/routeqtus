@@ -533,10 +533,10 @@
         "additionalProperties": false,
         "properties": {
           "value": {
-            "description": "X-Powered-By value, 1-128 characters without control characters.",
+            "description": "X-Powered-By value, 1-128 Unicode characters without ASCII control characters.",
             "maxLength": 128,
             "minLength": 1,
-            "pattern": "^[^\\r\\n\\u0000]+$",
+            "pattern": "^[^\\x00-\\x1f\\x7f]+$",
             "type": "string"
           }
         },
