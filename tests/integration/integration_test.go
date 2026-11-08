@@ -19,27 +19,27 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/management"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/runtime"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/management"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/runtime"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func database(t *testing.T) *postgres.Store {
 	t.Helper()
-	dsn := os.Getenv("ROUTEQTUS_TEST_DATABASE_URL")
+	dsn := os.Getenv("ROUTETUS_TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Fatal("ROUTEQTUS_TEST_DATABASE_URL is required; use make test-integration")
+		t.Fatal("ROUTETUS_TEST_DATABASE_URL is required; use make test-integration")
 	}
 	ctx := context.Background()
 	admin, err := pgx.Connect(ctx, dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
-	name := fmt.Sprintf("routeqtus_test_%d", time.Now().UnixNano())
+	name := fmt.Sprintf("routetus_test_%d", time.Now().UnixNano())
 	if _, err = admin.Exec(ctx, "CREATE DATABASE "+pgx.Identifier{name}.Sanitize()); err != nil {
 		t.Fatal(err)
 	}
@@ -52,9 +52,9 @@ func database(t *testing.T) *postgres.Store {
 		t.Fatal(err)
 	}
 	cfg.Path = "/" + name
-	t.Setenv("ROUTEQTUS_INTEGRATION_DSN", cfg.String())
+	t.Setenv("ROUTETUS_INTEGRATION_DSN", cfg.String())
 	b := bootstrap.Defaults().Postgres
-	b.DSNEnv = "ROUTEQTUS_INTEGRATION_DSN"
+	b.DSNEnv = "ROUTETUS_INTEGRATION_DSN"
 	b.QueryTimeout = "5s"
 	s, err := postgres.Open(ctx, b)
 	if err != nil {
@@ -311,7 +311,7 @@ func TestControlPlaneAndReload(t *testing.T) {
 	}
 	eventually(t, 2*time.Second, func() bool { return rt1.Ready() && rt2.Ready() })
 	// Drop notification sessions; periodic polling and reconnect must restore convergence.
-	_, err = s.Pool.Exec(ctx, "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=current_database() AND query='LISTEN routeqtus_config'")
+	_, err = s.Pool.Exec(ctx, "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=current_database() AND query='LISTEN routetus_config'")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +322,7 @@ func TestControlPlaneAndReload(t *testing.T) {
 	eventually(t, 3*time.Second, func() bool { return rt1.Status().Applied == st.Generation+1 && rt2.Status().Applied == st.Generation+1 })
 	metrics := httptest.NewRecorder()
 	rt1.Metrics(metrics)
-	if !strings.Contains(metrics.Body.String(), "routeqtus_config_applied_generation") {
+	if !strings.Contains(metrics.Body.String(), "routetus_config_applied_generation") {
 		t.Fatal(metrics.Body.String())
 	}
 }
@@ -364,7 +364,7 @@ func TestPoolDeadlineAndRelationalConstraints(t *testing.T) {
 	if _, err := s.Pool.Exec(ctx, "INSERT INTO handler_bindings VALUES($1,NULL,0,'h')", b); err == nil {
 		t.Fatal("cross-revision handler reference accepted")
 	}
-	inj := "quote'; DROP TABLE routeqtus.handlers;--"
+	inj := "quote'; DROP TABLE routetus.handlers;--"
 	compiler := testutil.Compiler(t)
 	svc := configservice.Service{Store: s, Compiler: compiler}
 	c := testutil.Config("http://example.com")

@@ -5,8 +5,8 @@ import subprocess
 
 root = Path(__file__).resolve().parent.parent
 os.chdir(root)
-if not os.environ.get("ROUTEQTUS_TEST_DATABASE_URL"):
-    raise SystemExit("ROUTEQTUS_TEST_DATABASE_URL is required for publication sabotage")
+if not os.environ.get("ROUTETUS_TEST_DATABASE_URL"):
+    raise SystemExit("ROUTETUS_TEST_DATABASE_URL is required for publication sabotage")
 
 cases = [
     ("internal/strictjson/json.go", "if seen[key] {", "if false {",

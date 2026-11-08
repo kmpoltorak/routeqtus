@@ -3,7 +3,7 @@
 ## Horizontal scaling
 
 Kubernetes or another serving platform owns replica count, scheduling, resource
-requests/limits, and autoscaling from observed request load or CPU. Routeqtus does
+requests/limits, and autoscaling from observed request load or CPU. Routetus does
 not implement its own autoscaler or operator. Serving instances have no persistent
 local configuration or per-client session state; each independently compiles the
 active PostgreSQL revision into RAM. Load balancing and round-robin target counters
@@ -62,6 +62,15 @@ network/TLS infrastructure. Do not expose profiles to untrusted callers.
 
 Public TLS also uses `server.cert_file` and `server.key_file`, with automatic HTTP/2
 negotiation. Plain public HTTP is HTTP/1.1; h2c is not supported.
+
+## Project naming
+
+Current source uses the `routetus` SQL schema, `routetus_config` notification channel,
+`ROUTETUS_` environment prefix, and `routetus_` metric names. Demo database roles are
+`routetus_manage` and `routetus_serve`; the Compose project and images use Routetus names.
+This rename targets a fresh test deployment. Recreate the demo database and update
+external environment references, DSNs, and metric queries; no automatic old-name
+migration or compatibility aliases are supplied. Credentials remain environment values.
 
 ## PostgreSQL and permissions
 
@@ -245,7 +254,7 @@ SIGTERM/SIGINT first marks serving unready, stops synchronization and new connec
 and drains ordinary requests and upgrades until `shutdown_timeout`. Remaining public
 and hijacked connections are closed, then transports and the database pool are closed.
 
-Kubernetes endpoint removal and load-balancer propagation are asynchronous. Routeqtus
+Kubernetes endpoint removal and load-balancer propagation are asynchronous. Routetus
 starts closing its public listener when it receives SIGTERM; it does not add an
 application-level propagation sleep. Give the platform time to remove the terminating
 Pod from traffic before sending SIGTERM. On Kubernetes 1.34 or later, merge this

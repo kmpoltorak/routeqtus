@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/app"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/app"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestTLSProxyToLoopbackManagement(t *testing.T) {
@@ -26,7 +26,7 @@ func TestTLSProxyToLoopbackManagement(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := bootstrap.Defaults()
-	c.Postgres.DSNEnv = "ROUTEQTUS_INTEGRATION_DSN"
+	c.Postgres.DSNEnv = "ROUTETUS_INTEGRATION_DSN"
 	c.Management.Listen, c.Admin.Listen = freeAddress(t), freeAddress(t)
 	if err := c.Validate(); err != nil {
 		t.Fatal(err)

@@ -77,7 +77,7 @@ func TestReleasePrivilegeIsolation(t *testing.T) {
 				t.Fatal("unexpected code execution in publication checksum step")
 			}
 		case 2:
-			if step.Run != `gh release create "$VERSION" routeqtus_"$VERSION"_linux_amd64.tar.gz routeqtus_"$VERSION"_linux_arm64.tar.gz routeqtus_"$VERSION"_darwin_amd64.tar.gz routeqtus_"$VERSION"_darwin_arm64.tar.gz checksums.txt --repo "$GITHUB_REPOSITORY" --verify-tag --title "Routeqtus $VERSION" --notes-file release_notes.md` {
+			if step.Run != `gh release create "$VERSION" routetus_"$VERSION"_linux_amd64.tar.gz routetus_"$VERSION"_linux_arm64.tar.gz routetus_"$VERSION"_darwin_amd64.tar.gz routetus_"$VERSION"_darwin_arm64.tar.gz checksums.txt --repo "$GITHUB_REPOSITORY" --verify-tag --title "Routetus $VERSION" --notes-file release_notes.md` {
 				t.Fatal("unexpected code execution in publication step")
 			}
 		}

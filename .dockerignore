@@ -5,7 +5,7 @@ bin
 dist
 *.out
 *.prof
-routeqtus_prompt.md
+routetus_prompt.md
 PLAN.md
 *_prompt.md
 .local/

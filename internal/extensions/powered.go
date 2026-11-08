@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"unicode/utf8"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/middleware"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/middleware"
 )
 
 type Powered struct {
@@ -19,7 +19,7 @@ type Powered struct {
 var poweredValue = regexp.MustCompile(config.PoweredValuePattern)
 
 func Register(r *middleware.Registry) error {
-	return r.Register(middleware.Type{Name: "powered_by", Version: 1, Schema: config.Schema(Powered{}), Example: Powered{Value: "Routeqtus"}, Factory: func(b json.RawMessage) (middleware.Middleware, error) {
+	return r.Register(middleware.Type{Name: "powered_by", Version: 1, Schema: config.Schema(Powered{}), Example: Powered{Value: "Routetus"}, Factory: func(b json.RawMessage) (middleware.Middleware, error) {
 		var o Powered
 		if err := config.DecodeTyped(b, &o); err != nil {
 			return nil, err

@@ -8,10 +8,10 @@ fi
 if [ ! -f .env ]; then
   umask 077
   {
-    for name in POSTGRES_PASSWORD SERVE_DB_PASSWORD MANAGE_DB_PASSWORD ROUTEQTUS_MANAGEMENT_TOKEN ROUTEQTUS_ADMIN_TOKEN; do
+    for name in POSTGRES_PASSWORD SERVE_DB_PASSWORD MANAGE_DB_PASSWORD ROUTETUS_MANAGEMENT_TOKEN ROUTETUS_ADMIN_TOKEN; do
       printf '%s=%s\n' "$name" "$(openssl rand -hex 32)"
     done
-    printf 'ROUTEQTUS_UID=%s\nROUTEQTUS_GID=%s\n' "$(id -u)" "$(id -g)"
+    printf 'ROUTETUS_UID=%s\nROUTETUS_GID=%s\n' "$(id -u)" "$(id -g)"
   } > .env
 fi
 mkdir -p .demo/tls

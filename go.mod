@@ -1,4 +1,4 @@
-module github.com/kmpoltorak/routeqtus
+module github.com/kmpoltorak/routetus
 
 go 1.27.3
 

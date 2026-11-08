@@ -12,11 +12,11 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/kmpoltorak/routeqtus/internal/app"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/management"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/app"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/management"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestManagementReadinessDoesNotAcquireSQL(t *testing.T) {
@@ -59,12 +59,12 @@ func TestManageReadinessOutageAndRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := bootstrap.Defaults()
-	c.Postgres.DSNEnv = "ROUTEQTUS_INTEGRATION_DSN"
+	c.Postgres.DSNEnv = "ROUTETUS_INTEGRATION_DSN"
 	c.Postgres.QueryTimeout = "50ms"
 	c.Sync.PollInterval = "20ms"
 	c.Management.Listen = freeAddress(t)
 	c.Admin.Listen = freeAddress(t)
-	c.Management.AuthTokenEnv = "ROUTEQTUS_READINESS_TOKEN"
+	c.Management.AuthTokenEnv = "ROUTETUS_READINESS_TOKEN"
 	token := strings.Repeat("r", 32)
 	t.Setenv(c.Management.AuthTokenEnv, token)
 	run, stop := context.WithCancel(ctx)
@@ -98,7 +98,7 @@ func TestManageReadinessOutageAndRecovery(t *testing.T) {
 		return true
 	}
 	eventually(t, 2*time.Second, func() bool { return both(200) })
-	admin, err := pgx.Connect(ctx, os.Getenv("ROUTEQTUS_TEST_DATABASE_URL"))
+	admin, err := pgx.Connect(ctx, os.Getenv("ROUTETUS_TEST_DATABASE_URL"))
 	if err != nil {
 		t.Fatal(err)
 	}

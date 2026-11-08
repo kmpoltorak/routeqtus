@@ -1,4 +1,4 @@
-// routeqtus-bench compares local closed-loop workloads. It is not a capacity claim.
+// routetus-bench compares local closed-loop workloads. It is not a capacity claim.
 package main
 
 import (
@@ -26,9 +26,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/app"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/app"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
 )
 
 type result struct {
@@ -177,10 +177,10 @@ func measure(mode string, n, size, concurrency int, match, https, stream bool, w
 		roots := x509.NewCertPool()
 		roots.AddCert(backend.Certificate())
 		transport.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: roots}
-		if err = os.Setenv("ROUTEQTUS_BENCH_CA", string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: backend.Certificate().Raw}))); err != nil {
+		if err = os.Setenv("ROUTETUS_BENCH_CA", string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: backend.Certificate().Raw}))); err != nil {
 			return r, err
 		}
-		u.TLS.CAEnv = "ROUTEQTUS_BENCH_CA"
+		u.TLS.CAEnv = "ROUTETUS_BENCH_CA"
 	}
 	if mode == "direct" {
 		handler = backend.Config.Handler
@@ -194,7 +194,7 @@ func measure(mode string, n, size, concurrency int, match, https, stream bool, w
 		c := config.Config{SchemaVersion: 1, Upstreams: []config.Upstream{u}, Handlers: []config.Handler{}, GlobalHandlers: []string{}, Routes: []config.Route{}}
 		c.Metrics = config.B(mode == "typical")
 		if mode == "typical" {
-			c.Handlers = []config.Handler{{ID: "id", Type: "request_id", Version: 1, Options: []byte(`{}`)}, {ID: "recover", Type: "recover", Version: 1, Options: []byte(`{}`)}, {ID: "log", Type: "access_log", Version: 1, Options: []byte(`{}`)}, {ID: "headers", Type: "headers", Version: 1, Options: []byte(`{"response_set":{"X-Gateway":"routeqtus"}}`)}}
+			c.Handlers = []config.Handler{{ID: "id", Type: "request_id", Version: 1, Options: []byte(`{}`)}, {ID: "recover", Type: "recover", Version: 1, Options: []byte(`{}`)}, {ID: "log", Type: "access_log", Version: 1, Options: []byte(`{}`)}, {ID: "headers", Type: "headers", Version: 1, Options: []byte(`{"response_set":{"X-Gateway":"routetus"}}`)}}
 			c.GlobalHandlers = []string{"id", "recover", "log", "headers"}
 		}
 		for i := 0; i < n; i++ {

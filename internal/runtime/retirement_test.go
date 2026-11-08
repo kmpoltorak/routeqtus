@@ -5,10 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestOldSnapshotLivesUntilLastRequest(t *testing.T) {
@@ -63,7 +63,7 @@ func TestOldSnapshotLivesUntilLastRequest(t *testing.T) {
 	}
 	close(release)
 	w = <-done
-	if w.Header().Get("X-Powered-By") != "Routeqtus" || old.refs.Load() != 0 {
+	if w.Header().Get("X-Powered-By") != "Routetus" || old.refs.Load() != 0 {
 		t.Fatal("old request changed snapshots or resources were not retired")
 	}
 }

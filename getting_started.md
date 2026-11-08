@@ -1,6 +1,6 @@
 # Getting started
 
-Routeqtus needs PostgreSQL and an explicitly published revision before `serve`
+Routetus needs PostgreSQL and an explicitly published revision before `serve`
 accepts traffic. `manage` can start with an empty, migrated database.
 
 See [release notes](docs/release_notes.md#upgrade-notes) for validation and readiness
@@ -9,13 +9,17 @@ valid; no tab-cleanup step is required.
 
 ## Install
 
+The project rename is currently unreleased. Build from the current source checkout
+for the new binary/module names; existing v0.1.1 archives predate the rename.
+Use a fresh demo database and the `ROUTETUS_` environment prefix.
+
 For a prebuilt binary, download the archive for your OS/architecture and `checksums.txt`
-from [GitHub Releases](https://github.com/kmpoltorak/routeqtus/releases). Verify its
+from [GitHub Releases](https://github.com/kmpoltorak/routetus/releases). Verify its
 SHA-256 checksum before extracting it. Archives contain the binary, examples, and
 public documentation; they do not include the source Makefile. Check the version:
 
 ```sh
-./routeqtus version
+./routetus version
 ```
 
 The Docker demo and source-build commands below use a Git checkout. PostgreSQL 17
@@ -27,8 +31,8 @@ container includes CA certificates, runs without root, and excludes the demo bac
 Install Docker with Compose, OpenSSL, curl, and make. Run as a non-root user:
 
 ```sh
-git clone https://github.com/kmpoltorak/routeqtus.git
-cd routeqtus
+git clone https://github.com/kmpoltorak/routetus.git
+cd routetus
 make demo
 curl --fail http://127.0.0.1:8080/api
 ```
@@ -36,7 +40,7 @@ curl --fail http://127.0.0.1:8080/api
 Example output (the backend name alternates between `backend-a` and `backend-b`):
 
 ```text
-routeqtus demo backend: backend-a
+routetus demo backend: backend-a
 ```
 
 `make demo` generates random credentials in ignored `.env` and a seven-day local
@@ -61,18 +65,18 @@ set -a
 . ./.env
 set +a
 export SSL_CERT_FILE="$PWD/.demo/tls/cert.pem"
-bin/routeqtus config status --api https://127.0.0.1:9080
-bin/routeqtus config show --api https://127.0.0.1:9080 > configured.json
-bin/routeqtus config validate --api https://127.0.0.1:9080 --file configured.json
-bin/routeqtus config show --api https://127.0.0.1:9080 --effective
+bin/routetus config status --api https://127.0.0.1:9080
+bin/routetus config show --api https://127.0.0.1:9080 > configured.json
+bin/routetus config validate --api https://127.0.0.1:9080 --file configured.json
+bin/routetus config show --api https://127.0.0.1:9080 --effective
 ```
 
 For diagnostics:
 
 ```sh
-curl --fail -H "Authorization: Bearer $ROUTEQTUS_ADMIN_TOKEN" http://127.0.0.1:9090/readyz
-curl --fail -H "Authorization: Bearer $ROUTEQTUS_ADMIN_TOKEN" http://127.0.0.1:9090/status
-curl --fail -H "Authorization: Bearer $ROUTEQTUS_ADMIN_TOKEN" http://127.0.0.1:9090/metrics
+curl --fail -H "Authorization: Bearer $ROUTETUS_ADMIN_TOKEN" http://127.0.0.1:9090/readyz
+curl --fail -H "Authorization: Bearer $ROUTETUS_ADMIN_TOKEN" http://127.0.0.1:9090/status
+curl --fail -H "Authorization: Bearer $ROUTETUS_ADMIN_TOKEN" http://127.0.0.1:9090/metrics
 ```
 
 Stop without deleting PostgreSQL data: `docker compose down`.
@@ -84,32 +88,32 @@ intend to discard this local demo's configuration.
 Use a source checkout, or the examples from an extracted release archive. For source:
 
 ```sh
-git clone https://github.com/kmpoltorak/routeqtus.git
-cd routeqtus
+git clone https://github.com/kmpoltorak/routetus.git
+cd routetus
 make build
 ```
 
-When using a release archive, skip the build and replace `bin/routeqtus` in the
-following commands with `./routeqtus`. Check the bootstrap offline:
+When using a release archive, skip the build and replace `bin/routetus` in the
+following commands with `./routetus`. Check the bootstrap offline:
 
 ```sh
-bin/routeqtus check --config examples/bootstrap.yaml
+bin/routetus check --config examples/bootstrap.yaml
 ```
 
 Supply `DATABASE_URL` securely for the migration owner, then run:
 
 ```sh
-bin/routeqtus migrate --config examples/bootstrap.yaml
+bin/routetus migrate --config examples/bootstrap.yaml
 ```
 
 Create separate login roles through your PostgreSQL administration tooling. Apply
-the grants in `examples/docker/permissions.sql` after creating `routeqtus_serve`
-and `routeqtus_manage`. The migrator owns the schema; the request-serving role has
+the grants in `examples/docker/permissions.sql` after creating `routetus_serve`
+and `routetus_manage`. The migrator owns the schema; the request-serving role has
 SELECT only. Use distinct bootstrap files with distinct `dsn_env` references, or
 separate process environments. Production DSNs must verify the database certificate:
 
 ```text
-postgres://routeqtus_serve@db.example.com:5432/routeqtus?sslmode=verify-full&sslrootcert=/run/secrets/postgres-ca.pem
+postgres://routetus_serve@db.example.com:5432/routetus?sslmode=verify-full&sslrootcert=/run/secrets/postgres-ca.pem
 ```
 
 Provide the complete DSN, including authentication, through the named environment
@@ -130,17 +134,17 @@ In `.local/native/manage.yaml`, set `admin.listen` to `127.0.0.1:9091`; leave
 role's DSN environment reference.
 
 Start `manage` with its own DSN
-and a random Bearer token of at least 32 bytes in `ROUTEQTUS_MANAGEMENT_TOKEN`:
+and a random Bearer token of at least 32 bytes in `ROUTETUS_MANAGEMENT_TOKEN`:
 
 ```sh
-bin/routeqtus manage --config .local/native/manage.yaml
+bin/routetus manage --config .local/native/manage.yaml
 ```
 
 In another terminal with the same token, publish your configuration through HTTP:
 
 ```sh
-bin/routeqtus config validate --file examples/config.json
-bin/routeqtus config apply --file examples/config.json --generation 0
+bin/routetus config validate --file examples/config.json
+bin/routetus config apply --file examples/config.json --generation 0
 ```
 
 The example targets are Docker service names. For native testing, replace them
@@ -150,7 +154,7 @@ structure, not backend reachability.
 With the read-only DSN in its environment, start the separate request-serving process:
 
 ```sh
-bin/routeqtus serve --config .local/native/serve.yaml
+bin/routetus serve --config .local/native/serve.yaml
 ```
 
 For a TLS reverse proxy on the same host/network namespace, keep management bound

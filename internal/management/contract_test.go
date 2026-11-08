@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestPublishedContractMatchesRegistry(t *testing.T) {

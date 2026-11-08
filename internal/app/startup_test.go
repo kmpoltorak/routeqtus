@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
 )
 
 func TestInvalidDSNFailsBeforeStartupTimeout(t *testing.T) {
@@ -15,9 +15,9 @@ func TestInvalidDSNFailsBeforeStartupTimeout(t *testing.T) {
 		{"postgres://user:private-password@%zz", "invalid postgres DSN"},
 		{"", "DSN environment reference is unavailable"},
 	} {
-		t.Setenv("ROUTEQTUS_TEST_STARTUP_DSN", tc.dsn)
+		t.Setenv("ROUTETUS_TEST_STARTUP_DSN", tc.dsn)
 		c := bootstrap.Defaults()
-		c.Postgres.DSNEnv = "ROUTEQTUS_TEST_STARTUP_DSN"
+		c.Postgres.DSNEnv = "ROUTETUS_TEST_STARTUP_DSN"
 		c.Sync.StartupTimeout = "200ms"
 		err := Run(context.Background(), "serve", c, slog.New(slog.NewJSONHandler(io.Discard, nil)))
 		if err == nil || !strings.Contains(err.Error(), tc.want) || strings.Contains(err.Error(), "startup timeout") || strings.Contains(err.Error(), "private-password") {

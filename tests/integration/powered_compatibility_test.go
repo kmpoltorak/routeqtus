@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/app"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/app"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestServeStartsWithLegacyPoweredHTAB(t *testing.T) {
@@ -30,7 +30,7 @@ func TestServeStartsWithLegacyPoweredHTAB(t *testing.T) {
 		t.Fatal(err)
 	}
 	boot := bootstrap.Defaults()
-	boot.Postgres.DSNEnv = "ROUTEQTUS_INTEGRATION_DSN"
+	boot.Postgres.DSNEnv = "ROUTETUS_INTEGRATION_DSN"
 	boot.Server.Listen, boot.Admin.Listen = freeAddress(t), freeAddress(t)
 	boot.Sync.Notifications = false
 	boot.Sync.PollInterval = "20ms"

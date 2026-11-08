@@ -14,9 +14,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/neterror"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/neterror"
 )
 
 //go:embed migrations/001.sql
@@ -66,7 +66,7 @@ func Open(ctx context.Context, c bootstrap.Postgres) (*Store, error) {
 	p.MinConns = c.MinConns
 	p.MaxConnLifetime = bootstrap.Duration(c.MaxConnLifetime)
 	p.ConnConfig.ConnectTimeout = bootstrap.Duration(c.ConnectTimeout)
-	p.ConnConfig.RuntimeParams["search_path"] = "routeqtus,public"
+	p.ConnConfig.RuntimeParams["search_path"] = "routetus,public"
 	pool, err := pgxpool.NewWithConfig(ctx, p)
 	if err != nil {
 		return nil, fmt.Errorf("%w: cannot initialize postgres pool", ErrConfiguration)
@@ -107,7 +107,7 @@ func (s *Store) CheckSchema(ctx context.Context) error {
 	ctx, cancel := s.deadline(ctx)
 	defer cancel()
 	var v int
-	err := s.Pool.QueryRow(ctx, "SELECT max(version) FROM routeqtus.schema_migrations").Scan(&v)
+	err := s.Pool.QueryRow(ctx, "SELECT max(version) FROM routetus.schema_migrations").Scan(&v)
 	if err != nil || v != 1 {
 		return fmt.Errorf("unsupported or missing database schema; run migrate")
 	}
@@ -125,12 +125,12 @@ func (s *Store) Migrate(ctx context.Context) error {
 		return err
 	}
 	var exists bool
-	if err = tx.QueryRow(ctx, "SELECT to_regclass('routeqtus.schema_migrations') IS NOT NULL").Scan(&exists); err != nil {
+	if err = tx.QueryRow(ctx, "SELECT to_regclass('routetus.schema_migrations') IS NOT NULL").Scan(&exists); err != nil {
 		return err
 	}
 	if exists {
 		var v int
-		if err = tx.QueryRow(ctx, "SELECT max(version) FROM routeqtus.schema_migrations").Scan(&v); err != nil {
+		if err = tx.QueryRow(ctx, "SELECT max(version) FROM routetus.schema_migrations").Scan(&v); err != nil {
 			return err
 		}
 		if v != 1 {
@@ -341,7 +341,7 @@ func (s *Store) Publish(ctx context.Context, c config.Config, expected int64, m 
 	if _, err = tx.Exec(ctx, "UPDATE gateway_state SET active_revision=$1,generation=generation+1 WHERE singleton", id); err != nil {
 		return Publication{}, err
 	}
-	if _, err = tx.Exec(ctx, "SELECT pg_notify('routeqtus_config',$1)", strconv.FormatInt(generation+1, 10)); err != nil {
+	if _, err = tx.Exec(ctx, "SELECT pg_notify('routetus_config',$1)", strconv.FormatInt(generation+1, 10)); err != nil {
 		return Publication{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -375,7 +375,7 @@ func (s *Store) Listen(ctx context.Context) (*pgx.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err = c.Exec(ctx, "LISTEN routeqtus_config"); err != nil {
+	if _, err = c.Exec(ctx, "LISTEN routetus_config"); err != nil {
 		closeCtx, closeCancel := context.WithTimeout(context.Background(), time.Second)
 		_ = c.Close(closeCtx)
 		closeCancel()

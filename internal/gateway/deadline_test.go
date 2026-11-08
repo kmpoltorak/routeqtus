@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/runtime"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/runtime"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 type pipeListener struct {

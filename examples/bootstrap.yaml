@@ -14,7 +14,7 @@ admin:
   pprof: false
 management:
   listen: "127.0.0.1:9080"
-  auth_token_env: "ROUTEQTUS_MANAGEMENT_TOKEN"
+  auth_token_env: "ROUTETUS_MANAGEMENT_TOKEN"
   principal: "management-token"
   request_timeout: "10s"
   max_body_bytes: 4194304

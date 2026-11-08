@@ -13,7 +13,7 @@ import (
 )
 
 func TestClientIsGenerationCheckedHTTP(t *testing.T) {
-	t.Setenv("ROUTEQTUS_CLI_TEST_TOKEN", strings.Repeat("a", 32))
+	t.Setenv("ROUTETUS_CLI_TEST_TOKEN", strings.Repeat("a", 32))
 	called := false
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -28,18 +28,18 @@ func TestClientIsGenerationCheckedHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 	var output bytes.Buffer
-	err := Run(context.Background(), []string{"config", "apply", "--file", p, "--api", s.URL, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN", "--generation", "0"}, &output, &output)
+	err := Run(context.Background(), []string{"config", "apply", "--file", p, "--api", s.URL, "--token-env", "ROUTETUS_CLI_TEST_TOKEN", "--generation", "0"}, &output, &output)
 	if err != nil || !called || !strings.Contains(output.String(), "committed") {
 		t.Fatal(err, output.String())
 	}
 	called = false
-	if Run(context.Background(), []string{"config", "apply", "--file", p, "--api", s.URL, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN"}, &output, &output) == nil || called {
+	if Run(context.Background(), []string{"config", "apply", "--file", p, "--api", s.URL, "--token-env", "ROUTETUS_CLI_TEST_TOKEN"}, &output, &output) == nil || called {
 		t.Fatal("blind overwrite attempted")
 	}
 }
 
 func TestClientConnectionFailureReasons(t *testing.T) {
-	t.Setenv("ROUTEQTUS_CLI_TEST_TOKEN", strings.Repeat("private-token", 3))
+	t.Setenv("ROUTETUS_CLI_TEST_TOKEN", strings.Repeat("private-token", 3))
 	tlsServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("untrusted TLS server received request") }))
 	defer tlsServer.Close()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -53,7 +53,7 @@ func TestClientConnectionFailureReasons(t *testing.T) {
 		{"http://" + address, "connection refused"},
 	} {
 		var output bytes.Buffer
-		err := Run(context.Background(), []string{"config", "status", "--api", tc.api, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN"}, &output, &output)
+		err := Run(context.Background(), []string{"config", "status", "--api", tc.api, "--token-env", "ROUTETUS_CLI_TEST_TOKEN"}, &output, &output)
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
 			t.Fatalf("error=%v; want %s", err, tc.want)
 		}
@@ -64,12 +64,12 @@ func TestClientConnectionFailureReasons(t *testing.T) {
 }
 
 func TestClientURLTrustBoundary(t *testing.T) {
-	t.Setenv("ROUTEQTUS_CLI_TEST_TOKEN", strings.Repeat("t", 32))
+	t.Setenv("ROUTETUS_CLI_TEST_TOKEN", strings.Repeat("t", 32))
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	for _, address := range []string{"http://example.com:9080", "http://192.0.2.1:9080", "http://127.0.0.1", "https://user:private-password@example.com", "https://example.com?token=private-token", "https://example.com/#secret"} {
 		var out bytes.Buffer
-		err := Run(ctx, []string{"config", "status", "--api", address, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN"}, &out, &out)
+		err := Run(ctx, []string{"config", "status", "--api", address, "--token-env", "ROUTETUS_CLI_TEST_TOKEN"}, &out, &out)
 		if err == nil || !strings.Contains(err.Error(), "API URL must use HTTPS") {
 			t.Fatalf("unsafe URL was not rejected before request: %q err=%v", address, err)
 		}
@@ -79,7 +79,7 @@ func TestClientURLTrustBoundary(t *testing.T) {
 	}
 	for _, address := range []string{"https://example.com:9080", "http://127.0.0.1:9080", "http://[::1]:9080"} {
 		var out bytes.Buffer
-		err := Run(ctx, []string{"config", "status", "--api", address, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN"}, &out, &out)
+		err := Run(ctx, []string{"config", "status", "--api", address, "--token-env", "ROUTETUS_CLI_TEST_TOKEN"}, &out, &out)
 		if err == nil || !strings.Contains(err.Error(), "request canceled") {
 			t.Fatalf("safe URL did not reach canceled request: %q err=%v", address, err)
 		}

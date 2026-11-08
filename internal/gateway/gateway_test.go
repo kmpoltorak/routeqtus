@@ -16,10 +16,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/gateway"
-	"github.com/kmpoltorak/routeqtus/internal/middleware"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/gateway"
+	"github.com/kmpoltorak/routetus/internal/middleware"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func compiled(t testing.TB, c config.Config) *gateway.Snapshot {
@@ -53,7 +53,7 @@ func TestRouting(t *testing.T) {
 			if w.Code != tc.code || tc.body != "" && w.Body.String() != tc.body || w.Header().Get("Allow") != tc.allow {
 				t.Fatalf("%d %s %v", w.Code, w.Body, w.Header())
 			}
-			if tc.code == 200 && (w.Header().Get("X-Powered-By") != "Routeqtus" || w.Header().Get("X-Gateway") != "routeqtus") {
+			if tc.code == 200 && (w.Header().Get("X-Powered-By") != "Routetus" || w.Header().Get("X-Gateway") != "routetus") {
 				t.Fatal(w.Header())
 			}
 		})
@@ -221,8 +221,8 @@ func TestWebSocket(t *testing.T) {
 			defer backend.Close()
 			c := testutil.Config(backend.URL)
 			if secure {
-				t.Setenv("ROUTEQTUS_WS_TEST_CA", string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: backend.Certificate().Raw})))
-				c.Upstreams[0].TLS.CAEnv = "ROUTEQTUS_WS_TEST_CA"
+				t.Setenv("ROUTETUS_WS_TEST_CA", string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: backend.Certificate().Raw})))
+				c.Upstreams[0].TLS.CAEnv = "ROUTETUS_WS_TEST_CA"
 			}
 			c.Routes[0].RequestTimeout = config.D(0)
 			front := httptest.NewServer(compiled(t, c))
@@ -240,7 +240,7 @@ func TestWebSocket(t *testing.T) {
 			if err != nil || res.StatusCode != 101 {
 				t.Fatalf("%v %v", res, err)
 			}
-			if res.Header.Get("X-Gateway") != "routeqtus" || res.Header.Get("X-Request-Id") == "" {
+			if res.Header.Get("X-Gateway") != "routetus" || res.Header.Get("X-Request-Id") == "" {
 				t.Fatal(res.Header)
 			}
 			_, _ = conn.Write([]byte{0x81, 0x82, 1, 2, 3, 4, 'h' ^ 1, 'i' ^ 2})

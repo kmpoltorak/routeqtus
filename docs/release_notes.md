@@ -1,5 +1,14 @@
 # Release notes
 
+## Unreleased — project rename
+
+- Rename the module, CLI, images, archive names, metrics, SQL namespace, notification
+  channel, demo database/roles, and environment prefixes to Routetus.
+- This rename targets a fresh test deployment. Recreate the demo database; no old-name
+  compatibility aliases or automatic data migration are provided.
+- Existing v0.1.1 archives predate the rename. Build the current source for the new
+  binary/module names until the next release is published.
+
 ## v0.1.1 — 2026-11-08
 
 This patch release includes the fixes merged after v0.1.0, including the final

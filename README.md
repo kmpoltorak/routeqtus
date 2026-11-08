@@ -1,6 +1,6 @@
-# Routeqtus
+# Routetus
 
-Routeqtus is a Go HTTP API gateway with operational configuration stored in PostgreSQL.
+Routetus is a Go HTTP API gateway with operational configuration stored in PostgreSQL.
 A separate management process validates and publishes immutable revisions; serving
 processes route requests using compiled in-memory snapshots. Kubernetes or another
 serving platform handles replica scaling.
@@ -18,7 +18,7 @@ before choosing production capacity; no universal requests-per-instance guarante
 
 Follow [getting_started.md](getting_started.md) for installation, the Docker demo,
 and native processes. Download binaries from
-[GitHub Releases](https://github.com/kmpoltorak/routeqtus/releases).
+[GitHub Releases](https://github.com/kmpoltorak/routetus/releases).
 
 ## Documentation
 

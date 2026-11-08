@@ -22,8 +22,8 @@
     {"id":"request-id","type":"request_id","version":1,"options":{}},
     {"id":"recover","type":"recover","version":1,"options":{}},
     {"id":"access-log","type":"access_log","version":1,"enabled":true,"options":{"sample_every":1}},
-    {"id":"headers","type":"headers","version":1,"options":{"response_set":{"X-Gateway":"routeqtus"}}},
-    {"id":"powered","type":"powered_by","version":1,"options":{"value":"Routeqtus"}}
+    {"id":"headers","type":"headers","version":1,"options":{"response_set":{"X-Gateway":"routetus"}}},
+    {"id":"powered","type":"powered_by","version":1,"options":{"value":"Routetus"}}
   ],
   "global_handlers": ["request-id","recover","access-log","headers"],
   "routes": [{

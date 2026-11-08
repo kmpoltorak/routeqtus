@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/strictjson"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/strictjson"
 )
 
 type resourceError struct {

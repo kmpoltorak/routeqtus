@@ -13,10 +13,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 type delayedReadConn struct{ net.Conn }
@@ -92,7 +92,7 @@ func TestLargeRevisionPublication(t *testing.T) {
 				t.Fatal("failed publication changed state", state, err)
 			}
 			var revisions int
-			if err = s.Pool.QueryRow(ctx, "SELECT count(*) FROM routeqtus.config_revisions").Scan(&revisions); err != nil || revisions != 1 {
+			if err = s.Pool.QueryRow(ctx, "SELECT count(*) FROM routetus.config_revisions").Scan(&revisions); err != nil || revisions != 1 {
 				t.Fatal("failed revision leaked", revisions, err)
 			}
 			wait, cancel := context.WithTimeout(ctx, 50*time.Millisecond)

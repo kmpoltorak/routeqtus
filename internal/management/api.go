@@ -12,12 +12,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/middleware"
-	"github.com/kmpoltorak/routeqtus/internal/postgres"
-	"github.com/kmpoltorak/routeqtus/internal/strictjson"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/middleware"
+	"github.com/kmpoltorak/routetus/internal/postgres"
+	"github.com/kmpoltorak/routetus/internal/strictjson"
 )
 
 type API struct {

@@ -1,9 +1,9 @@
 VERSION ?= dev
 .PHONY: build run check test test-race test-integration fuzz bench loadbench vuln docs demo sabotage
 build:
-	CGO_ENABLED=0 go build -trimpath -ldflags='-s -w -X github.com/kmpoltorak/routeqtus/internal/cli.Version=$(VERSION)' -o bin/routeqtus ./cmd/routeqtus
+	CGO_ENABLED=0 go build -trimpath -ldflags='-s -w -X github.com/kmpoltorak/routetus/internal/cli.Version=$(VERSION)' -o bin/routetus ./cmd/routetus
 run: build
-	bin/routeqtus serve --config examples/bootstrap.yaml
+	bin/routetus serve --config examples/bootstrap.yaml
 check:
 	python3 scripts/check_publication.py
 	test -z "$$(gofmt -l internal cmd tests)"
@@ -20,11 +20,11 @@ fuzz:
 bench:
 	go test ./internal/gateway -run='^$$' -bench=. -benchmem -count=3
 loadbench:
-	go run ./cmd/routeqtus-bench
+	go run ./cmd/routetus-bench
 vuln:
 	go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 docs: build
-	bin/routeqtus openapi > docs/openapi.json
+	bin/routetus openapi > docs/openapi.json
 	python3 scripts/reference.py
 demo:
 	sh scripts/demo.sh

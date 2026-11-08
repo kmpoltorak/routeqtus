@@ -111,14 +111,14 @@ do not claim that a committed revision switches every replica simultaneously.
 
 ```sh
 mkdir -p .local
-go run ./cmd/routeqtus-bench -routes=1,100,1000 -payloads=0,1024,65536 -concurrency=1,16 -duration=1s -warmup=200ms -cpuprofile=.local/http.prof > .local/http.jsonl
-go run ./cmd/routeqtus-bench -https -routes=1,100,1000 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/https.jsonl
-go run ./cmd/routeqtus-bench -stream -routes=1,1000 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/stream.jsonl
-go run ./cmd/routeqtus-bench -modes=direct -routes=1 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/direct.jsonl
+go run ./cmd/routetus-bench -routes=1,100,1000 -payloads=0,1024,65536 -concurrency=1,16 -duration=1s -warmup=200ms -cpuprofile=.local/http.prof > .local/http.jsonl
+go run ./cmd/routetus-bench -https -routes=1,100,1000 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/https.jsonl
+go run ./cmd/routetus-bench -stream -routes=1,1000 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/stream.jsonl
+go run ./cmd/routetus-bench -modes=direct -routes=1 -payloads=1024 -concurrency=1,16 -duration=1s -warmup=200ms > .local/direct.jsonl
 go test ./internal/gateway -run='^$' -bench=. -benchmem -benchtime=500ms -count=3 > .local/microbench.txt
 go run golang.org/x/perf/cmd/benchstat@v0.0.0-20261009192801-be2c69fb417e .local/microbench.txt
 go tool pprof -top .local/http.prof
-ROUTEQTUS_TEST_DATABASE_URL=... go test -tags=integration ./tests/integration -run TestRuntimeTrafficDuringPublicationAndOutage -count=1 -v
+ROUTETUS_TEST_DATABASE_URL=... go test -tags=integration ./tests/integration -run TestRuntimeTrafficDuringPublicationAndOutage -count=1 -v
 ```
 
 The test DSN must refer to a disposable administrative database with CREATE DATABASE

@@ -1,6 +1,6 @@
-CREATE SCHEMA IF NOT EXISTS routeqtus;
-REVOKE ALL ON SCHEMA routeqtus FROM PUBLIC;
-SET LOCAL search_path TO routeqtus;
+CREATE SCHEMA IF NOT EXISTS routetus;
+REVOKE ALL ON SCHEMA routetus FROM PUBLIC;
+SET LOCAL search_path TO routetus;
 
 CREATE TABLE schema_migrations (version integer PRIMARY KEY);
 CREATE TABLE config_revisions (

@@ -5,14 +5,14 @@ RUN go mod download
 COPY internal ./internal
 COPY cmd ./cmd
 ARG VERSION=dev
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/kmpoltorak/routeqtus/internal/cli.Version=${VERSION}" -o /routeqtus ./cmd/routeqtus \
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/kmpoltorak/routetus/internal/cli.Version=${VERSION}" -o /routetus ./cmd/routetus \
  && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /demo-backend ./cmd/demo-backend
 
 FROM scratch AS runtime
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=build /routeqtus /routeqtus
+COPY --from=build /routetus /routetus
 USER 65532:65532
-ENTRYPOINT ["/routeqtus"]
+ENTRYPOINT ["/routetus"]
 
 FROM scratch AS demo
 COPY --from=build /demo-backend /demo-backend

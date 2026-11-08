@@ -924,7 +924,7 @@
   },
   "info": {
     "description": "Configuration is published as complete immutable revisions. GET configured values for round-trip export; GET effective values only for inspection. Secrets are environment references: secret values are never accepted or returned. Null optional overrides inherit defaults; zero durations explicitly disable supported timeouts.",
-    "title": "Routeqtus Management API",
+    "title": "Routetus Management API",
     "version": "1.0.0"
   },
   "openapi": "3.0.3",

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
-	"github.com/kmpoltorak/routeqtus/internal/middleware"
-	"github.com/kmpoltorak/routeqtus/internal/testutil"
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/middleware"
+	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
 func TestPanicMetricsPreserveWrittenStatus(t *testing.T) {
@@ -52,7 +52,7 @@ func TestPanicMetricsPreserveWrittenStatus(t *testing.T) {
 			if written {
 				class = "2xx"
 			}
-			for _, want := range []string{`routeqtus_errors_total{route_id="demo"} 1`, `routeqtus_requests_total{route_id="demo",status_class="` + class + `"} 1`, `routeqtus_in_flight{route_id="demo"} 0`} {
+			for _, want := range []string{`routetus_errors_total{route_id="demo"} 1`, `routetus_requests_total{route_id="demo",status_class="` + class + `"} 1`, `routetus_in_flight{route_id="demo"} 0`} {
 				if !strings.Contains(metrics.Body.String(), want) {
 					t.Fatal("missing", want, metrics.Body.String())
 				}

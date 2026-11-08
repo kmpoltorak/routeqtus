@@ -11,11 +11,11 @@ trap 'rm -rf "$staging"' EXIT INT TERM
 for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
   os=${target%/*}
   arch=${target#*/}
-  name="routeqtus_${version}_${os}_${arch}"
+  name="routetus_${version}_${os}_${arch}"
   mkdir -p "$staging/$name/docs" "$staging/$name/examples/docker"
   CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
-    -ldflags="-s -w -X github.com/kmpoltorak/routeqtus/internal/cli.Version=$version" \
-    -o "$staging/$name/routeqtus" ./cmd/routeqtus
+    -ldflags="-s -w -X github.com/kmpoltorak/routetus/internal/cli.Version=$version" \
+    -o "$staging/$name/routetus" ./cmd/routetus
   cp README.md getting_started.md LICENSE "$staging/$name/"
   python3 - "$staging/$name" "dist/$name.tar.gz" <<'PY'
 from pathlib import Path

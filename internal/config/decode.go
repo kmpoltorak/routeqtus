@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/kmpoltorak/routeqtus/internal/strictjson"
+	"github.com/kmpoltorak/routetus/internal/strictjson"
 )
 
 func Decode(data []byte) (Config, error) {

@@ -44,7 +44,7 @@ func TestAdminListenerTokenBoundary(t *testing.T) {
 		{"127.0.0.1:9090", "", true}, {"[::1]:9090", "", true},
 		{"0.0.0.0:9090", "", false}, {"[::]:9090", "", false},
 		{"192.0.2.1:9090", "", false}, {"localhost:9090", "", false},
-		{"0.0.0.0:9090", "ROUTEQTUS_ADMIN_TOKEN", true},
+		{"0.0.0.0:9090", "ROUTETUS_ADMIN_TOKEN", true},
 	} {
 		p := filepath.Join(t.TempDir(), "bootstrap.yaml")
 		body := "admin:\n  listen: '" + tc.address + "'\n  auth_token_env: '" + tc.token + "'\n"

@@ -14,18 +14,18 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kmpoltorak/routeqtus/internal/app"
-	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
-	"github.com/kmpoltorak/routeqtus/internal/configservice"
-	"github.com/kmpoltorak/routeqtus/internal/management"
-	"github.com/kmpoltorak/routeqtus/internal/neterror"
+	"github.com/kmpoltorak/routetus/internal/app"
+	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/configservice"
+	"github.com/kmpoltorak/routetus/internal/management"
+	"github.com/kmpoltorak/routetus/internal/neterror"
 )
 
 var Version = "dev"
 
 func Run(ctx context.Context, args []string, out, stderr io.Writer) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: routeqtus serve|manage|check|migrate|config|version|openapi")
+		return fmt.Errorf("usage: routetus serve|manage|check|migrate|config|version|openapi")
 	}
 	command := args[0]
 	if command == "version" {
@@ -73,13 +73,13 @@ func Run(ctx context.Context, args []string, out, stderr io.Writer) error {
 }
 func client(ctx context.Context, args []string, out, stderr io.Writer) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: routeqtus config validate|apply|show|status|rollback")
+		return fmt.Errorf("usage: routetus config validate|apply|show|status|rollback")
 	}
 	op := args[0]
 	fs := flag.NewFlagSet("config "+op, flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	address := fs.String("api", "http://127.0.0.1:9080", "Management API base URL")
-	tokenEnv := fs.String("token-env", "ROUTEQTUS_MANAGEMENT_TOKEN", "environment reference for the bearer token")
+	tokenEnv := fs.String("token-env", "ROUTETUS_MANAGEMENT_TOKEN", "environment reference for the bearer token")
 	file := fs.String("file", "-", "configuration JSON file (- reads stdin)")
 	generation := fs.Int64("generation", -1, "expected generation for mutation")
 	revision := fs.Int64("revision", 0, "historical revision for rollback")

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"unicode/utf8"
 
-	"github.com/kmpoltorak/routeqtus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/config"
 )
 
 // Bound the compiled report once, before it reaches HTTP, status, or logging.
