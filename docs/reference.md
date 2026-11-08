@@ -96,7 +96,7 @@ about request paths; encoded percent characters in query values remain supported
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| value | string | yes | none / see description | X-Powered-By value, 1-128 Unicode characters without ASCII control characters. minLength=1; maxLength=128; pattern `^[^\x00-\x1f\x7f]+$` |
+| value | string | yes | none / see description | X-Powered-By value, 1-128 Unicode characters with HTAB allowed and other ASCII controls rejected. minLength=1; maxLength=128; pattern `^[^\x00-\x08\x0a-\x1f\x7f]+$` |
 
 ## Handler options: recover
 

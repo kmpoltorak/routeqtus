@@ -3,7 +3,7 @@ package config
 const (
 	IdentifierPattern    = `^[A-Za-z0-9_-]{1,64}$`
 	HTTPMethodPattern    = `^[A-Z][A-Z0-9_-]{0,31}$`
-	PoweredValuePattern  = `^[^\x00-\x1f\x7f]+$`
+	PoweredValuePattern  = `^[^\x00-\x08\x0a-\x1f\x7f]+$`
 	MaxIdentifierLength  = 64
 	MaxPriority          = 1000000
 	MaxConnections       = 100000

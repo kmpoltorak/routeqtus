@@ -193,19 +193,17 @@ func TestSchemaVersionsMatchCompiler(t *testing.T) {
 	}
 }
 
-func TestPoweredValueRejectsASCIIControls(t *testing.T) {
+func TestPoweredValueControlCompatibility(t *testing.T) {
 	compiler := testutil.Compiler(t)
 	kind, _ := compiler.Registry.Get("powered_by")
 	pattern := regexp.MustCompile(property(kind.Schema, "value")["pattern"].(string))
 	for n := 0; n <= 127; n++ {
-		if n >= 32 && n != 127 {
-			continue
-		}
 		text := "a" + string(rune(n)) + "b"
 		b, _ := json.Marshal(extensions.Powered{Value: text})
 		_, err := compiler.Registry.Build(config.Handler{ID: "powered", Type: "powered_by", Version: 1, Options: b})
-		if err == nil || pattern.MatchString(text) {
-			t.Errorf("ASCII control %d accepted by schema or factory", n)
+		want := n == 9 || n >= 32 && n != 127
+		if (err == nil) != want || pattern.MatchString(text) != want {
+			t.Errorf("ASCII control %d: want accepted=%v, factory error=%v, schema accepted=%v", n, want, err, pattern.MatchString(text))
 		}
 	}
 }
