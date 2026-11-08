@@ -58,9 +58,10 @@ connection/default-zero limits, sampling, identifiers/methods, 1024 targets and 
 entities, plus Unicode and control characters in powered_by values. Common constants
 keep declarations and validators aligned. The previous byte-based powered_by limit
 rejected schema-valid Unicode strings; its pattern also admitted controls rejected by
-the factory. Values now use the documented character limit and exclude all ASCII
-controls, including tabs. Existing tab-containing powered_by values must be corrected
-before upgrading; ordinary header handler behavior is unchanged.
+the factory. Values use the documented character limit and permit HTAB while
+rejecting other ASCII controls, matching the v0.1.0 header-value behavior. The
+pre-release blanket tab rejection was corrected before publishing v0.1.1; no manual
+tab-cleanup migration is required. Ordinary header handler behavior is unchanged.
 
 ## Contract and failure coverage
 
@@ -263,3 +264,14 @@ validation still rejects the entire candidate; WithErrorContext is unchanged.
 no publication/history/notification on API rejection, and last-good proxy traffic
 when privileged storage inserts the bad revision. The existing Problem schema is
 unchanged; no new response fields or dependencies are introduced.
+
+## powered_by legacy compatibility
+
+The shared schema/factory pattern allows HTAB and still rejects NUL, CR, LF, DEL,
+and other invalid ASCII controls. An independent control-character regression checks
+both acceptance and rejection, alongside the existing Unicode/schema boundaries.
+`TestServeStartsWithLegacyPoweredHTAB` loads a stored legacy revision, starts a real
+serve process, observes readiness, and receives the unchanged interior tab through
+an actual proxied response header. Before the fix it failed with a startup timeout.
+RFC 9110 [field values](https://www.rfc-editor.org/rfc/rfc9110.html#section-5.5)
+permit interior HTAB; no validation looseness beyond the old header behavior is added.

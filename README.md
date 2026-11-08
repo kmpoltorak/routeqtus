@@ -113,7 +113,7 @@ entry order; code after `next` runs in reverse. Disabled handlers add no wrapper
 | `powered_by` | `value`; example registered extension |
 
 Handler bounds are tested against their schemas. `powered_by.value` permits 1–128
-Unicode characters and rejects ASCII control characters, including tabs.
+Unicode characters, permits HTAB, and rejects other ASCII control characters.
 Discover contracts at `/v1/handler-types`. See [extensions](docs/extensions.md).
 
 ## Operation
