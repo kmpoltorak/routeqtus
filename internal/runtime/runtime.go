@@ -224,14 +224,14 @@ func (r *Runtime) notifications(ctx context.Context) {
 }
 func (r *Runtime) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if !r.Ready() {
-		http.Error(w, "configuration unavailable or stale", 503)
+		r.rejectRequest(w, req, "configuration unavailable or stale")
 		return
 	}
 	select {
 	case r.slots <- struct{}{}:
 		defer func() { <-r.slots }()
 	default:
-		http.Error(w, "gateway concurrency limit reached", 503)
+		r.rejectRequest(w, req, "gateway concurrency limit reached")
 		return
 	}
 	r.mu.RLock()
@@ -241,13 +241,23 @@ func (r *Runtime) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	r.mu.RUnlock()
 	if a == nil {
-		http.Error(w, "configuration unavailable", 503)
+		r.rejectRequest(w, req, "configuration unavailable")
 		return
 	}
 	defer a.release()
 	r.inflight.Add(1)
 	defer r.inflight.Add(-1)
 	a.snapshot.ServeTracked(w, req, r.track)
+}
+
+func (r *Runtime) rejectRequest(w http.ResponseWriter, req *http.Request, message string) {
+	deadline := time.Now().Add(bootstrap.Duration(r.Compiler.Limits.RequestTimeout))
+	rc := http.NewResponseController(w)
+	if req.ContentLength != 0 {
+		_ = rc.SetReadDeadline(deadline)
+	}
+	_ = rc.SetWriteDeadline(deadline)
+	http.Error(w, message, http.StatusServiceUnavailable)
 }
 
 type tracked struct {
