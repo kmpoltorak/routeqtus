@@ -12,13 +12,16 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kmpoltorak/routeqtus/internal/bootstrap"
 	"github.com/kmpoltorak/routeqtus/internal/config"
+	"github.com/kmpoltorak/routeqtus/internal/neterror"
 )
 
 //go:embed migrations/001.sql
 var migration string
+var ErrConfiguration = errors.New("postgres configuration error")
 var ErrPrecondition = errors.New("generation precondition failed")
 var ErrNotFound = errors.New("revision not found")
 
@@ -53,11 +56,11 @@ type Publication struct {
 func Open(ctx context.Context, c bootstrap.Postgres) (*Store, error) {
 	dsn := os.Getenv(c.DSNEnv)
 	if dsn == "" {
-		return nil, fmt.Errorf("postgres DSN environment reference is unavailable")
+		return nil, fmt.Errorf("%w: postgres DSN environment reference is unavailable", ErrConfiguration)
 	}
 	p, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("invalid postgres DSN")
+		return nil, fmt.Errorf("%w: invalid postgres DSN", ErrConfiguration)
 	}
 	p.MaxConns = c.MaxConns
 	p.MinConns = c.MinConns
@@ -66,14 +69,30 @@ func Open(ctx context.Context, c bootstrap.Postgres) (*Store, error) {
 	p.ConnConfig.RuntimeParams["search_path"] = "routeqtus,public"
 	pool, err := pgxpool.NewWithConfig(ctx, p)
 	if err != nil {
-		return nil, fmt.Errorf("cannot initialize postgres pool")
+		return nil, fmt.Errorf("%w: cannot initialize postgres pool", ErrConfiguration)
 	}
 	s := &Store{Pool: pool, Timeout: bootstrap.Duration(c.QueryTimeout), connect: p.ConnConfig.Copy()}
 	if err = s.Ping(ctx); err != nil {
 		pool.Close()
-		return nil, fmt.Errorf("postgres connection unavailable")
+		return nil, connectionFailure(err)
 	}
 	return s, nil
+}
+func connectionFailure(err error) error {
+	var server *pgconn.PgError
+	if errors.As(err, &server) {
+		switch server.Code {
+		case "28P01", "28000":
+			return errors.New("postgres authentication failed")
+		case "3D000":
+			return errors.New("postgres database does not exist")
+		case "53300":
+			return errors.New("postgres connection limit reached")
+		default:
+			return errors.New("postgres server rejected connection")
+		}
+	}
+	return fmt.Errorf("postgres %s", neterror.Reason(err))
 }
 func (s *Store) deadline(ctx context.Context) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(ctx, s.Timeout)

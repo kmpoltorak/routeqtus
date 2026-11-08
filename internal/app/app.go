@@ -59,11 +59,14 @@ func Run(parent context.Context, mode string, c bootstrap.Config, logger *slog.L
 		if err == nil {
 			break
 		}
+		if errors.Is(err, postgres.ErrConfiguration) {
+			return err
+		}
 		timer := time.NewTimer(100 * time.Millisecond)
 		select {
 		case <-startup.Done():
 			timer.Stop()
-			return fmt.Errorf("startup timeout: postgres unavailable")
+			return fmt.Errorf("startup timeout: %w", err)
 		case <-timer.C:
 		}
 	}

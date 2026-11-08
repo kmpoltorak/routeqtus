@@ -36,6 +36,12 @@ Bearer token. The bootstrap's `management.principal` is a service identity, not 
 which human used a shared token. Publication stores that identity, time, description,
 and optional client-declared author. The token is never persisted.
 
+Invalid or missing PostgreSQL DSNs stop startup immediately. Transient connection
+failures retry until `config_sync.startup_timeout`; the final error identifies a safe
+category such as authentication, DNS, refused connection, or TLS certificate failure.
+CLI connection errors use the same safe network categories. Raw database/server error
+text, connection URLs, and credentials are omitted.
+
 The default management and diagnostics addresses are numeric loopback. Bind management
 outside loopback only with `cert_file` and `key_file`; TLS 1.2 is the minimum. A trusted
 TLS reverse proxy can reach loopback management on the same host/network namespace.
