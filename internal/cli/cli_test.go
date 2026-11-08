@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -34,5 +35,30 @@ func TestClientIsGenerationCheckedHTTP(t *testing.T) {
 	called = false
 	if Run(context.Background(), []string{"config", "apply", "--file", p, "--api", s.URL, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN"}, &output, &output) == nil || called {
 		t.Fatal("blind overwrite attempted")
+	}
+}
+
+func TestClientConnectionFailureReasons(t *testing.T) {
+	t.Setenv("ROUTEQTUS_CLI_TEST_TOKEN", strings.Repeat("private-token", 3))
+	tlsServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("untrusted TLS server received request") }))
+	defer tlsServer.Close()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := listener.Addr().String()
+	listener.Close()
+	for _, tc := range []struct{ api, want string }{
+		{tlsServer.URL, "TLS certificate verification failed"},
+		{"http://" + address, "connection refused"},
+	} {
+		var output bytes.Buffer
+		err := Run(context.Background(), []string{"config", "status", "--api", tc.api, "--token-env", "ROUTEQTUS_CLI_TEST_TOKEN"}, &output, &output)
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("error=%v; want %s", err, tc.want)
+		}
+		if strings.Contains(err.Error()+output.String(), "private-token") {
+			t.Fatal("token leaked")
+		}
 	}
 }
