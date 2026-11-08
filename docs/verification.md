@@ -200,3 +200,48 @@ no performance improvement is claimed. Management round trips and bounded fuzzin
 passed after the change; the bounded fuzz run completed 328463 executions.
 Sabotage overlays also removed required-field enforcement and bypassed the generic
 float64 range check; both existing characterization tests failed as intended.
+
+## Operational contract checks
+
+`TestTLSProxyToLoopbackManagement` starts a real management process with PostgreSQL
+and no direct TLS on numeric loopback. A trusted local TLS reverse proxy forwards
+readiness and publication. Missing/incorrect Bearer tokens return 401 and leave
+generation unchanged even with X-Forwarded-Proto: https; the valid token publishes.
+`TestManagementTLSListenerBoundary` retains direct TLS outside numeric loopback and
+requires certificate/key pairs. This tests the supported same-namespace topology;
+no arbitrary plaintext remote-proxy mode is introduced.
+
+`TestPercentRequestPathPolicy` exercises the documented 400 for decoded percent,
+%25, and double encodings, checks that rejected paths never reach the backend, and
+preserves encoded spaces/Unicode and query-percent values. Sabotage overlays removed
+the percent guard, the non-loopback TLS requirement, and proxy-path authentication;
+each named test failed its intended assertion. Linear route scanning
+and latest-100 history are deliberate bounded policies with ponytail comments.
+
+A combined local run with concurrent fuzzing and separate race suites failed the
+reload-traffic assertion. Instrumented repetitions reproduced 503 when confirmation
+age exceeded that test's 250ms staleness budget, without a database error; five
+isolated repetitions passed. This is the existing fail-closed freshness policy under
+CPU contention. The complete PostgreSQL race suite passed when run separately
+from CPU stress; no test assertion or staleness threshold was weakened.
+
+## Dependencies and skills used
+
+The two direct runtime dependencies are pgx/v5 for PostgreSQL pooling/batching and
+the maintained yaml/go-yaml parser for strict bootstrap YAML. HTTP, logging, CLI,
+TLS, JSON, and the fixed metrics exporter use the Go standard library. No ORM,
+router framework, runtime plugin loader, or additional validation dependency is used.
+
+The following skills were actually used during implementation and follow-up work:
+
+| Skill | Applied work |
+| --- | --- |
+| ponytail | Small complete changes, explicit trade-offs, existing helpers/dependencies |
+| ponytail-review | Connected-code and diff review before pull requests |
+| codebase-design | Boundaries for immutable snapshots and configuration publication |
+| research | Primary-source checks for platform and workflow behavior |
+| diagnosing-bugs | Reproduce CI, runtime, and demo failures before fixing them |
+| pr | Concrete changes, before/after evidence, verification, and merge risk |
+
+Plans, prompts, local instructions, raw reports, logs, and benchmark inputs remain
+working material; they are excluded from the public source and release manifests.

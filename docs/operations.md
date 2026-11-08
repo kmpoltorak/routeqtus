@@ -45,6 +45,14 @@ text, connection URLs, and credentials are omitted.
 The default management and diagnostics addresses are numeric loopback. Bind management
 outside loopback only with `cert_file` and `key_file`; TLS 1.2 is the minimum. A trusted
 TLS reverse proxy can reach loopback management on the same host/network namespace.
+For this topology, bind `manage` to `127.0.0.1:9080` (or numeric IPv6 loopback),
+leave its certificate pair unset, and have the proxy terminate TLS using a certificate
+trusted by clients before forwarding to that address. The proxy and process must share a host/network
+namespace; a separate container's loopback is not the management process's loopback.
+Restrict local process/Pod access, preserve the Bearer authorization header, and use
+a trusted certificate on the client-facing proxy. Forwarded headers do not grant
+authentication or exempt a non-loopback management bind from direct TLS. For a proxy
+on another host/network namespace, keep direct TLS on `manage` as well.
 Keep management private; there is no browser login or user-account subsystem.
 
 Diagnostics are a separate HTTP listener. Non-loopback binding requires
@@ -121,7 +129,10 @@ valid and serves 404s. `manage` readiness requires its API and database, not rou
 Serving readiness reads background state and performs no query/Ping. The age is time
 since confirmation that the database active revision matches the applied snapshot.
 A successful Ping, invalid revision, or failed synchronization cannot renew that age.
-After `max_staleness`, readiness and new traffic return 503. Existing requests, including
+After `max_staleness`, readiness and new traffic return 503. This age includes time
+waiting for CPU, compilation, and reconciliation during rapid publication; a reachable
+database alone does not prevent expiry. Size the budget for actual load and scheduling
+delays, including before autoscaling adds replicas. Existing requests, including
 streams, keep their pinned snapshot; they end naturally or at their request/shutdown
 deadline. Valid reconciliation restores readiness without process restart.
 
@@ -150,6 +161,16 @@ Only when no matching candidate accepts the method does the gateway return 405 w
 Allow. Protect access through an actual authorization boundary, and avoid a permissive
 fallback if your backend relies on specific route coverage. This behavior is covered
 by `TestMethodSelectionFallsBackToBroaderRoute`.
+
+## Request path policy
+
+Route paths are decoded absolute paths. They cannot contain percent characters,
+dot segments, repeated slashes, or ambiguous separators. Incoming paths are decoded
+once and checked before routing: `%25` becomes a literal percent and is rejected
+with 400, as are double encodings such as `%2525` or `%252f`. This deliberately
+excludes legitimate literal-percent path names; rename those resources or expose
+them through another interface. Percent-encoded spaces and valid Unicode remain
+supported. Query strings have their own validation and can contain an encoded percent.
 
 ## Request lifecycle
 

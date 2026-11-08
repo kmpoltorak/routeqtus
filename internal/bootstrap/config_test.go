@@ -57,3 +57,22 @@ func TestAdminListenerTokenBoundary(t *testing.T) {
 		}
 	}
 }
+
+func TestManagementTLSListenerBoundary(t *testing.T) {
+	for _, tc := range []struct {
+		address, cert, key string
+		valid              bool
+	}{
+		{"127.0.0.1:9080", "", "", true}, {"[::1]:9080", "", "", true},
+		{"0.0.0.0:9080", "", "", false}, {"[::]:9080", "", "", false},
+		{"192.0.2.1:9080", "", "", false}, {"localhost:9080", "", "", false},
+		{"0.0.0.0:9080", "cert.pem", "key.pem", true},
+		{"127.0.0.1:9080", "cert.pem", "", false}, {"127.0.0.1:9080", "", "key.pem", false},
+	} {
+		c := Defaults()
+		c.Management.Listen, c.Management.CertFile, c.Management.KeyFile = tc.address, tc.cert, tc.key
+		if err := c.Validate(); (err == nil) != tc.valid {
+			t.Fatalf("%+v: %v", tc, err)
+		}
+	}
+}

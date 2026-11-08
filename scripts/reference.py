@@ -58,6 +58,12 @@ metrics, and route deadline defaults. Export configured values for re-import.
 Secret values are never part of this contract: TLS fields name environment variables,
 not PEM contents. Placeholder names such as `***` are invalid references.
 
+Route definitions and incoming request paths reject literal percent characters.
+Incoming `%25` and double encodings such as `%2525` return 400 before routing;
+encoded spaces and valid Unicode are supported. Encoded separators, dot segments,
+repeated slashes, and control characters are also rejected. This restriction is
+about request paths; encoded percent characters in query values remain supported.
+
 """
 table = ["| Field | Endpoint/schema | Type | Required | Default | Null | Meaning / constraints |", "| --- | --- | --- | --- | --- | --- | --- |"]
 for row in rows(schemas["Config"]):
@@ -103,7 +109,7 @@ documents are rejected. No environment substitution is performed on YAML.
 | admin.metrics | true | Expose request and synchronization metrics |
 | admin.pprof | false | Requires admin auth token, including on loopback |
 | admin.auth_token_env | empty | Required outside numeric loopback; token at least 32 bytes |
-| management.listen | 127.0.0.1:9080 | Requires direct TLS outside numeric loopback |
+| management.listen | 127.0.0.1:9080 | Requires direct TLS outside numeric loopback; a trusted same-namespace TLS proxy may forward to numeric loopback |
 | management.auth_token_env | ROUTEQTUS_MANAGEMENT_TOKEN | Token reference; manage needs at least 32 bytes, serve ignores it |
 | management.principal | management-token | Authenticated service identity, 1–128 bytes |
 | management.request_timeout | 10s | Positive, at most 24h |
@@ -119,7 +125,7 @@ documents are rejected. No environment substitution is performed on YAML.
 | postgres.query_timeout | 2s | Includes pool wait and the complete SQL operation; positive, at most 24h |
 | postgres.max_conn_lifetime | 30m | Positive, at most 24h |
 | config_sync.startup_timeout | 30s | Positive, at most 24h |
-| config_sync.poll_interval | 10s | Positive, at most 24h; polling jitter ±10% |
+| config_sync.poll_interval | 10s | Positive, at most 24h; serve synchronization jitter ±10%; manage database-health sampling uses this interval |
 | config_sync.max_staleness | 5m | Positive, at most 24h |
 | config_sync.notifications | true | One dedicated session; polling always remains enabled |
 
