@@ -10,7 +10,7 @@ Routeqtus supplies per-instance readiness, metrics, resource limits, and drainin
 ```sh
 make demo
 curl --fail --silent http://127.0.0.1:8080/api
-# routeqtus demo backend
+# routeqtus demo backend: backend-a
 ```
 
 - Requests use one compiled snapshot without configuration SQL on the request path.

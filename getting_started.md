@@ -14,10 +14,10 @@ make demo
 curl --fail http://127.0.0.1:8080/api
 ```
 
-Output:
+Example output (the backend name alternates between `backend-a` and `backend-b`):
 
 ```text
-routeqtus demo backend
+routeqtus demo backend: backend-a
 ```
 
 `make demo` generates random credentials in ignored `.env` and a seven-day local
