@@ -129,3 +129,13 @@ or Windows support. Three microbenchmark repetitions are insufficient for benchs
 95% confidence interval; allocation results and observed timings are reported without
 a statistical speedup claim. The independent load generator, backend, and gateway must
 be deployed on representative separate hosts before setting production capacity/SLOs.
+
+
+## Release privilege boundary
+
+Release verification, downloaded tools, and packaging run with contents:read. The
+publish job requires successful verification and downloads the exact immutable artifact
+from that run. It checks checksums and publishes without checking out source or
+running project/build code. Pull requests touching the release workflow exercise
+verification and packaging without publishing. `TestReleasePrivilegeIsolation` checks
+the permission/dependency boundary and restricts the write-enabled job's steps.
