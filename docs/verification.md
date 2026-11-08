@@ -50,6 +50,18 @@ background health sample. Tests cover database outage/recovery on both real proc
 listeners, authentication, immediate unready state on monitor cancellation, and worker
 cleanup. Serving readiness continues to use its runtime snapshot state.
 
+## Schema and validator agreement
+
+Boundary tests derive declared numeric, pattern, length, and collection constraints
+from schemas and exercise the real compiler/factories. Coverage includes priority,
+connection/default-zero limits, sampling, identifiers/methods, 1024 targets and 10000
+entities, plus Unicode and control characters in powered_by values. Common constants
+keep declarations and validators aligned. The previous byte-based powered_by limit
+rejected schema-valid Unicode strings; its pattern also admitted controls rejected by
+the factory. Values now use the documented character limit and exclude all ASCII
+controls, including tabs. Existing tab-containing powered_by values must be corrected
+before upgrading; ordinary header handler behavior is unchanged.
+
 ## Contract and failure coverage
 
 Tests cover routing precedence, host/method matching, 404/405/Allow, prefix boundaries,

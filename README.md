@@ -104,6 +104,8 @@ entry order; code after `next` runs in reverse. Disabled handlers add no wrapper
 | `headers` | Allowed request/response set/remove maps and lists |
 | `powered_by` | `value`; example registered extension |
 
+Handler bounds are tested against their schemas. `powered_by.value` permits 1–128
+Unicode characters and rejects ASCII control characters, including tabs.
 Discover contracts at `/v1/handler-types`. See [extensions](docs/extensions.md).
 
 ## Operation
