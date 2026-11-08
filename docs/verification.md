@@ -41,6 +41,10 @@ wrappers, control characters, and log secret redaction. HTTP tests use real list
 for cancellation, full deadlines, chunked bodies, HTTP/2 TLS, verified upstream TLS,
 SSE first-event delivery, trailers, truncated streams, and bidirectional WebSockets.
 Writer wrappers preserve response-controller flushing and hijacking.
+`TestDeadlineCoversFinalFlushAndRejectedBody` uses an unbuffered net.Pipe connection
+to prove that a client refusing response I/O or withholding a rejected request body
+cannot keep those operations alive past the configured deadline. Both cases failed
+before the deadline fix and passed afterward.
 
 PostgreSQL tests cover migration locking, Ping and pool exhaustion deadlines,
 cross-revision foreign keys, immutable published rows, parameterized metadata,

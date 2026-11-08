@@ -26,7 +26,6 @@ import (
 
 func TestDatabaseOutageAndNoRequestSQL(t *testing.T) {
 	s := database(t)
-	s.Timeout = 50 * time.Millisecond
 	ctx := context.Background()
 	if err := s.Migrate(ctx); err != nil {
 		t.Fatal(err)
@@ -42,6 +41,8 @@ func TestDatabaseOutageAndNoRequestSQL(t *testing.T) {
 	c.Notifications = false
 	c.PollInterval = "1h"
 	c.MaxStaleness = "500ms"
+	// Only the outage phase needs a short query deadline; schema setup uses its normal budget.
+	s.Timeout = 50 * time.Millisecond
 	rt := runtime.New(s, compiler, c, compiler.Logger)
 	runctx, cancel := context.WithCancel(ctx)
 	defer cancel()
