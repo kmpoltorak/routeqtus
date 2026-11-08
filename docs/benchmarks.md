@@ -129,3 +129,34 @@ permission. Use the local integration-container script for ordinary integration 
 An initial development run was rejected because its generator kept too few idle
 connections for 16 clients and exhausted local ephemeral ports. It is excluded from the tables above. Fixing the generator pool
 removed those errors; this was not evidence of gateway capacity or a backend outage.
+
+
+## Large-revision publication
+
+A follow-up measurement used the same local macOS/amd64 environment and a disposable
+PostgreSQL 17.11 container. `TestLargeRevisionPublication` adds a 1ms sleep before each
+client socket read. This exposes per-row round trips; it is not calibrated network RTT.
+The revision has one upstream/target, five handlers, four global bindings, and one
+handler binding per route. Publication timings include validation/compilation and SQL;
+`postgres.query_timeout` applies to the SQL operation, not prior compilation.
+
+| Routes | Sequential inserts | Batched publication | Batched load | SQL budget |
+| ---: | --- | ---: | ---: | ---: |
+| 2000 | Timed out after 2.022s | 0.519s | 0.126s | 2s |
+| 10000 | Not measured | 2.688s | 0.577s | 10s |
+
+These are single observed runs. The race-detector run also passed: publication/load
+were 0.779s/0.279s for 2000 routes and 7.498s/1.309s for 10000 routes. Do not treat the
+structural 10000-entity cap as a universal capacity promise or assume the default 2s
+budget fits it. Compilation currently checks route conflicts with a quadratic scan;
+that control-plane cost is included in publication, not in the SQL timeout.
+
+Run with Docker and Go:
+
+```sh
+sh scripts/test-integration.sh -run '^TestLargeRevisionPublication$' -count=1 -v
+```
+
+The test also injects a foreign-key failure on the last route, checks unchanged state,
+absence of an incomplete revision or notification, then verifies a successful retry
+with the next generation and its notification. It never uses the demo database.

@@ -128,6 +128,8 @@ See [operations](docs/operations.md) for deadlines, TLS, shutdown, and deploymen
 - The standard HTTP transport can retry eligible requests on reused connection failures;
   see [transport behavior](docs/operations.md). Bodies are never replayed by gateway code.
 - Routing scans sorted candidates; [benchmarks](docs/benchmarks.md) quantify local costs.
+- Revision writes are batched inside one transaction. Structural entity caps do not
+  guarantee publication within the default 2s SQL budget; size timeouts for your deployment.
 - Metrics counters belong to snapshots and reset on reload; historical revisions remain
   in PostgreSQL. Revision history lists the latest 100; known IDs remain readable.
 - TLS secret references must exist in both management and serving environments. There is
