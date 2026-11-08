@@ -249,3 +249,17 @@ they are excluded from the public source and release manifests. Root `AGENTS.md`
 and `CLAUDE.md` are explicitly allowed in source, while archives still exclude them.
 The publication self-check asserts this distinction and retains rejection of nested
 instruction files, lowercase variants, private directories, and traversal paths.
+
+## Bounded compiler reports
+
+`TestValidationReportCountAndSize` covers 0/1/100/101/10000 bad routes, retained entity
+context, and the exact ordinary omission field. The baseline produced 10000 fields
+and a 707779-byte message. `TestValidationReportLongDetails` covers large untrusted
+handler-type names and UTF-8-safe message truncation; its baseline exceeded 1.6 MB.
+Reporting is bounded once after Compile adds context: at most 100 errors plus an
+omission entry, 256 bytes per message, and an 8 KiB formatted report. Independent
+validation still rejects the entire candidate; WithErrorContext is unchanged.
+`TestValidationReportAcrossAPIStatusAndLog` checks bounded real 422/status/log JSON,
+no publication/history/notification on API rejection, and last-good proxy traffic
+when privileged storage inserts the bad revision. The existing Problem schema is
+unchanged; no new response fields or dependencies are introduced.
