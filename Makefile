@@ -21,7 +21,7 @@ bench:
 loadbench:
 	go run ./cmd/routeqtus-bench
 vuln:
-	go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+	go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 docs: build
 	bin/routeqtus openapi > docs/openapi.json
 	python3 scripts/reference.py

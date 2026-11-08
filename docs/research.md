@@ -116,3 +116,7 @@ annotation by default, so application validation must enforce durations, URLs
 and other operational constraints. Describe request and effective-response
 schemas separately where their semantics differ.
 [OpenAPI Schema Object](https://spec.openapis.org/oas/v3.2.1.html#schema-object).
+
+## Vulnerability scanner compatibility
+
+Pin govulncheck v1.9.0, verified by the official module proxy and [package documentation](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck@v1.9.0). The earlier v1.1.4 analyzer crashed on Go 1.27 Linux syntax in CI; v1.9.0 completed full source scans on both macOS and Linux. This is a development tool, not a runtime dependency.

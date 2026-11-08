@@ -28,6 +28,8 @@ Approved scope: `routeqtus_prompt.md`. Code, comments, logs, and documentation a
 - [x] README, getting_started, API/field reference, operations and extension documentation.
 - [x] Apply ponytail-review; fix findings and remove unused code/dependencies.
 - [ ] Open PR with verification evidence; obtain green CI before merge.
+  - [x] Opened https://github.com/kmpoltorak/routeqtus/pull/1.
+  - [ ] CI verification and fresh Compose demo jobs green.
 - [ ] Publish GitHub release with binaries, checksums, notes, and documented limitations.
 
 Risks to verify: ambiguous URLs; forwarding-header spoofing; streaming deadlines;
@@ -62,7 +64,13 @@ No test or benchmark is considered passed unless its command actually completed.
   normalization errors, case-sensitive field validation, and cleanup deadlines.
 - Four sabotage checks failed the intended tests; files were restored and tests passed.
 - Final ponytail-review is documented in docs/review.md; findings were fixed and tested.
-- PR/CI and GitHub release remain open. Release archives are being built.
+- PR #1 is open. Four Linux/macOS amd64/arm64 release archives were cross-compiled;
+  native version smoke check and all SHA-256 checksums passed. CI and release remain open.
+- Slow-metrics regression reproduced publication blocking, then passed after pinning
+  the snapshot and releasing the lock before network writes.
+- Initial CI: Compose demo passed; verification reached govulncheck, whose old v1.1.4
+  analyzer panicked on Go 1.27 Linux syntax. Updated to official v1.9.0; native and
+  Linux-container full source scans passed with no vulnerabilities. CI rerun pending.
 
 ## Deployment clarification
 

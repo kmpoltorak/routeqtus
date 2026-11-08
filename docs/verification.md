@@ -13,7 +13,7 @@ checks on Ubuntu. Run commands from the repository root.
 | PostgreSQL race detector | `sh scripts/test-integration.sh -race` | Passed |
 | Strict JSON fuzzing | `go test ./internal/strictjson -run='^$' -fuzz=FuzzDecode -fuzztime=5s` | Passed; 321277 executions in recorded run |
 | Request-path fuzzing | `go test ./internal/gateway -run='^$' -fuzz=FuzzRequestPath -fuzztime=5s` | Passed; 175676 executions in recorded run |
-| Vulnerability scan | `go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...` | No vulnerabilities found |
+| Vulnerability scan | `go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...` | No vulnerabilities found |
 | Static build | `make build` (`CGO_ENABLED=0`) | Passed |
 | Container | `docker build --tag routeqtus:local .` | Passed; numeric non-root user and bundled CAs |
 | Complete demo | `make demo` on a fresh demo database | Passed; expected backend output observed |
@@ -47,8 +47,8 @@ publication, generation audit, ETag races, dry-run/invalid-candidate non-publica
 PATCH/null, rollback, and whole-configuration dependency validation. Reload tests
 cover traffic during updates, invalid revisions, polling without notifications,
 notification-session termination/reconnect, two-instance convergence, staleness,
-recovery, snapshot pinning/retirement, and shutdown of active WebSockets. Process tests
-also ensure that a stalled metrics client cannot block snapshot publication. Protocol tests
+recovery, snapshot pinning/retirement, and shutdown of active WebSockets. A separate
+regression ensures that a stalled metrics client cannot block publication. Protocol tests
 verify WebSocket exchange against a TLS backend advertising HTTP/2 as well as plain HTTP.
 Process tests
 exercise empty/missing-database startup, first publication, and manage restart while
@@ -69,6 +69,11 @@ and requires the named test's actual assertion failure, not a compilation error.
 The complete checks were rerun after restoration. The metric-collision regression was
 also observed failing before its fix: a route named `unmatched` duplicated fallback
 series. Fallback now uses an empty route ID, which cannot collide with a configured ID.
+
+The first Linux CI run exposed an incompatible old govulncheck analyzer (v1.1.4),
+which panicked while analyzing Go 1.27 syntax. The pinned tool was upgraded to v1.9.0
+and the full source scan passed both natively and in the Go 1.27.3 Linux container.
+The vulnerability check was retained without weakening its failure behavior.
 
 ## Used skills and limits
 
