@@ -402,6 +402,9 @@ func (s *Snapshot) ServeTracked(w http.ResponseWriter, r *http.Request, track fu
 			status := st.Status
 			if status == 0 {
 				status = 200
+				if p != nil {
+					status = 500
+				}
 			}
 			stat.Observe(status, time.Since(start))
 			if p != nil {
@@ -624,6 +627,10 @@ func (s *RouteStats) Observe(status int, d time.Duration) {
 	}
 }
 func (s *Snapshot) WriteMetrics(w http.ResponseWriter) {
+	fmt.Fprint(w, "# HELP routeqtus_errors_total Requests ending in a server error or aborted response.\n# TYPE routeqtus_errors_total counter\n"+
+		"# HELP routeqtus_requests_total Requests by final status class; unwritten panics count as 5xx.\n# TYPE routeqtus_requests_total counter\n"+
+		"# HELP routeqtus_in_flight Requests currently using this snapshot.\n# TYPE routeqtus_in_flight gauge\n"+
+		"# HELP routeqtus_request_duration_seconds Request handling duration in seconds.\n# TYPE routeqtus_request_duration_seconds histogram\n")
 	for i := range s.Stats {
 		st := &s.Stats[i]
 		if !st.Enabled {

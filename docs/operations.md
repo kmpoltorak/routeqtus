@@ -154,12 +154,14 @@ and drains ordinary requests and upgrades until `shutdown_timeout`. Remaining pu
 and hijacked connections are closed, then transports and the database pool are closed.
 
 Process logs use slog JSON by default. Access logs are independently enabled by
-PostgreSQL handler bindings; they contain status, request/route IDs, duration, and size,
+PostgreSQL handler bindings; they contain HTTP method, status, request/route IDs, duration, and size,
 never body, request URL/query, authorization, cookies, or DSNs. Panic values are not
-logged because they can contain secrets.
+logged because they can contain secrets; recovery logs include the stack trace.
 
 Metrics use a small standard-library Prometheus text exporter: fixed latency buckets,
 status classes, configured route IDs, and process synchronization/pool gauges/counters.
+Each metric family includes HELP and TYPE metadata. A panic before response headers
+counts as 5xx; an aborted response keeps its written status and increments errors.
 No extra metrics dependency is needed for these fixed families. Route IDs are capped
 by the 10000-route configuration limit. Removed snapshots disappear from exposition;
 route request counters/histograms reset on reload. Generation is a gauge, never a label.
