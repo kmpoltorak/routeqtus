@@ -1,0 +1,32 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: make check test test-race build
+      - run: make test-integration
+      - run: sh scripts/test-integration.sh -race
+      - run: make fuzz vuln
+      - run: make docs && git diff --exit-code docs/openapi.json docs/reference.md
+      - run: docker build --tag routeqtus:ci .
+      - run: sh scripts/check-examples.sh
+  demo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: sh scripts/demo.sh
+      - if: always()
+        run: docker compose down

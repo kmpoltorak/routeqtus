@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "trusted_proxies": [],
+  "metrics": true,
+  "upstreams": [{
+    "id": "demo",
+    "targets": [
+      {"id": "a", "url": "http://backend-a:8081"},
+      {"id": "b", "url": "http://backend-b:8081"}
+    ],
+    "dial_timeout": "3s",
+    "tls_handshake_timeout": "5s",
+    "response_header_timeout": "10s",
+    "idle_timeout": "60s",
+    "max_conns": 128,
+    "max_idle_conns": 128,
+    "max_idle_conns_per_host": 32,
+    "proxy_from_environment": false,
+    "tls": {}
+  }],
+  "handlers": [
+    {"id":"request-id","type":"request_id","version":1,"options":{}},
+    {"id":"recover","type":"recover","version":1,"options":{}},
+    {"id":"access-log","type":"access_log","version":1,"enabled":true,"options":{"sample_every":1}},
+    {"id":"headers","type":"headers","version":1,"options":{"response_set":{"X-Gateway":"routeqtus"}}},
+    {"id":"powered","type":"powered_by","version":1,"options":{"value":"Routeqtus"}}
+  ],
+  "global_handlers": ["request-id","recover","access-log","headers"],
+  "routes": [{
+    "id":"demo",
+    "methods":["GET"],
+    "path":"/api",
+    "prefix":true,
+    "strip_prefix":true,
+    "upstream":"demo",
+    "handlers":["powered"]
+  }]
+}
