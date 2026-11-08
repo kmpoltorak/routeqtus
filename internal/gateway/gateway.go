@@ -541,7 +541,7 @@ func (s *Snapshot) forwarded(r *http.Request) (string, string) {
 	}
 	client := peer
 	if s.trustedIP(peer) {
-		chain := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+		chain := strings.Split(strings.Join(r.Header.Values("X-Forwarded-For"), ","), ",")
 		for i := len(chain) - 1; i >= 0 && s.trustedIP(client); i-- {
 			ip, e := netip.ParseAddr(strings.TrimSpace(chain[i]))
 			if e != nil {
@@ -550,8 +550,8 @@ func (s *Snapshot) forwarded(r *http.Request) (string, string) {
 			}
 			client = ip
 		}
-		if v := r.Header.Get("X-Forwarded-Proto"); v == "http" || v == "https" {
-			proto = v
+		if values := r.Header.Values("X-Forwarded-Proto"); len(values) == 1 && (values[0] == "http" || values[0] == "https") {
+			proto = values[0]
 		}
 	}
 	return client.Unmap().String(), proto
