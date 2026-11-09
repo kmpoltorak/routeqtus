@@ -6,6 +6,7 @@ processes route requests using compiled in-memory snapshots. Kubernetes or anoth
 serving platform handles replica scaling.
 
 - No configuration SQL on the proxy request path.
+- Route handler state is independent, even when routes use the same handler ID.
 - Atomic publication with generation preconditions and complete-candidate validation.
 - Invalid revisions preserve the last valid snapshot; stale instances reject new traffic.
 - Streaming HTTP, SSE, and WebSocket support with resource limits and graceful draining.

@@ -5,7 +5,7 @@
         "additionalProperties": false,
         "properties": {
           "global_handlers": {
-            "description": "Handler IDs in entry order; also wrap 404 and 405.",
+            "description": "Handler IDs in global entry order; share state across routes and also wrap 404 and 405.",
             "items": {
               "type": "string"
             },
@@ -29,7 +29,7 @@
               "additionalProperties": false,
               "properties": {
                 "handlers": {
-                  "description": "Route handlers in entry order, inside global handlers.",
+                  "description": "Handler IDs in route entry order, inside global handlers; each binding has independent state.",
                   "items": {
                     "type": "string"
                   },
@@ -663,7 +663,7 @@
         "additionalProperties": false,
         "properties": {
           "handlers": {
-            "description": "Route handlers in entry order, inside global handlers.",
+            "description": "Handler IDs in route entry order, inside global handlers; each binding has independent state.",
             "items": {
               "type": "string"
             },

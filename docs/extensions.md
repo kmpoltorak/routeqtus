@@ -2,7 +2,8 @@
 
 The contract is `type Middleware func(http.Handler) http.Handler`. A registry entry
 contains the type name, contract version, factory, typed options schema, and example.
-Its factory decodes and validates options once while the revision is compiled.
+Factories decode and validate options during compilation, never during requests.
+Compilation validates all definitions and creates a fresh middleware for each binding.
 
 See `internal/extensions/powered.go` for a complete extension. Its `Register` function
 is called explicitly by `app.Compiler`; no `init`, dynamic code loading, or router
@@ -40,6 +41,25 @@ Tests `TestRouting`, `TestRecoverAndHandlerOrder`, `TestSSETrailersAndHTTP2`,
 `TestWebSocket`, and `TestHandlerSchemaAndValidatorConformance` exercise the example,
 wrapper capabilities, order, and registry schema/examples. Add observable tests for
 your handler and a deliberate sabotage check before publishing its contract.
+
+## Handler scope
+
+A configured handler ID names reusable settings. Each attachment to a route creates
+an independent runtime instance: the same limiter definition on 15 routes gives each
+route its own budget. Keep mutable counters, channels, and other state inside the
+factory's returned closures; do not share them through package globals.
+
+An explicit `global_handlers` binding creates one separate instance around all routes,
+including 404/405 responses. Its state is shared across those requests within that
+snapshot. Binding the same ID both globally and on a route creates two independent
+instances; both processing steps execute. Choose the scope deliberately.
+
+Instances are local to one snapshot in one serving process. Reloads recreate them,
+and replicas do not share counters. The process-wide `server.max_in_flight` admission
+limit is separate from route handlers and remains in force across snapshot reloads.
+Factories may be called multiple times while validating and building a candidate,
+including for unused or disabled definitions; keep their state local and avoid
+external side effects during construction.
 
 ## Use existing limits first
 
@@ -83,7 +103,7 @@ import (
 const maxConcurrentRequests = 10000
 
 type ConcurrencyOptions struct {
-	Limit int `json:"limit" required:"true" doc:"Maximum simultaneous requests through this handler instance."`
+	Limit int `json:"limit" required:"true" doc:"Maximum simultaneous requests through this handler binding."`
 }
 
 func RegisterConcurrencyLimit(registry *middleware.Registry) error {
@@ -119,11 +139,11 @@ func RegisterConcurrencyLimit(registry *middleware.Registry) error {
 }
 ```
 
-The channel is created by the factory, not inside a request or wrapper constructor.
-Bindings of the same handler ID therefore share capacity within a snapshot. Separate
-handler IDs have separate limits. The deferred release runs even when downstream
-panics. A slot remains occupied until the downstream handler returns; this is not
-tracking the lifetime of a socket handed away by a handler.
+The channel is created by the factory, not inside a request. The compiler invokes
+the factory separately for each binding, so routes using the same handler ID have
+independent capacity. The deferred release runs even when downstream panics. A slot
+remains occupied until the downstream handler returns; this does not track the
+lifetime of a socket handed away by a handler.
 
 At the beginning of the existing `Register` function in `internal/extensions/powered.go`,
 before its current registration, add:
@@ -232,8 +252,10 @@ Also cover these cases before deploying:
   confirm a second request receives 503 without entering the downstream handler.
 - Release the first request; a subsequent request must succeed. Exercise downstream
   cancellation and panic too, so a lost permit cannot permanently block the handler.
-- Bind the same instance to two routes and verify they share capacity; two distinct
-  IDs must not share it. Verify disabled instances add no wrapper.
+- Bind the same handler ID to two routes: saturating one must not reject a request
+  on the other. A global binding must share capacity across routes, while global and
+  route bindings of the same ID must have separate state. Verify disabled bindings
+  add no wrapper.
 - Reject missing/null/unknown options, wrong types, 0, negative values, and values
   above 10000. Check both accepted boundaries against the published schema.
 
@@ -260,9 +282,10 @@ Add `api-limit` to a route's handler list, for example `["api-limit", "powered"]
 using `/v1/routes/demo/handlers`. Preserve the other required bindings, and read a
 fresh generation after each mutation. See the [API editing example](api.md#inspect-and-add-a-route)
 for authentication, generation handling, and checking when a serving instance has applied
-an update. For multiple routes to share a budget, bind the same instance to them.
-Do not bind it both globally and to a route: that request would acquire the same
-budget twice. Use a global binding alone if it should cover all routes.
+an update. Reusing `api-limit` on another route gives that route its own limit of 16;
+it does not consume the first route's budget. An explicit global binding alone would
+instead limit all routes together within that snapshot. Binding it globally and on
+a route applies both independent budgets.
 
 The example limit is local to one compiled snapshot in one process. Configuration
 reload creates fresh state while old in-flight requests can still finish; limits

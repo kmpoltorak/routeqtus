@@ -39,11 +39,11 @@ about request paths; encoded percent characters in query values remain supported
 
 | Field | Endpoint/schema | Type | Required | Default | Null | Meaning / constraints |
 | --- | --- | --- | --- | --- | --- | --- |
-| global_handlers | /v1/config; /v1/global-handlers | array | yes | none / see description | rejected; PATCH removes optional fields | Handler IDs in entry order; also wrap 404 and 405. |
+| global_handlers | /v1/config; /v1/global-handlers | array | yes | none / see description | rejected; PATCH removes optional fields | Handler IDs in global entry order; share state across routes and also wrap 404 and 405. |
 | handlers | /v1/config; /v1/handlers/{id} | array | yes | none / see description | rejected; PATCH removes optional fields |  |
 | metrics | /v1/config; /v1/settings | boolean | no | true | inherit/default | Collect request metrics; bootstrap can independently disable the endpoint. |
 | routes | /v1/config; /v1/routes/{id} | array | yes | none / see description | rejected; PATCH removes optional fields | Complete routing table. maxItems=10000 |
-| routes[].handlers | /v1/config; /v1/routes/{id} | array | yes | none / see description | rejected; PATCH removes optional fields | Route handlers in entry order, inside global handlers. |
+| routes[].handlers | /v1/config; /v1/routes/{id} | array | yes | none / see description | rejected; PATCH removes optional fields | Handler IDs in route entry order, inside global handlers; each binding has independent state. |
 | routes[].host | /v1/config; /v1/routes/{id} | string | no | none / see description | rejected; PATCH removes optional fields | Optional lowercase DNS host without port; empty matches all hosts. |
 | routes[].host_header | /v1/config; /v1/routes/{id} | string | no | none / see description | rejected; PATCH removes optional fields | Explicit outgoing Host; empty uses selected target host. |
 | routes[].id | /v1/config; /v1/routes/{id} | string | yes | none / see description | rejected; PATCH removes optional fields | Unique route identifier. minLength=1; maxLength=64; pattern `^[A-Za-z0-9_-]{1,64}$` |
