@@ -1,5 +1,15 @@
 # Release notes
 
+## Unreleased
+
+- Give each route handler binding independent runtime state, even when routes reuse
+  one handler ID. Explicit global bindings retain their own shared state across routes.
+- Stateful extensions and route-local access-log sampling no longer share counters
+  between routes. Factories run during validation and separately for each binding;
+  keep mutable state local to the factory result. Instance state still resets on
+  configuration reload and remains local to each serving process.
+- Process-wide admission limits remain independent of route handlers.
+
 ## v0.2.0 — 2026-11-09
 
 - Rename the module, CLI, images, archive names, metrics, SQL namespace, notification

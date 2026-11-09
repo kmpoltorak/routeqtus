@@ -31,8 +31,8 @@ type Config struct {
 	TrustedProxies []string   `json:"trusted_proxies,omitempty" doc:"Trusted peer CIDRs; empty trusts no incoming forwarding headers."`
 	Metrics        *bool      `json:"metrics,omitempty" default:"true" doc:"Collect request metrics; bootstrap can independently disable the endpoint."`
 	Upstreams      []Upstream `json:"upstreams" required:"true" doc:"Named backend pools."`
-	Handlers       []Handler  `json:"handlers" required:"true" doc:"Explicitly registered middleware instances."`
-	GlobalHandlers []string   `json:"global_handlers" required:"true" doc:"Handler IDs in entry order; also wrap 404 and 405."`
+	Handlers       []Handler  `json:"handlers" required:"true" doc:"Registered handler definitions; bindings have independent runtime state."`
+	GlobalHandlers []string   `json:"global_handlers" required:"true" doc:"Handler IDs in global entry order; share state across routes and also wrap 404 and 405."`
 	Routes         []Route    `json:"routes" required:"true" doc:"Complete routing table."`
 }
 type Upstream struct {
@@ -70,7 +70,7 @@ type Route struct {
 	Upstream       string    `json:"upstream" required:"true" doc:"Existing upstream ID."`
 	RequestTimeout *Duration `json:"request_timeout,omitempty" doc:"Full request deadline; null inherits bootstrap, 0s explicitly enables long streams."`
 	Metrics        *bool     `json:"metrics,omitempty" default:"true" doc:"Collect route metrics when operational and bootstrap metrics are enabled."`
-	Handlers       []string  `json:"handlers" required:"true" doc:"Route handlers in entry order, inside global handlers."`
+	Handlers       []string  `json:"handlers" required:"true" doc:"Handler IDs in route entry order, inside global handlers; each binding has independent state."`
 }
 type Handler struct {
 	ID      string          `json:"id" required:"true" doc:"Unique instance identifier."`

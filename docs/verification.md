@@ -357,3 +357,16 @@ project passed migration, role grants, publication, and serving; TLS API example
 both named backend responses passed. Production-image checks verify the new binary,
 CA bundle, numeric non-root user, and absence of the demo backend. The rename uses
 fresh test data rather than a compatibility migration. Existing releases remain immutable.
+
+## Handler binding isolation
+
+`TestHandlerBindingConcurrencyScope` uses real frontend/backend HTTP servers and a
+stateful test extension. It verifies saturation on one route does not exhaust another
+route using the same handler ID, while explicit global bindings share capacity. It
+also binds the same ID globally and locally to prove their state is separate, and
+checks capacity returns after the held request completes.
+
+`TestAccessLogSamplingIsIndependentPerRoute` exercises the shipped `access_log` type:
+each route emits its own first sampled request. Before the fix, the shared counter
+sampled only one of the two interleaved routes. `TestUnboundAndDisabledHandlersRemainValidated`
+retains strict option validation and handler IDs for unused and disabled definitions.

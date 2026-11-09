@@ -22,6 +22,9 @@ import (
 )
 
 type Middleware func(http.Handler) http.Handler
+
+// Factory validates options and creates fresh state for one binding. Compilation
+// also invokes factories to validate definitions, including unused/disabled ones.
 type Factory func(json.RawMessage) (Middleware, error)
 type Type struct {
 	Name    string         `json:"name"`

@@ -134,21 +134,21 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 		return nil, errors.Join(validation...)
 	}
 
-	instances := map[string]middleware.Middleware{}
+	handlers := map[string]config.Handler{}
 	for i, h := range d.Handlers {
 		entityErr := func() error {
 			field := fmt.Sprintf("/handlers/%d", i)
 			if !identifier.MatchString(h.ID) {
 				return config.Invalid(field+"/id", "invalid handler ID")
 			}
-			if _, ok := instances[h.ID]; ok {
+			if _, ok := handlers[h.ID]; ok {
 				return config.Invalid(field+"/id", "duplicate handler ID")
 			}
-			m, e := c.Registry.Build(h)
+			_, e := c.Registry.Build(h)
 			if e != nil {
 				return config.Invalid(field+"/options", fmt.Sprintf("handler %s (%s): %s", h.ID, h.Type, e))
 			}
-			instances[h.ID] = m
+			handlers[h.ID] = h
 
 			return nil
 		}()
@@ -164,11 +164,16 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 		ms := []middleware.Middleware{}
 		seen := map[string]bool{}
 		for i, id := range ids {
-			m, ok := instances[id]
+			h, ok := handlers[id]
 			if !ok || seen[id] {
 				return nil, config.Invalid(fmt.Sprintf("%s/%d", field, i), "missing or duplicate handler binding")
 			}
 			seen[id] = true
+			// Each binding owns its state; handler IDs share configuration only.
+			m, e := c.Registry.Build(h)
+			if e != nil {
+				return nil, config.Invalid(fmt.Sprintf("%s/%d", field, i), fmt.Sprintf("handler %s (%s): %s", h.ID, h.Type, e))
+			}
 			if m != nil {
 				ms = append(ms, m)
 			}

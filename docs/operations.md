@@ -237,6 +237,12 @@ see [proxy trust](operations.md).
 
 Global handlers run outside route handlers and also cover 404/405. Lists record
 entry order; code after `next` runs in reverse. Disabled handlers add no wrapper.
+A handler definition can be reused by several routes, but each route binding has
+independent state. Global bindings have their own state shared across routes; they
+do not reuse a route binding's state even when the ID matches. Instance state is
+local to a compiled snapshot and resets on reload. Process-wide admission limits,
+such as `server.max_in_flight`, are separate and persist across snapshot reloads.
+See [handler scope](extensions.md#handler-scope).
 
 | Handler | Options |
 | --- | --- |
