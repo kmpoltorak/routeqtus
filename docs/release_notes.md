@@ -1,13 +1,16 @@
 # Release notes
 
-## Unreleased — project rename
+## v0.2.0 — 2026-11-09
 
 - Rename the module, CLI, images, archive names, metrics, SQL namespace, notification
   channel, demo database/roles, and environment prefixes to Routetus.
 - This rename targets a fresh test deployment. Recreate the demo database; no old-name
   compatibility aliases or automatic data migration are provided.
-- Existing v0.1.1 archives predate the rename. Build the current source for the new
-  binary/module names until the next release is published.
+- Release archives are named `routetus_v0.2.0_<os>_<arch>.tar.gz` and contain the
+  `routetus` executable. Linux and macOS builds are provided for amd64 and arm64.
+- This is a breaking rename from v0.1.1: update commands, environment variables,
+  metric queries, and database provisioning before starting the new version.
+  Historical releases retain their original artifact and executable names.
 
 ## v0.1.1 — 2026-11-08
 

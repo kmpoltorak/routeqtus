@@ -3,18 +3,16 @@
 Routetus needs PostgreSQL and an explicitly published revision before `serve`
 accepts traffic. `manage` can start with an empty, migrated database.
 
-See [release notes](docs/release_notes.md#upgrade-notes) for validation and readiness
-changes when upgrading. Existing `powered_by.value` options containing HTAB remain
-valid; no tab-cleanup step is required.
+See [release notes](docs/release_notes.md#v020--2026-11-09) for the breaking rename
+in v0.2.0. Use a fresh demo database and the `ROUTETUS_` environment prefix; old-name
+compatibility aliases and automatic data migration are not provided. Existing
+`powered_by.value` options containing HTAB remain valid.
 
 ## Install
 
-The project rename is currently unreleased. Build from the current source checkout
-for the new binary/module names; existing v0.1.1 archives predate the rename.
-Use a fresh demo database and the `ROUTETUS_` environment prefix.
-
 For a prebuilt binary, download the archive for your OS/architecture and `checksums.txt`
-from [GitHub Releases](https://github.com/kmpoltorak/routetus/releases). Verify its
+from [GitHub Releases](https://github.com/kmpoltorak/routetus/releases). Starting with
+v0.2.0, archives use `routetus_v0.2.0_<os>_<arch>.tar.gz` and contain `routetus`. Verify its
 SHA-256 checksum before extracting it. Archives contain the binary, examples, and
 public documentation; they do not include the source Makefile. Check the version:
 
