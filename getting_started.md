@@ -81,6 +81,41 @@ Stop without deleting PostgreSQL data: `docker compose down`.
 Deleting the `postgres-data` volume removes all revisions; do that only when you
 intend to discard this local demo's configuration.
 
+## Local route GUI
+
+After initializing the Docker demo, start the optional, separate GUI container:
+
+```sh
+docker compose --profile ui up -d --build ui
+```
+
+Open **http://127.0.0.1:9180**. The panel lists routes and lets you add or delete a route,
+register an upstream with backend URLs, and create a configured handler from a type
+registered by the server. Handler options use typed fields derived from its schema;
+structured map/array options use JSON fields. The top-bar **Handler guide** explains
+the available types and their options.
+
+It has no login screen; the Management API token stays in the GUI container.
+Configuration conflicts refresh the list and preserve your form for review and retry.
+Creating a handler gives its settings an ID; selecting that ID attaches it to the
+route. Create a separate ID when a route needs different option values. New handler
+types still require code registration and a binary deployment.
+
+The `ui` profile builds its own image from this checkout. It is not part of the
+production gateway image or the gateway release archive. No Node.js installation is
+needed to run it. Stop just the panel with `docker compose --profile ui stop ui`;
+stop all demo services without deleting data with `docker compose --profile ui down`.
+
+For native development, build the separate executable with `make build-ui`, load
+the demo environment as shown above, and run:
+
+```sh
+SSL_CERT_FILE="$PWD/.demo/tls/cert.pem" bin/routetus-ui --api https://127.0.0.1:9080
+```
+
+See [GUI operation and trust](docs/operations.md#local-gui) and
+[browser checks](docs/verification.md#local-gui-checks) for details.
+
 ## Native processes
 
 Use a source checkout, or the examples from an extracted release archive. For source:

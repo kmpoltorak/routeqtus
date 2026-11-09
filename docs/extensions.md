@@ -1,7 +1,8 @@
 # Adding a handler
 
 The contract is `type Middleware func(http.Handler) http.Handler`. A registry entry
-contains the type name, contract version, factory, typed options schema, and example.
+contains the type name, short description, contract version, factory, typed options schema, and example.
+The GUI handler guide uses that description and schema to explain options.
 Factories decode and validate options during compilation, never during requests.
 Compilation validates all definitions and creates a fresh middleware for each binding.
 
@@ -113,6 +114,7 @@ func RegisterConcurrencyLimit(registry *middleware.Registry) error {
 	limit["maximum"] = maxConcurrentRequests
 	return registry.Register(middleware.Type{
 		Name: "concurrency_limit", Version: 1,
+        Description: "Limits simultaneous requests for each route binding.",
 		Schema: schema, Example: ConcurrencyOptions{Limit: 16},
 		Factory: func(raw json.RawMessage) (middleware.Middleware, error) {
 			var options ConcurrencyOptions

@@ -27,11 +27,12 @@ type Middleware func(http.Handler) http.Handler
 // also invokes factories to validate definitions, including unused/disabled ones.
 type Factory func(json.RawMessage) (Middleware, error)
 type Type struct {
-	Name    string         `json:"name"`
-	Version int            `json:"version"`
-	Schema  map[string]any `json:"schema"`
-	Example any            `json:"example"`
-	Factory Factory        `json:"-"`
+	Description string         `json:"description,omitempty" doc:"Short description of the handler behavior."`
+	Name        string         `json:"name"`
+	Version     int            `json:"version"`
+	Schema      map[string]any `json:"schema"`
+	Example     any            `json:"example"`
+	Factory     Factory        `json:"-"`
 }
 
 func (r *Registry) EffectiveOptions(h config.Handler) json.RawMessage {
@@ -236,7 +237,7 @@ func ValidHeaderValue(v string) bool {
 }
 func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 	types := []Type{
-		{Name: "request_id", Version: 1, Schema: config.Schema(Empty{}), Example: Empty{}, Factory: func(b json.RawMessage) (Middleware, error) {
+		{Name: "request_id", Description: "Assigns a request ID and includes it in the response.", Version: 1, Schema: config.Schema(Empty{}), Example: Empty{}, Factory: func(b json.RawMessage) (Middleware, error) {
 			var o Empty
 			if err := config.DecodeTyped(b, &o); err != nil {
 				return nil, err
@@ -253,7 +254,7 @@ func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 				})
 			}, nil
 		}},
-		{Name: "recover", Version: 1, Schema: config.Schema(Empty{}), Example: Empty{}, Factory: func(b json.RawMessage) (Middleware, error) {
+		{Name: "recover", Description: "Handles downstream panics before a response starts.", Version: 1, Schema: config.Schema(Empty{}), Example: Empty{}, Factory: func(b json.RawMessage) (Middleware, error) {
 			var o Empty
 			if err := config.DecodeTyped(b, &o); err != nil {
 				return nil, err
@@ -277,7 +278,7 @@ func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 				})
 			}, nil
 		}},
-		{Name: "access_log", Version: 1, Schema: config.Schema(AccessLog{}), Example: AccessLog{SampleEvery: 1}, Factory: func(b json.RawMessage) (Middleware, error) {
+		{Name: "access_log", Description: "Logs request method, status, duration, size, and route ID.", Version: 1, Schema: config.Schema(AccessLog{}), Example: AccessLog{SampleEvery: 1}, Factory: func(b json.RawMessage) (Middleware, error) {
 			var o AccessLog
 			if err := config.DecodeTyped(b, &o); err != nil {
 				return nil, err
@@ -313,7 +314,7 @@ func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 				})
 			}, nil
 		}},
-		{Name: "headers", Version: 1, Schema: config.Schema(Headers{}), Example: Headers{ResponseSet: map[string]string{"X-Gateway": "routetus"}}, Factory: func(b json.RawMessage) (Middleware, error) {
+		{Name: "headers", Description: "Adds or removes permitted request and response headers.", Version: 1, Schema: config.Schema(Headers{}), Example: Headers{ResponseSet: map[string]string{"X-Gateway": "routetus"}}, Factory: func(b json.RawMessage) (Middleware, error) {
 			var o Headers
 			if err := config.DecodeTyped(b, &o); err != nil {
 				return nil, err

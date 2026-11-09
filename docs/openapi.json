@@ -1423,6 +1423,10 @@
                   "items": {
                     "additionalProperties": false,
                     "properties": {
+                      "description": {
+                        "description": "Short description of the handler behavior.",
+                        "type": "string"
+                      },
                       "example": {},
                       "name": {
                         "type": "string"

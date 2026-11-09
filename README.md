@@ -20,6 +20,7 @@ before choosing production capacity; no universal requests-per-instance guarante
 ```mermaid
 flowchart LR
     operator["Operator / CLI / curl"] -->|"Configuration API"| manage["routetus manage"]
+    gui["Optional local GUI: separate container"] -->|"Management API"| manage
     manage -->|"Validate and publish settings"| db[("PostgreSQL: settings and history")]
     db -.->|"Background configuration updates"| serve["routetus serve: settings in memory"]
     client["Client / browser / curl"] <-->|"HTTP requests and responses"| serve
@@ -31,6 +32,7 @@ flowchart LR
 Follow [getting_started.md](getting_started.md) for installation, the Docker demo,
 and native processes. Download binaries from
 [GitHub Releases](https://github.com/kmpoltorak/routetus/releases).
+An optional [local route GUI](getting_started.md#local-route-gui) runs in a separate container.
 
 ## Documentation
 

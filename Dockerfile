@@ -19,4 +19,13 @@ COPY --from=build /demo-backend /demo-backend
 USER 65532:65532
 ENTRYPOINT ["/demo-backend"]
 
+FROM build AS ui-build
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /routetus-ui ./cmd/routetus-ui
+
+FROM scratch AS ui
+COPY --from=ui-build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=ui-build /routetus-ui /routetus-ui
+USER 65532:65532
+ENTRYPOINT ["/routetus-ui"]
+
 FROM runtime AS production

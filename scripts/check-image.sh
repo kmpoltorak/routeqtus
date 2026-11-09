@@ -13,5 +13,6 @@ with tarfile.open(sys.argv[1]) as archive:
 assert 'routetus' in files, 'Production gateway binary missing'
 assert 'etc/ssl/certs/ca-certificates.crt' in files, 'Production CA bundle missing'
 assert 'demo-backend' not in files, 'Demo backend leaked into production image'
+assert 'routetus-ui' not in files, 'Local GUI leaked into production gateway image'
 PY
 test "$(docker image inspect "$image" --format '{{.Config.User}}')" = '65532:65532'

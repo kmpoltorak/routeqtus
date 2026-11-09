@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Routes · Routetus</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Routetus home"><span class="brand-mark" aria-hidden="true">r</span>
+      routetus<span class="brand-divider">/</span><span class="brand-section">Local console</span></a>
+    <div class="header-actions"><button id="handler-guide" class="text-button" type="button" aria-haspopup="dialog">Handler guide</button><span class="connection" id="connection" role="status">Connecting</span></div>
+  </header>
+  <main>
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">TRAFFIC CONFIGURATION</p>
+        <h1>Routes</h1>
+        <p class="subtitle">A clear path from your requests to your services.</p>
+      </div>
+      <button id="refresh" class="button secondary" type="button">↻ <span>Refresh</span></button>
+    </div>
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <section class="stats" aria-label="Configuration summary">
+      <div class="stat"><span>Routes</span><strong id="route-count">—</strong><small>Configured request paths</small>
+      </div>
+      <div class="stat"><span>Upstreams</span><strong id="upstream-count">—</strong><small>Available destination
+          groups</small></div>
+      <div class="stat"><span>Handlers</span><strong id="handler-count">—</strong><small>Configured processing
+          steps</small></div>
+    </section>
+    <div class="workspace">
+      <section class="card route-card" aria-labelledby="routes-heading">
+        <div class="card-heading">
+          <h2 id="routes-heading">Configured routes</h2><span class="badge" id="visible-count">0</span>
+        </div>
+        <div class="search-wrap"><input id="search" type="search" placeholder="Search ID, path or upstream"
+            aria-label="Search routes"></div>
+        <div class="table-wrap" id="route-table" hidden>
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Route / path</th>
+                <th scope="col">Methods</th>
+                <th scope="col">Upstream</th>
+                <th scope="col">Handlers</th><th scope="col"><span class="optional">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="routes"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="empty"><span class="empty-symbol" aria-hidden="true">↗</span>
+          <h3 id="empty-title">Loading routes</h3>
+          <p id="empty-description">Reading the current configuration.</p>
+        </div>
+      </section>
+      <section class="card form-card" aria-labelledby="form-heading">
+        <div class="card-heading">
+          <h2 id="form-heading">Add a route</h2><span class="add-mark" aria-hidden="true">+</span>
+        </div>
+        <p class="form-intro">Connect a path to an existing upstream.</p>
+        <form id="route-form">
+          <label for="route-id">Route ID</label><input id="route-id" name="id" required maxlength="64"
+            pattern="[A-Za-z0-9_-]{1,64}" placeholder="hello" autocomplete="off">
+          <p class="hint">Letters, numbers, underscores or hyphens.</p>
+          <label for="route-path">Request path</label><input id="route-path" name="path" required pattern="/.*"
+            placeholder="/hello" autocomplete="off">
+          <fieldset>
+            <legend>HTTP methods</legend>
+            <div class="method-options">
+              <label><input type="checkbox" name="methods" value="GET" checked><span>GET</span></label><label><input
+                  type="checkbox" name="methods" value="POST"><span>POST</span></label><label><input type="checkbox"
+                  name="methods" value="PUT"><span>PUT</span></label><label><input type="checkbox" name="methods"
+                  value="PATCH"><span>PATCH</span></label><label><input type="checkbox" name="methods"
+                  value="DELETE"><span>DELETE</span></label><label><input type="checkbox" name="methods"
+                  value="HEAD"><span>HEAD</span></label><label><input type="checkbox" name="methods"
+                  value="OPTIONS"><span>OPTIONS</span></label>
+            </div>
+            <p class="hint">Select at least one method.</p>
+          </fieldset>
+          <div class="field-caption"><label for="upstream">Upstream</label><button class="text-button" id="new-upstream" type="button" aria-haspopup="dialog">+ New upstream</button></div><select id="upstream" name="upstream" required>
+            <option value="">Choose an upstream</option>
+          </select>
+          <p class="hint" id="upstream-hint">Destination groups come from the Management API.</p>
+          <fieldset>
+            <legend>Handlers <span class="optional">optional</span></legend><button class="text-button new-handler" id="new-handler" type="button" aria-haspopup="dialog">+ New handler</button>
+            <div class="handler-options" id="handler-options">
+              <p class="hint">Loading configured handlers.</p>
+            </div>
+            <p class="hint">Selected handlers run in the order shown.</p>
+          </fieldset>
+          <div class="matching-options"><label class="check"><input type="checkbox" id="prefix">Match path
+              prefix</label><label class="check"><input type="checkbox" id="strip-prefix" disabled>Remove matched
+              prefix</label></div>
+          <button class="button primary" id="submit" type="submit" disabled>Create route <span
+              aria-hidden="true">↗</span></button>
+          <p class="form-footer">Changes are validated before publication.</p>
+        </form>
+      </section>
+    </div>
+    <footer>Routetus <span>·</span> Local configuration console</footer>
+  </main>
+  <dialog id="upstream-dialog" aria-labelledby="upstream-heading">
+    <div class="dialog-heading"><div><p class="eyebrow">DESTINATIONS</p><h2 id="upstream-heading">New upstream</h2></div><button class="close-button" type="button" data-close="upstream-dialog" aria-label="Close upstream form">×</button></div>
+    <p class="dialog-intro">Register the backend addresses this upstream can forward to.</p>
+    <p class="notice error" id="upstream-error" role="status" hidden></p>
+    <form id="upstream-form">
+      <label for="upstream-id">Upstream ID</label><input id="upstream-id" required maxlength="64" pattern="[A-Za-z0-9_-]{1,64}" placeholder="my-service" autocomplete="off">
+      <label for="upstream-targets">Backend URLs</label><textarea id="upstream-targets" required rows="4" placeholder="http://backend-a:8081&#10;http://backend-b:8081"></textarea><p class="hint">One http:// or https:// URL per line. Transport settings use server defaults.</p>
+      <div class="dialog-actions"><button class="button secondary" type="button" data-close="upstream-dialog">Cancel</button><button class="button primary resource-submit" type="submit">Create upstream</button></div>
+    </form>
+  </dialog>
+  <dialog id="handler-dialog" aria-labelledby="handler-heading">
+    <div class="dialog-heading"><div><p class="eyebrow">REQUEST PROCESSING</p><h2 id="handler-heading">New handler</h2></div><button class="close-button" type="button" data-close="handler-dialog" aria-label="Close handler form">×</button></div>
+    <p class="dialog-intro">Give this configuration its own ID, set its options, and attach it to your route.</p>
+    <p class="notice error" id="handler-error" role="status" hidden></p>
+    <form id="handler-form">
+      <label for="handler-id">Handler ID</label><input id="handler-id" required maxlength="64" pattern="[A-Za-z0-9_-]{1,64}" placeholder="my-handler" autocomplete="off">
+      <label for="handler-type">Handler type</label><select id="handler-type" required><option value="">Choose a registered type</option></select>
+      <p class="hint" id="handler-description"></p><div id="handler-fields" class="parameter-fields"></div>
+      <div class="dialog-actions"><button class="button secondary" type="button" data-close="handler-dialog">Cancel</button><button class="button primary resource-submit" type="submit">Create handler</button></div>
+    </form>
+  </dialog>
+  <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-heading">
+    <div class="dialog-heading"><div><p class="eyebrow">REGISTERED PROCESSING STEPS</p><h2 id="guide-heading">Handler guide</h2></div><button class="close-button" type="button" data-close="guide-dialog" aria-label="Close handler guide">×</button></div>
+    <p class="dialog-intro">Descriptions and options come from the running server. New types must be registered in its binary first.</p>
+    <div id="guide-content"></div>
+  </dialog>
+  <dialog id="delete-dialog" aria-labelledby="delete-heading">
+    <div class="dialog-heading"><h2 id="delete-heading">Delete route?</h2><button class="close-button" type="button" data-close="delete-dialog" aria-label="Close delete confirmation">×</button></div>
+    <p class="dialog-intro">This removes the route from the published configuration. Its upstream and handlers remain available.</p>
+    <p id="delete-target" class="delete-target"></p><p class="notice error" id="delete-error" role="status" hidden></p>
+    <div class="dialog-actions"><button class="button secondary" type="button" data-close="delete-dialog">Cancel</button><button class="button danger resource-submit" id="confirm-delete" type="button">Delete route</button></div>
+  </dialog>
+</body>
+
+</html>

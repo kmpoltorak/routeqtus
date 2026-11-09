@@ -3,6 +3,7 @@
 The versioned contract is [openapi.json](openapi.json); the identical document is
 served at authenticated `GET /openapi.json`. Handler contracts come from the explicit
 registry at `GET /v1/handler-types` and `GET /v1/handler-types/{type}/schema`.
+Type metadata may include an optional `description` used by the local GUI handler guide.
 OpenAPI 3.0.3 is used for broad client compatibility. Its `nullable` keyword describes
 optional override values. The field coverage/default table is [reference.md](reference.md).
 
