@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add an optional, separate local route GUI container using the Management API. It
+  lists/deletes routes and creates routes, upstreams, and configured handlers with generation
+  preconditions. Handler forms use their schemas, and a small guide shows registry
+  descriptions. Credentials stay server-side. The gateway image/archive exclude it.
+- Handler type metadata adds an optional `description` for discoverable help text.
+
 - Give each route handler binding independent runtime state, even when routes reuse
   one handler ID. Explicit global bindings retain their own shared state across routes.
 - Stateful extensions and route-local access-log sampling no longer share counters

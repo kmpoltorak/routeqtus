@@ -54,8 +54,28 @@ services:
       DATABASE_URL: postgres://routetus_manage:${MANAGE_DB_PASSWORD}@postgres:5432/routetus?sslmode=disable
       ROUTETUS_MANAGEMENT_TOKEN: ${ROUTETUS_MANAGEMENT_TOKEN:?Run make demo first}
     ports: ["127.0.0.1:9080:9080"]
+    networks: [default, ui]
     depends_on:
       postgres: {condition: service_healthy}
+  ui:
+    image: routetus-ui:local
+    build:
+      context: .
+      target: ui
+    profiles: [ui]
+    user: "${ROUTETUS_UID:-65532}:${ROUTETUS_GID:-65532}"
+    command: [--listen, "0.0.0.0:9180", --origin, "http://127.0.0.1:9180", --api, "https://manage:9080"]
+    environment:
+      ROUTETUS_MANAGEMENT_TOKEN: ${ROUTETUS_MANAGEMENT_TOKEN:?Run make demo first}
+      SSL_CERT_FILE: /demo/tls/cert.pem
+    volumes:
+      - ./.demo/tls/cert.pem:/demo/tls/cert.pem:ro
+    ports: ["127.0.0.1:9180:9180"]
+    networks: [ui]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    depends_on: [manage]
   publish:
     <<: *gateway
     profiles: [tools]
@@ -82,3 +102,5 @@ services:
       DEMO_BACKEND_NAME: backend-b
 volumes:
   postgres-data:
+networks:
+  ui: {}

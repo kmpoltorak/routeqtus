@@ -41,6 +41,7 @@ and configuration paths before reading individual packages.
 | Location | Responsibility |
 | --- | --- |
 | `cmd/routetus/` | Gateway executable entry point |
+| `cmd/routetus-ui/`, `internal/ui/` | Separate local GUI executable, HTTP interface, and embedded HTML/CSS/JavaScript |
 | `cmd/demo-backend/`, `cmd/routetus-bench/` | Demo response server and development benchmark generator |
 | `internal/cli/` | Command parsing and the Management API HTTP client |
 | `internal/app/`, `internal/bootstrap/` | Process startup/shutdown, listeners, diagnostics, and startup YAML |
@@ -67,6 +68,7 @@ build output, and scratch files are ignored; they are not application source.
 | Target | Action |
 | --- | --- |
 | `make build`, `make run` | Static binary; run native `serve` |
+| `make build-ui` | Build the separate optional local GUI executable |
 | `make check`, `make test` | Publication manifest, documentation links, formatting/vet; unit and HTTP tests |
 | `make test-race`, `make test-integration` | Race checks; disposable real PostgreSQL |
 | `make fuzz`, `make vuln` | Bounded fuzzing; govulncheck |
@@ -308,7 +310,8 @@ The following skills were actually used during implementation and follow-up work
 | --- | --- |
 | ponytail | Small complete changes, explicit trade-offs, existing helpers/dependencies |
 | ponytail-review | Connected-code and diff review before pull requests |
-| codebase-design | Boundaries for immutable snapshots and configuration publication |
+| codebase-design | Interfaces for snapshots, configuration publication, and the separate local GUI |
+| tdd | HTTP and browser behavior checked before and during local GUI implementation |
 | research | Primary-source checks for platform and workflow behavior |
 | diagnosing-bugs | Reproduce CI, runtime, and demo failures before fixing them |
 | pr | Concrete changes, before/after evidence, verification, and merge risk |
@@ -370,3 +373,31 @@ checks capacity returns after the held request completes.
 each route emits its own first sampled request. Before the fix, the shared counter
 sampled only one of the two interleaved routes. `TestUnboundAndDisabledHandlersRemainValidated`
 retains strict option validation and handler IDs for unused and disabled definitions.
+
+## Local GUI checks
+
+Unit HTTP tests cover server-only credentials, resource creation/type discovery, generation propagation, validation/conflict
+responses, exact Host/Origin checks, malformed/duplicate origins, wrong content type,
+request size, loopback configuration, static assets, redirect rejection, and untrusted
+Management API TLS. They use real HTTP servers and do not need the application demo.
+
+CI starts the optional GUI container after initializing its disposable demo, verifies
+its API connection, and runs `tests/ui/browser.cjs` with Playwright 1.65.0 and Chrome.
+Browser checks exercise the handler guide, numeric handler options, upstream registration,
+listing/filtering, route creation/deletion, cancellation, stale generation refresh and retry, invalid-route
+rejection, safe rendering of path text, and mobile layout.
+Playwright is test tooling only; it is not a Go/runtime dependency and adds no frontend
+build step. The production image check rejects a leaked GUI executable.
+
+To repeat the browser check, install Playwright into an ignored or temporary tool directory,
+initialize a disposable demo with the GUI profile, and run from the repository root:
+
+```sh
+npm install --prefix /private/tmp/routetus-ui-browser --no-audit --no-fund playwright@1.65.0
+NODE_PATH=/private/tmp/routetus-ui-browser/node_modules ROUTETUS_UI_TEST_DISPOSABLE=1 node tests/ui/browser.cjs
+```
+
+Chrome must be installed. `ROUTETUS_UI_URL` overrides the default `http://127.0.0.1:9180`.
+The test creates routes and intentionally triggers conflicts/validation errors; use only
+a disposable configuration. Optional screenshots go to `ROUTETUS_UI_SCREENSHOT_DIR`.
+It does not establish production capacity or support a public GUI deployment.

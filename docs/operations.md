@@ -369,6 +369,62 @@ route request counters/histograms reset on reload. Generation is a gauge, never 
 `admin.metrics: false` hides the endpoint; operational and per-route flags control
 request collection. There is no synchronous SQL or database log write per request.
 
+## Local GUI
+
+The optional Compose `ui` profile runs a separate `routetus-ui` executable in its own
+scratch image. It communicates with `manage` over verified HTTPS; it has no database
+credentials or direct PostgreSQL access. The gateway production image contains neither
+the UI executable nor its static assets. See [startup instructions](../getting_started.md#local-route-gui).
+
+The browser talks only to the GUI's origin. The GUI process attaches its environment-backed
+Management API token to narrowly scoped operations: reading `/v1/config` and
+`/v1/handler-types`, and creating routes, upstreams, and configured handlers through
+their collection endpoints, plus deleting one route through `/v1/routes/{id}`. It forwards the observed generation precondition, status,
+field errors, and ETag. The browser receives no token, login cookie, or stored credentials.
+
+The upstream form accepts one backend URL per line and uses transport defaults. The
+handler form builds string, number, enum/boolean, or structured JSON fields from the
+registered type schema. Numeric parameters such as a custom limiter's `limit` become
+number fields. It can configure registered types; it cannot load new executable code.
+The Handler guide uses the registry descriptions and option schemas, with a generic
+fallback for legacy/custom types without a description.
+
+Selecting an existing configured handler attaches its ID without changing its options.
+Create a new configured ID for different option values on another route; editing a
+shared definition would otherwise change all of its users. Runtime state is still
+independent per route as described in [extensions](extensions.md#handler-scope).
+A newly created upstream/handler is selected automatically, preserving the pending
+route form. Each creation is a separate publication, with fresh generation reads.
+
+Route deletion uses a confirmation dialog and the current generation. A conflict refreshes
+the selected route for review before another confirmation. Deletion preserves upstreams
+and handler definitions. Route editing is not implemented in this initial GUI.
+
+Compose publishes the panel only at `127.0.0.1:9180` and places it on a dedicated network
+shared only with `manage`. It mounts the demo public certificate, not its private key,
+and uses a read-only filesystem, non-root user, and dropped capabilities. No UI service
+starts unless its profile is selected. Any local user able to reach the panel can use
+its API permissions: this is a local development tool, not a public admin portal.
+
+Host and Origin checks protect against browser cross-site requests and DNS rebinding;
+JSON is required for writes, and request/response size and time budgets are bounded.
+The process rejects cross-origin requests and upstream redirects and preserves TLS
+certificate verification. These checks do not authenticate local processes. Keep the
+loopback port publication when using the container; do not expose it publicly.
+
+| GUI flag | Default / purpose |
+| --- | --- |
+| `--listen` | `127.0.0.1:9180` for native runs; Compose binds the container interface and publishes only loopback |
+| `--origin` | Derived from a native loopback listener; required for a container bind and must name the exact numeric loopback browser URL |
+| `--api` | `http://127.0.0.1:9080`; Compose uses `https://manage:9080`. Remote endpoints require HTTPS. |
+| `--token-env` | `ROUTETUS_MANAGEMENT_TOKEN`; value is read by the GUI process, not the browser |
+
+`SSL_CERT_FILE` controls the native Go client's CA trust. Listener/TLS/token environment
+changes require GUI process recreation. A 412 means another writer changed the generation;
+the panel refreshes configuration and keeps the form for review. A successful create
+acknowledges commit, not simultaneous application by all serving instances. Use serving
+diagnostics when checking whether a new public route is active.
+
 ## Local demo troubleshooting
 
 The listener addresses below belong to the Docker demo. They are distinct services:

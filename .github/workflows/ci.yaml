@@ -29,5 +29,11 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - run: sh scripts/demo.sh
+      - name: Check separate local GUI
+        run: |
+          docker compose --profile ui up -d --build ui
+          curl --fail --retry 20 --retry-connrefused --retry-delay 1 http://127.0.0.1:9180/api/config > /dev/null
+          npm install --prefix "$RUNNER_TEMP/routetus-ui-browser" --no-audit --no-fund playwright@1.65.0
+          NODE_PATH="$RUNNER_TEMP/routetus-ui-browser/node_modules" ROUTETUS_UI_TEST_DISPOSABLE=1 node tests/ui/browser.cjs
       - if: always()
-        run: docker compose down
+        run: docker compose --profile ui down
