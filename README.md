@@ -14,6 +14,17 @@ serving platform handles replica scaling.
 PostgreSQL 17 or later is required. See the executed checks and deployment limits
 before choosing production capacity; no universal requests-per-instance guarantee is made.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    operator["Operator / CLI / curl"] -->|"Configuration API"| manage["routetus manage"]
+    manage -->|"Validate and publish settings"| db[("PostgreSQL: settings and history")]
+    db -.->|"Background configuration updates"| serve["routetus serve: settings in memory"]
+    client["Client / browser / curl"] <-->|"HTTP requests and responses"| serve
+    serve <-->|"Forward requests and return responses"| backends["Your backend services"]
+```
+
 ## Get started
 
 Follow [getting_started.md](getting_started.md) for installation, the Docker demo,

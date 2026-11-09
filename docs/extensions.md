@@ -40,3 +40,233 @@ Tests `TestRouting`, `TestRecoverAndHandlerOrder`, `TestSSETrailersAndHTTP2`,
 `TestWebSocket`, and `TestHandlerSchemaAndValidatorConformance` exercise the example,
 wrapper capabilities, order, and registry schema/examples. Add observable tests for
 your handler and a deliberate sabotage check before publishing its contract.
+
+## Use existing limits first
+
+The shipped registry has `request_id`, `recover`, `access_log`, `headers`, and
+`powered_by`. It has no configurable per-route concurrency-limiter handler.
+Before writing one, check whether an existing limit fits your requirement:
+
+| Setting | What it limits | Scope |
+| --- | --- | --- |
+| Bootstrap `server.max_in_flight` | Concurrent public requests; excess receives 503 | One serving process, across all routes |
+| Bootstrap `management.max_in_flight` | Concurrent Management API requests; excess receives 503 | One management process |
+| Operational `upstreams[].max_conns` | Transport connections to each backend target; requests may wait for capacity until their deadlines | One upstream transport in one snapshot |
+
+These limits are different from requests per second or open incoming TCP connections.
+HTTP/2 can carry several requests over one connection, and idle keep-alive sockets
+have no active request. An HTTP handler cannot enforce a raw client-socket limit;
+that requires listener/connection lifecycle integration or a suitable front proxy.
+See [configuration fields](reference.md) and [request lifecycle](operations.md#request-lifecycle).
+
+## Example: add a request concurrency handler
+
+The following is a tutorial extension, not a type already registered in the released
+binary. It allows a fixed number of requests through a handler instance at once and
+immediately returns 503 when full. It does not queue requests, impose a requests-per-second
+rate, or count raw sockets. Use it when the existing process-wide limit is too broad.
+
+Create `internal/extensions/concurrency.go`:
+
+```go
+package extensions
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/middleware"
+)
+
+const maxConcurrentRequests = 10000
+
+type ConcurrencyOptions struct {
+	Limit int `json:"limit" required:"true" doc:"Maximum simultaneous requests through this handler instance."`
+}
+
+func RegisterConcurrencyLimit(registry *middleware.Registry) error {
+	schema := config.Schema(ConcurrencyOptions{})
+	limit := schema["properties"].(map[string]any)["limit"].(map[string]any)
+	limit["minimum"] = 1
+	limit["maximum"] = maxConcurrentRequests
+	return registry.Register(middleware.Type{
+		Name: "concurrency_limit", Version: 1,
+		Schema: schema, Example: ConcurrencyOptions{Limit: 16},
+		Factory: func(raw json.RawMessage) (middleware.Middleware, error) {
+			var options ConcurrencyOptions
+			if err := config.DecodeTyped(raw, &options); err != nil {
+				return nil, err
+			}
+			if options.Limit < 1 || options.Limit > maxConcurrentRequests {
+				return nil, fmt.Errorf("limit must be between 1 and %d", maxConcurrentRequests)
+			}
+			slots := make(chan struct{}, options.Limit)
+			return func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					select {
+					case slots <- struct{}{}:
+						defer func() { <-slots }()
+						next.ServeHTTP(w, r)
+					default:
+						http.Error(w, "request concurrency limit reached", http.StatusServiceUnavailable)
+					}
+				})
+			}, nil
+		},
+	})
+}
+```
+
+The channel is created by the factory, not inside a request or wrapper constructor.
+Bindings of the same handler ID therefore share capacity within a snapshot. Separate
+handler IDs have separate limits. The deferred release runs even when downstream
+panics. A slot remains occupied until the downstream handler returns; this is not
+tracking the lifetime of a socket handed away by a handler.
+
+At the beginning of the existing `Register` function in `internal/extensions/powered.go`,
+before its current registration, add:
+
+```go
+if err := RegisterConcurrencyLimit(r); err != nil {
+    return err
+}
+```
+
+`app.Compiler` and the test compiler already call `extensions.Register`; no router
+change or runtime plugin loader is needed. Keep the example's schema bounds and
+factory bounds in agreement. An omitted/null, non-integer, unknown, or out-of-range
+option must fail configuration validation.
+
+### Test the extension
+
+Create `internal/extensions/concurrency_test.go` with a regression that exercises
+saturation and permit release over real HTTP:
+
+```go
+package extensions
+
+import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/kmpoltorak/routetus/internal/config"
+	"github.com/kmpoltorak/routetus/internal/middleware"
+)
+
+func TestConcurrencyLimitRejectsAndReleases(t *testing.T) {
+	registry := middleware.NewRegistry()
+	if err := RegisterConcurrencyLimit(registry); err != nil {
+		t.Fatal(err)
+	}
+	limiter, err := registry.Build(config.Handler{
+		ID: "limit", Type: "concurrency_limit", Version: 1,
+		Options: []byte(`{"limit":1}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entered, release := make(chan struct{}), make(chan struct{})
+	var once sync.Once
+	unblock := func() { once.Do(func() { close(release) }) }
+	var calls atomic.Int32
+	server := httptest.NewServer(limiter(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			close(entered)
+			<-release
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})))
+	defer server.Close()
+	defer unblock()
+	client := server.Client()
+	client.Timeout = 5 * time.Second
+	first := make(chan error, 1)
+	go func() {
+		response, err := client.Get(server.URL)
+		if err == nil {
+			response.Body.Close()
+			if response.StatusCode != http.StatusNoContent {
+				err = fmt.Errorf("first request status: %d", response.StatusCode)
+			}
+		}
+		first <- err
+	}()
+	select {
+	case <-entered:
+	case <-time.After(5 * time.Second):
+		t.Fatal("first request did not enter downstream")
+	}
+	checkStatus := func(want int) {
+		t.Helper()
+		response, err := client.Get(server.URL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != want {
+			t.Fatalf("status = %d, want %d", response.StatusCode, want)
+		}
+	}
+	checkStatus(http.StatusServiceUnavailable)
+	if calls.Load() != 1 {
+		t.Fatal("rejected request entered downstream")
+	}
+	unblock()
+	if err := <-first; err != nil {
+		t.Fatal(err)
+	}
+	checkStatus(http.StatusNoContent)
+}
+```
+
+Also cover these cases before deploying:
+
+- With limit 1, hold the first request in a real `httptest.Server` using channels;
+  confirm a second request receives 503 without entering the downstream handler.
+- Release the first request; a subsequent request must succeed. Exercise downstream
+  cancellation and panic too, so a lost permit cannot permanently block the handler.
+- Bind the same instance to two routes and verify they share capacity; two distinct
+  IDs must not share it. Verify disabled instances add no wrapper.
+- Reject missing/null/unknown options, wrong types, 0, negative values, and values
+  above 10000. Check both accepted boundaries against the published schema.
+
+Run `go test -race ./internal/extensions ./internal/gateway ./internal/management`,
+then `make docs check test`. Sabotage the rejection path and permit release separately:
+the saturation and recovery tests must fail, then pass after restoring the implementation.
+`TestHandlerSchemaAndValidatorConformance` checks registered examples; keep the generated
+OpenAPI and reference synchronized with the new type.
+
+### Deploy and bind the extension
+
+Rebuild and deploy the modified binary to management and serving processes before
+publishing this type. Run `make docs` for the modified registry. Confirm the running
+Management API advertises `concurrency_limit` at `/v1/handler-types` and its schema at
+`/v1/handler-types/concurrency_limit/schema`. A stock binary rejects the unknown type.
+
+Create a handler instance through `/v1/handlers` with the current generation precondition:
+
+```json
+{"id":"api-limit","type":"concurrency_limit","version":1,"options":{"limit":16}}
+```
+
+Add `api-limit` to a route's handler list, for example `["api-limit", "powered"]`,
+using `/v1/routes/demo/handlers`. Preserve the other required bindings, and read a
+fresh generation after each mutation. See the [API editing example](api.md#inspect-and-add-a-route)
+for authentication, generation handling, and checking when a serving instance has applied
+an update. For multiple routes to share a budget, bind the same instance to them.
+Do not bind it both globally and to a route: that request would acquire the same
+budget twice. Use a global binding alone if it should cover all routes.
+
+The example limit is local to one compiled snapshot in one process. Configuration
+reload creates fresh state while old in-flight requests can still finish; limits
+do not span old/new snapshots or replicas. It is not a strict shared backend or
+cluster-wide quota. Use the existing process-wide limit for admission across reloads,
+and design shared state explicitly if a quota must span replicas. Keep logging and
+recovery outside the limiter if rejected requests should pass through those handlers.

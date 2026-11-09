@@ -1,5 +1,71 @@
 # Operations
 
+## System overview
+
+Routetus is a front door for your HTTP services. Clients use its public address;
+Routetus forwards each matching request to a configured backend and returns the
+backend's response. Your backend implements the application behavior.
+
+| Component | Responsibility |
+| --- | --- |
+| `routetus serve` | Accept client requests and forward them using settings held in memory |
+| `routetus manage` | Expose the authenticated API for reading, validating, and publishing settings |
+| `routetus config ...` | Act as an HTTP client of that API; curl can perform the same operations |
+| PostgreSQL | Store routing settings, revision history, and the currently active revision |
+| Backend services | Handle the forwarded request and generate the response |
+| Kubernetes or another serving platform | Start and scale processes, route traffic to replicas, and manage their lifecycle |
+
+`serve` and `manage` are separate processes started from the same executable. Their
+work is independent: clients do not pass through `manage` when calling a backend.
+See the [README diagram](../README.md#architecture) for these two paths and the
+[source map](verification.md#repository-map) for the implementing packages.
+
+### Request path
+
+A route is a matching rule, such as `GET /api`. It selects an upstream: a named group
+of backend addresses. A handler is an additional processing step, such as logging a
+request or adding a response header. Global handlers apply across routes; route
+handlers apply to the selected route.
+
+For the configuration in `examples/config.json`:
+
+1. A client sends `GET /api` to the public demo listener on port 8080.
+2. The `demo` route matches and selects the upstream also named `demo`.
+3. The upstream selects `backend-a:8081` or `backend-b:8081` in round-robin order
+   within that serving instance. `strip_prefix: true` removes `/api`, so the backend
+   receives `/`.
+4. That backend generates `routetus demo backend: backend-a` or the equivalent
+   `backend-b` response. The route's `powered` handler adds `X-Powered-By: Routetus`,
+   and the gateway sends the response to the client.
+
+The two demo containers run the same program from `cmd/demo-backend/main.go`;
+`DEMO_BACKEND_NAME` distinguishes their responses. They are sample services, built
+in the separate demo image target. The production gateway image excludes them.
+
+### Configuration path
+
+The startup YAML and operational routing settings have different jobs:
+
+| Location | Purpose | When changes take effect |
+| --- | --- | --- |
+| `examples/bootstrap.yaml`, `examples/docker/manage.yaml`, `examples/docker/serve.yaml` | Process listeners, database environment references, timeouts, and synchronization settings | Process restart |
+| `examples/config.json` | A sample document to submit to the Management API | Explicit validation/publication; editing the file alone does nothing |
+| PostgreSQL | The active routes, upstreams, handlers, and their saved revisions | Background synchronization by each serving instance |
+| Ignored `.env` and `.demo/tls/` | Local demo credentials and management TLS certificate/key | As described in [configuration sources](reference.md#configuration-sources) and [synchronization](#synchronization-and-failure) |
+
+`manage` validates the complete proposed configuration and publishes it in one
+transaction. Each successful publication creates a stored revision and advances the
+generation, a counter used to reject conflicting edits. A revision ID identifies
+saved content; the generation identifies the current publication state. Rollback
+publishes old content as a new revision and generation rather than decrementing them.
+
+Each serving instance loads and compiles changes in the background. Notifications
+prompt a check; polling provides a fallback. The switch is atomic within one instance,
+but replicas can apply a committed change at different times. Compare Management
+API `/v1/status` with each serving instance's diagnostics `/status` to distinguish
+committed settings from applied settings. See [API examples](api.md#inspect-and-add-a-route).
+No configuration database query is needed to forward an individual client request.
+
 ## Horizontal scaling
 
 Kubernetes or another serving platform owns replica count, scheduling, resource
@@ -296,6 +362,44 @@ by the 10000-route configuration limit. Removed snapshots disappear from exposit
 route request counters/histograms reset on reload. Generation is a gauge, never a label.
 `admin.metrics: false` hides the endpoint; operational and per-route flags control
 request collection. There is no synchronous SQL or database log write per request.
+
+## Local demo troubleshooting
+
+The listener addresses below belong to the Docker demo. They are distinct services:
+
+| Address | Purpose |
+| --- | --- |
+| `http://127.0.0.1:8080` | Public proxy traffic, including `/api` |
+| `https://127.0.0.1:9080` | Management API; configuration endpoints require the management token |
+| `http://127.0.0.1:9090` | Serving diagnostics; requires the admin token |
+
+Inspect container state and recent logs from the repository root:
+
+```sh
+docker compose ps -a
+docker compose logs --tail=100 postgres manage serve backend-a backend-b
+```
+
+| Symptom | What to check |
+| --- | --- |
+| HTTP 412, `configuration generation changed` | Another publication already advanced the generation, or initial publication was repeated. Read current status and review the configuration before submitting with a new precondition; see [route editing](api.md#inspect-and-add-a-route). |
+| HTTP 401 | Use the management token on port 9080 and the admin token on port 9090; load the matching environment values into the calling shell. |
+| Management certificate verification fails | Trust `.demo/tls/cert.pem` with `CURL_CA_BUNDLE` for curl or `SSL_CERT_FILE` for the native CLI. Check expiry; the generated certificate lasts seven days. |
+| Public HTTP 503 or `serve` fails to start | Inspect serving status/logs for a missing valid revision, expired configuration freshness, or the in-flight request limit. See [failure behavior](#synchronization-and-failure). |
+| Public HTTP 502/504 | Check the configured backend addresses, Docker service networking, backend availability, and request/transport deadlines. Successful configuration validation does not prove reachability. |
+| Editing JSON has no effect | Publish through the Management API; `serve` does not watch the import file. Editing bootstrap YAML instead requires a process restart. |
+| `make demo` fails on an existing database | It intentionally publishes against generation 0. Restart an initialized demo using the commands in [getting started](../getting_started.md#local-docker-demo). |
+
+To discard the local demo database, stop its containers and delete the Compose volume:
+
+```sh
+docker compose --profile tools down --volumes --remove-orphans
+```
+
+This permanently deletes all revisions and settings in `routetus_postgres-data`.
+It preserves `.env`, `.demo/tls/`, and built images. Initialize again using
+[the local demo instructions](../getting_started.md#local-docker-demo) only when you
+intend to start with a fresh database. Ordinary `docker compose down` preserves data.
 
 ## Limitations
 

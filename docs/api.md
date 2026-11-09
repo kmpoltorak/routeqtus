@@ -20,6 +20,7 @@ optional override values. The field coverage/default table is [reference.md](ref
 | `config status` | Read the committed revision and generation |
 | `config rollback --revision ID --generation N` | Revalidate history and publish a new generation |
 | `openapi` | Print the generated OpenAPI contract without opening the database |
+| `version` | Print the executable version |
 
 All `config` commands accept `--api` (default `http://127.0.0.1:9080`) and
 `--token-env` (default `ROUTETUS_MANAGEMENT_TOKEN`). Remote API URLs require HTTPS.
@@ -112,7 +113,77 @@ bin/routetus config rollback --api "$API" --revision ID --generation N
 
 Replace `N`/`ID` with observed values. Native CLI TLS trust uses standard Go system
 roots or `SSL_CERT_FILE`; curl uses `CURL_CA_BUNDLE`. Redirects are not followed by the
-CLI. It never writes to PostgreSQL directly; only `migrate` uses a direct database path.
+CLI. The `config` subcommands use HTTP and never connect to PostgreSQL. The `serve`,
+`manage`, and `migrate` process commands use their configured database credentials.
+
+## Inspect and add a route
+
+This example assumes an initialized local Docker demo, curl and jq, and an unused
+route ID `hello`. It adds a real route to the demo's current configuration.
+
+Load the demo credentials and TLS trust, then define a helper for authenticated reads:
+
+```sh
+set -a
+. ./.env
+set +a
+export API=https://127.0.0.1:9080
+export CURL_CA_BUNDLE="$PWD/.demo/tls/cert.pem"
+api() {
+  curl --fail-with-body --silent --show-error \
+    -H "Authorization: Bearer $ROUTETUS_MANAGEMENT_TOKEN" "$API$1"
+}
+```
+
+Inspect a route, the upstream it selects, and a handler bound to it:
+
+```sh
+api /v1/routes/demo | jq
+api /v1/upstreams/demo | jq
+api /v1/handlers/powered | jq
+api /v1/handler-types/powered_by/schema | jq
+```
+
+The handler ID `powered` names a configured instance; `powered_by` names its registered
+type. Its schema explains which options the instance accepts. Use `api /v1/config`
+for configured values or `api /v1/config/effective` to inspect resolved defaults;
+export configured values when preparing a document for re-import.
+
+Read the current generation and create an exact `GET /hello` route that uses the
+existing demo upstream and header handler:
+
+```sh
+GEN=$(api /v1/status | jq -er '.generation')
+curl --fail-with-body --silent --show-error -X POST \
+  -H "Authorization: Bearer $ROUTETUS_MANAGEMENT_TOKEN" \
+  -H "If-Match: \"g-$GEN\"" \
+  -H 'Content-Type: application/json' \
+  --data '{"id":"hello","methods":["GET"],"path":"/hello","prefix":false,"strip_prefix":false,"upstream":"demo","handlers":["powered"]}' \
+  "$API/v1/routes"
+api /v1/routes/hello | jq
+```
+
+A successful write is visible in Management API reads after commit. The public route
+works after that serving instance applies the revision; it is not a synchronized
+cluster-wide switch. Read serving diagnostics to check its applied generation:
+
+```sh
+curl --fail-with-body --silent --show-error \
+  -H "Authorization: Bearer $ROUTETUS_ADMIN_TOKEN" \
+  http://127.0.0.1:9090/status | jq
+```
+
+Once `applied_generation` matches the committed `generation`, test the public route:
+
+```sh
+curl --fail-with-body --include http://127.0.0.1:8080/hello
+```
+
+With `strip_prefix: false`, the backend receives `/hello`. The demo backend responds
+to that path, but your own backend must implement it. If creation returns 412, another
+change advanced the generation: read the current state, review the intended edit,
+and obtain a fresh generation before resubmitting. A 409 means `hello` already exists;
+inspect it before deciding whether to edit it or use another ID.
 
 ## Errors and secrets
 
