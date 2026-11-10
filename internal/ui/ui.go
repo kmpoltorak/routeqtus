@@ -89,7 +89,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch r.URL.Path {
-	case "/", "/app.js", "/styles.css":
+	case "/", "/app.js", "/theme.js", "/styles.css":
 		if r.Method != "GET" && r.Method != "HEAD" {
 			w.Header().Set("Allow", "GET, HEAD")
 			problem(w, 405, "Method not allowed")
@@ -99,7 +99,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		contentType := "text/html; charset=utf-8"
 		if name == "" {
 			name = "index.html"
-		} else if name == "app.js" {
+		} else if strings.HasSuffix(name, ".js") {
 			contentType = "application/javascript; charset=utf-8"
 		} else {
 			contentType = "text/css; charset=utf-8"

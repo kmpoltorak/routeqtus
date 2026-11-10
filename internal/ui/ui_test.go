@@ -193,7 +193,7 @@ func TestLocalGUIConfiguration(t *testing.T) {
 func TestStaticAssetsHaveNoCredentials(t *testing.T) {
 	token := strings.Repeat("server-only-token", 3)
 	server := localUI(t, "http://127.0.0.1:9080", token)
-	for _, path := range []string{"/", "/app.js", "/styles.css"} {
+	for _, path := range []string{"/", "/app.js", "/theme.js", "/styles.css"} {
 		response, err := server.Client().Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)

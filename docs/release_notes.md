@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-- The local GUI automatically follows the system's light/dark appearance.
+- The local GUI offers Light, Dark, and System appearance choices and remembers the
+  preference in browser local storage when available.
+- The route form separates automatic global handlers from additional route selections.
+  Existing global+route bindings remain visible for explicit removal.
 
 - Add an optional, separate local route GUI container using the Management API. It
   provides Routes and Upstreams tabs with list/add/edit/delete, and creates configured handlers with generation
