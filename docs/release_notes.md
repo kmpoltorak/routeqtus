@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Configuration limits move from code constants to the bootstrap `limits` section:
+  `max_entities`, `max_targets`, `max_connections`, `max_priority`, `max_sample_every`,
+  `max_powered_characters`, and `max_identifier_length`. Defaults are unchanged; each
+  accepts up to 10 times its default. The served OpenAPI document reports the process
+  limits. Use identical `limits` on every `serve` and `manage` process.
+- Database schema version 2 drops the PostgreSQL upper bound on upstream connection
+  columns (they still must be at least 0); `limits.max_connections` validates the upper
+  bound. Upgrade: run `routetus migrate` before starting new binaries. New binaries
+  refuse a version 1 schema; old binaries refuse version 2, so restart all processes
+  on the new version after migrating.
+
 - Upstream creation is available only from the Upstreams tab; remove its duplicate
   shortcut from the route form while preserving drafts across tab switches.
 

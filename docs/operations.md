@@ -176,8 +176,8 @@ Rollback revalidates old data and publishes a new immutable revision. Sequence I
 lost publications and are not used to determine ordering.
 
 `postgres.query_timeout` bounds each complete publication or load operation, including
-pool acquisition. The default 2s is not a guarantee for the structural maximum of
-10000 routes/upstreams/handlers. Publication validation/compilation also consumes the
+pool acquisition. The default 2s is not a guarantee for the default `limits.max_entities` of
+10000 routes/upstreams/handlers, nor for a raised limit. Publication validation/compilation also consumes the
 management request budget outside the SQL transaction. Size `postgres.query_timeout`,
 `management.request_timeout`, client deadlines, and synchronization startup/staleness
 budgets together using representative data and database latency. Queue memory grows
@@ -212,7 +212,7 @@ streams, keep their pinned snapshot; they end naturally or at their request/shut
 deadline. Valid reconciliation restores readiness without process restart.
 
 `SIGHUP` requests database synchronization. It does not reload YAML. Restart to change
-listeners, process limits, DSNs, or tokens. Upstream TLS PEM environment references are
+listeners, process or configuration `limits`, DSNs, or tokens. Upstream TLS PEM environment references are
 resolved when a snapshot is compiled; distribute them before publishing the reference.
 Restart serving processes to reliably pick up changed environment material for an
 unchanged generation.
@@ -364,7 +364,7 @@ status classes, configured route IDs, and process synchronization/pool gauges/co
 Each metric family includes HELP and TYPE metadata. A panic before response headers
 counts as 5xx; an aborted response keeps its written status and increments errors.
 No extra metrics dependency is needed for these fixed families. Route IDs are capped
-by the 10000-route configuration limit. Removed snapshots disappear from exposition;
+by `limits.max_entities` (default 10000). Removed snapshots disappear from exposition;
 route request counters/histograms reset on reload. Generation is a gauge, never a label.
 `admin.metrics: false` hides the endpoint; operational and per-route flags control
 request collection. There is no synchronous SQL or database log write per request.
@@ -501,8 +501,9 @@ intend to start with a fresh database. Ordinary `docker compose down` preserves 
 - The standard HTTP transport can retry eligible requests on reused connection failures;
   see [transport behavior](operations.md). Bodies are never replayed by gateway code.
 - Routing scans sorted candidates; [benchmarks](benchmarks.md) quantify local costs.
-- Revision writes are batched inside one transaction. Structural entity caps do not
+- Revision writes are batched inside one transaction. Entity caps (`limits.max_entities`) do not
   guarantee publication within the default 2s SQL budget; size timeouts for your deployment.
+  Limits above the defaults have no measured publication time.
 - Metrics counters belong to snapshots and reset on reload; historical revisions remain
   in PostgreSQL. Revision history lists the latest 100; known IDs remain readable.
 - TLS secret references must exist in both management and serving environments. There is

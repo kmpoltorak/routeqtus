@@ -17,6 +17,10 @@ cases = [
      ["go", "test", "./internal/gateway", "-run", "TestForwarding", "-count=1"], "TestForwarding"),
     ("internal/postgres/store.go", "if generation != expected {", "if false {",
      ["go", "test", "-tags=integration", "./tests/integration", "-run", "TestControlPlaneAndReload", "-count=1", "-timeout=60s"], "TestControlPlaneAndReload"),
+    ("internal/app/app.go", "config.SetLimits(c.Limits)", "config.SetLimits(config.DefaultLimits)",
+     ["go", "test", "./internal/app", "-run", "TestBootstrapLimitsReachCompilerAndSchema", "-count=1"], "TestBootstrapLimitsReachCompilerAndSchema"),
+    ("internal/postgres/store.go", "if v == 1 {", "if false {",
+     ["go", "test", "-tags=integration", "./tests/integration", "-run", "TestMigrationUpgradesVersionOneSchema", "-count=1", "-timeout=60s"], "TestMigrationUpgradesVersionOneSchema"),
 ]
 for filename, needle, replacement, command, test in cases:
     path = root / filename

@@ -8,6 +8,10 @@ in v0.2.0. Use a fresh demo database and the `ROUTETUS_` environment prefix; old
 compatibility aliases and automatic data migration are not provided. Existing
 `powered_by.value` options containing HTAB remain valid.
 
+Upgrading an existing database to a release with configurable `limits` requires
+`routetus migrate` (database schema version 2) before the new `serve` and `manage`
+processes start. See [release notes](docs/release_notes.md#unreleased).
+
 ## Install
 
 For a prebuilt binary, download the archive for your OS/architecture and `checksums.txt`

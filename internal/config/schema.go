@@ -55,21 +55,21 @@ func schema(t reflect.Type) map[string]any {
 			}
 			switch f.Name {
 			case "ID", "Upstream":
-				p["pattern"] = IdentifierPattern
+				p["pattern"] = IdentifierPattern()
 				p["minLength"] = 1
-				p["maxLength"] = MaxIdentifierLength
+				p["maxLength"] = current.MaxIdentifierLength
 			case "Priority":
-				p["minimum"] = -MaxPriority
-				p["maximum"] = MaxPriority
+				p["minimum"] = -current.MaxPriority
+				p["maximum"] = current.MaxPriority
 			case "MaxConns", "MaxIdleConns", "MaxIdleConnsPerHost":
 				p["minimum"] = 0
-				p["maximum"] = MaxConnections
+				p["maximum"] = current.MaxConnections
 			case "SampleEvery":
 				p["minimum"] = 0
-				p["maximum"] = MaxSampleEvery
+				p["maximum"] = current.MaxSampleEvery
 			case "Value":
 				p["minLength"] = 1
-				p["maxLength"] = MaxPoweredCharacters
+				p["maxLength"] = current.MaxPoweredCharacters
 				p["pattern"] = PoweredValuePattern
 			case "URL":
 				p["format"] = "uri"
@@ -80,10 +80,10 @@ func schema(t reflect.Type) map[string]any {
 				p["items"] = map[string]any{"type": "string", "pattern": HTTPMethodPattern}
 			case "Targets":
 				p["minItems"] = 1
-				p["maxItems"] = MaxTargets
+				p["maxItems"] = current.MaxTargets
 			case "Routes", "Upstreams", "Handlers":
 				if f.Type.Kind() == reflect.Slice && f.Type.Elem().Kind() == reflect.Struct {
-					p["maxItems"] = MaxEntities
+					p["maxItems"] = current.MaxEntities
 				}
 			}
 			props[name] = p

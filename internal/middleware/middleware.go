@@ -283,7 +283,7 @@ func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 			if err := config.DecodeTyped(b, &o); err != nil {
 				return nil, err
 			}
-			if o.SampleEvery < 0 || o.SampleEvery > config.MaxSampleEvery {
+			if o.SampleEvery < 0 || o.SampleEvery > config.CurrentLimits().MaxSampleEvery {
 				return nil, fmt.Errorf("sample_every outside range")
 			}
 			if o.SampleEvery == 0 {
