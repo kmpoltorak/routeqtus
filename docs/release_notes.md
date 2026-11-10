@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Upstream creation is available only from the Upstreams tab; remove its duplicate
+  shortcut from the route form while preserving drafts across tab switches.
+
 - The local GUI offers Light, Dark, and System appearance choices and remembers the
   preference in browser local storage when available.
 - The GUI only attaches existing route handler configurations. It has no handler

@@ -407,7 +407,9 @@ disabled; their existing bindings are preserved.
 Create a new configured ID for different option values on another route; editing a
 shared definition would otherwise change all of its users. Runtime state is still
 independent per route as described in [extensions](extensions.md#handler-scope).
-A newly created upstream is selected automatically, preserving the pending route form.
+Create upstreams using Add upstream in the Upstreams tab. The route form only selects
+an existing upstream. Switching tabs preserves the route draft; a newly created upstream
+is selected automatically when returning to it.
 Each creation is a separate publication, with fresh generation reads.
 
 The Routes and Upstreams tabs each list, filter, add, edit, and delete resources. The
