@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>Routes · Routetus</title>
+  <script src="/theme.js"></script>
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
 </head>
@@ -14,7 +15,7 @@
   <header class="topbar">
     <a class="brand" href="/" aria-label="Routetus home"><span class="brand-mark" aria-hidden="true">r</span>
       routetus<span class="brand-divider">/</span><span class="brand-section">Local console</span></a>
-    <div class="header-actions"><button id="handler-guide" class="text-button" type="button" aria-haspopup="dialog">Handler guide</button><span class="connection" id="connection" role="status">Connecting</span></div>
+    <div class="header-actions"><div class="theme-control"><label for="theme">Theme</label><select id="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div><button id="handler-guide" class="text-button" type="button" aria-haspopup="dialog">Handler guide</button><span class="connection" id="connection" role="status">Connecting</span></div>
   </header>
   <main>
     <div class="page-heading">
@@ -93,6 +94,8 @@
           <p class="hint" id="upstream-hint">Destination groups come from the Management API.</p>
           <fieldset>
             <legend>Handlers <span class="optional">optional</span></legend><button class="text-button new-handler" id="new-handler" type="button" aria-haspopup="dialog">+ Configure handler</button>
+            <div id="global-handler-section" hidden><p class="hint">Global handlers apply automatically. Disabled configurations do not run.</p><div id="global-handlers" class="handler-options global-handlers" role="list" aria-label="Global handlers"></div></div>
+            <p class="hint">Additional handlers for this route</p>
             <div class="handler-options" id="handler-options">
               <p class="hint">Loading configured handlers.</p>
             </div>

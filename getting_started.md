@@ -97,6 +97,10 @@ Handler options use typed fields derived from its schema;
 structured map/array options use JSON fields. The top-bar **Handler guide** explains
 the available types and their options.
 
+Global handlers are shown separately and apply automatically; select only additional
+route handlers. Choose **Light**, **Dark**, or **System** in the header's Theme selector.
+Your browser remembers the choice when local storage is available.
+
 It has no login screen; the Management API token stays in the GUI container.
 Configuration conflicts refresh the list and preserve your form for review and retry.
 Creating a handler gives its settings an ID; selecting that ID attaches it to the

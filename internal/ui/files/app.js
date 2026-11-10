@@ -81,16 +81,29 @@ function renderRoutes() {
   }
 }
 
-function renderChoices() {
+function renderChoices(selectedHandlers = null) {
   const previousUpstream = $("#upstream").value;
-  const selected = new Set([...form.querySelectorAll('input[name="handlers"]:checked')].map((input) => input.value));
+  const selected = new Set(selectedHandlers || [...form.querySelectorAll('input[name="handlers"]:checked')].map((input) => input.value));
   $("#upstream").replaceChildren(new Option("Choose an upstream", ""));
   for (const upstream of state.config.upstreams) $("#upstream").append(new Option(upstream.id, upstream.id));
   if (state.config.upstreams.some((item) => item.id === previousUpstream)) $("#upstream").value = previousUpstream;
   $("#upstream-hint").textContent = state.config.upstreams.length ? "Destination groups come from the Management API." : "No upstreams configured. Add one through the Management API first.";
   const choices = $("#handler-options");
   choices.replaceChildren();
+  const globals = new Set(state.config.global_handlers || []);
+  const existingBindings = new Set([...selected, ...(state.routeEdit?.original.handlers || [])]);
+  const definitions = new Map(state.config.handlers.map((handler) => [handler.id, handler]));
+  const summary = $("#global-handlers");
+  summary.replaceChildren();
+  for (const id of globals) {
+    const item = element("span", id + (definitions.get(id)?.enabled === false ? " · disabled" : " · automatic"), "global-handler");
+    item.setAttribute("role", "listitem");
+    summary.append(item);
+  }
+  $("#global-handler-section").hidden = !globals.size;
   for (const handler of state.config.handlers) {
+    const global = globals.has(handler.id);
+    if (global && !existingBindings.has(handler.id)) continue;
     const label = document.createElement("label");
     label.className = "handler-choice";
     label.title = handler.type + (handler.enabled === false ? " (disabled)" : "");
@@ -98,15 +111,17 @@ function renderChoices() {
     input.type = "checkbox";
     input.name = "handlers";
     input.value = handler.id;
-    input.disabled = handler.enabled === false;
+    input.disabled = handler.enabled === false && !global;
     input.checked = selected.has(handler.id);
-    label.append(input, document.createTextNode(handler.id + (input.disabled ? " · disabled" : "")));
+    label.append(input, document.createTextNode(handler.id + (global ? " · also global; uncheck to remove route binding" : input.disabled ? " · disabled" : "")));
+    if (global && !input.checked) input.disabled = true;
+    if (global) input.addEventListener("change", () => { if (!input.checked) input.disabled = true; });
     choices.append(label);
   }
-  if (!state.config.handlers.length) {
+  if (!choices.children.length) {
     const empty = document.createElement("p");
     empty.className = "hint";
-    empty.textContent = "No handlers configured.";
+    empty.textContent = "No additional handlers configured.";
     choices.append(empty);
   }
 }
@@ -241,12 +256,14 @@ function resetRoute() {
   $("#strip-prefix").disabled = true;
   $("#form-heading").textContent = "Add a route";
   $("#cancel-route-edit").hidden = true;
+  if (state.config) renderChoices();
   updateSubmit();
 }
 
 function editRoute(route) {
   resetRoute();
   state.routeEdit = { id: route.id, original: structuredClone(route), etag: state.etag };
+  renderChoices(route.handlers);
   $("#route-id").value = route.id;
   $("#route-id").readOnly = true;
   $("#route-path").value = route.path;
@@ -260,7 +277,6 @@ function editRoute(route) {
     $(".method-options").append(label);
   }
   for (const input of form.querySelectorAll('input[name="methods"]')) input.checked = (route.methods || []).includes(input.value);
-  for (const input of form.querySelectorAll('input[name="handlers"]')) input.checked = route.handlers.includes(input.value);
   $("#prefix").checked = Boolean(route.prefix);
   $("#strip-prefix").checked = Boolean(route.strip_prefix);
   $("#strip-prefix").disabled = !route.prefix;

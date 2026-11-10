@@ -3,13 +3,15 @@
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const checkSystemTheme = require("./theme.cjs");
+const checkHandlerChoices = require("./handlers.cjs");
 
 async function run() {
   if (process.env.ROUTETUS_UI_TEST_DISPOSABLE !== "1") throw new Error("This test creates routes. Set ROUTETUS_UI_TEST_DISPOSABLE=1 only for a disposable deployment.");
   const base = process.env.ROUTETUS_UI_URL || "http://127.0.0.1:9180";
   const browser = await chromium.launch({ channel: "chrome", headless: true });
   try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1080 } });
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1080 } });
+    const page = await context.newPage();
     const errors = [];
     page.setDefaultTimeout(8000);
     page.on("pageerror", (error) => errors.push(error.message));
@@ -33,6 +35,7 @@ async function run() {
     await page.goto(base);
     await page.getByRole("status").filter({ hasText: "Connected" }).waitFor();
     assert.equal(await page.locator('input[type="password"]').count(), 0);
+    await checkHandlerChoices(page, before.body);
     await checkSystemTheme(page);
     await page.getByRole("button", { name: "Upstreams", exact: true }).click();
     await page.getByRole("heading", { name: "Configured upstreams", exact: true }).waitFor();
@@ -84,7 +87,8 @@ async function run() {
     assert.ok(saved.handlers.includes(id + "-log"));
     assert.deepEqual(saved.methods, ["GET"]);
     await mutate("POST", "/api/handlers", { id: id + "-disabled", type: "access_log", version: 1, enabled: false, options: { sample_every: 1 } });
-    const handlerOrder = [id + "-log", "powered", id + "-disabled"];
+    const legacyGlobal = before.body.global_handlers[0];
+    const handlerOrder = [id + "-log", "powered", id + "-disabled", legacyGlobal];
     await mutate("PATCH", "/api/routes/" + id, { host: "example.com", priority: 42, request_timeout: "7s", metrics: false, handlers: handlerOrder, methods: ["PROPFIND", "GET"] });
     await refresh();
     await page.getByRole("button", { name: "Edit route " + id, exact: true }).click();
@@ -115,9 +119,14 @@ async function run() {
     await refresh();
     await page.getByRole("button", { name: "Edit route " + id, exact: true }).click();
     await page.getByLabel("Request path", { exact: true }).fill("/" + id + "-any");
+    const duplicate = page.locator('input[name="handlers"][value="' + legacyGlobal + '"]');
+    assert.equal(await duplicate.isChecked(), true, "An existing global+route binding must not disappear during editing");
+    await duplicate.uncheck();
     await page.getByRole("button", { name: "Save route", exact: true }).click();
     await page.locator("#notice").filter({ hasText: `Route "${id}" updated.` }).waitFor();
     assert.equal((await config()).body.routes.find((route) => route.id === id).methods?.length || 0, 0);
+    assert.ok(!(await config()).body.routes.find((route) => route.id === id).handlers.includes(legacyGlobal));
+    await checkHandlerChoices(page, (await config()).body);
     await fill(id + "-retry", "/" + id + "-retry");
     const current = await config();
     const external = await fetch(base + "/api/routes", { method: "POST", headers: { "Origin": base, "Content-Type": "application/json", "If-Match": current.etag }, body: JSON.stringify({ id: id + "-external", path: "/" + id + "/<img src=x onerror=window.uiXss=1>", upstream: saved.upstream, handlers: [], methods: ["GET"], prefix: false, strip_prefix: false }) });

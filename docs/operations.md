@@ -371,8 +371,11 @@ request collection. There is no synchronous SQL or database log write per reques
 
 ## Local GUI
 
-The panel follows the system's light/dark appearance automatically, including changes
-made while it is open. Forms, tables, dialogs, and status messages use the same theme.
+The header's Theme selector offers Light, Dark, and System. System is the default and
+follows operating-system changes while the panel is open; explicit Light/Dark choices
+stay fixed. The browser remembers the preference for this origin using local storage.
+If storage is blocked, selection still works for the current page. Forms, tables,
+dialogs, and status messages share the selected appearance.
 
 The optional Compose `ui` profile runs a separate `routetus-ui` executable in its own
 scratch image. It communicates with `manage` over verified HTTPS; it has no database
@@ -394,6 +397,11 @@ The Handler guide uses the registry descriptions and option schemas, with a gene
 fallback for legacy/custom types without a description.
 
 Selecting an existing configured handler attaches its ID without changing its options.
+Global handlers appear separately as automatic, with disabled definitions marked as
+disabled. They are excluded from new route selections. If an existing route explicitly
+binds the same handler globally and locally, its local binding remains checked and is
+marked "also global"; uncheck it to remove only that route binding. Saving other fields
+does not silently remove it. Global configuration and the shared definition are unchanged.
 Create a new configured ID for different option values on another route; editing a
 shared definition would otherwise change all of its users. Runtime state is still
 independent per route as described in [extensions](extensions.md#handler-scope).
