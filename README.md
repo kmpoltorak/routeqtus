@@ -11,6 +11,7 @@ serving platform handles replica scaling.
 - Invalid revisions preserve the last valid snapshot; stale instances reject new traffic.
 - Streaming HTTP, SSE, and WebSocket support with resource limits and graceful draining.
 - Bearer-authenticated management and verified upstream TLS.
+- Optional route policies for headers, concurrency, request rate, token access, and body size.
 
 PostgreSQL 17 or later is required. See the executed checks and deployment limits
 before choosing production capacity; no universal requests-per-instance guarantee is made.

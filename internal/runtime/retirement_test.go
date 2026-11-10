@@ -41,7 +41,7 @@ func TestOldSnapshotLivesUntilLastRequest(t *testing.T) {
 		done <- w
 	}()
 	<-started
-	c.Handlers[len(c.Handlers)-1].Options = []byte(`{"value":"new"}`)
+	c.Handlers[len(c.Handlers)-1].Options = []byte(`{"response_set":{"X-Powered-By":"new"}}`)
 	c.Routes[0].Metrics = config.B(false)
 	nextSnapshot, err := compiler.Compile(c)
 	if err != nil {

@@ -88,6 +88,12 @@
                   "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
                   "type": "string"
                 },
+                "service_id": {
+                  "description": "Optional service label: ASCII letters, digits, underscore, or hyphen; preserves case and does not affect routing.",
+                  "maxLength": 64,
+                  "pattern": "^[A-Za-z0-9_-]*$",
+                  "type": "string"
+                },
                 "strip_prefix": {
                   "default": false,
                   "description": "Remove matched prefix; requires prefix=true.",
@@ -186,6 +192,12 @@
                   "format": "duration",
                   "nullable": true,
                   "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+                  "type": "string"
+                },
+                "service_id": {
+                  "description": "Optional service label: ASCII letters, digits, underscore, or hyphen; preserves case and does not affect routing.",
+                  "maxLength": 64,
+                  "pattern": "^[A-Za-z0-9_-]*$",
                   "type": "string"
                 },
                 "targets": {
@@ -331,6 +343,88 @@
                 "type": "string"
               },
               "options": {
+                "$ref": "#/components/schemas/HandlerOptions_body_limit"
+              },
+              "type": {
+                "enum": [
+                  "body_limit"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Handler contract version.",
+                "enum": [
+                  1
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version",
+              "options"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "default": true,
+                "description": "False removes this handler from the request chain.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Unique instance identifier.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              "options": {
+                "$ref": "#/components/schemas/HandlerOptions_concurrency_limit"
+              },
+              "type": {
+                "enum": [
+                  "concurrency_limit"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Handler contract version.",
+                "enum": [
+                  1
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version",
+              "options"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "default": true,
+                "description": "False removes this handler from the request chain.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Unique instance identifier.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              "options": {
                 "$ref": "#/components/schemas/HandlerOptions_headers"
               },
               "type": {
@@ -372,11 +466,11 @@
                 "type": "string"
               },
               "options": {
-                "$ref": "#/components/schemas/HandlerOptions_powered_by"
+                "$ref": "#/components/schemas/HandlerOptions_rate_limit"
               },
               "type": {
                 "enum": [
-                  "powered_by"
+                  "rate_limit"
                 ],
                 "type": "string"
               },
@@ -477,6 +571,47 @@
               "options"
             ],
             "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "default": true,
+                "description": "False removes this handler from the request chain.",
+                "nullable": true,
+                "type": "boolean"
+              },
+              "id": {
+                "description": "Unique instance identifier.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_-]{1,64}$",
+                "type": "string"
+              },
+              "options": {
+                "$ref": "#/components/schemas/HandlerOptions_token_allowlist"
+              },
+              "type": {
+                "enum": [
+                  "token_allowlist"
+                ],
+                "type": "string"
+              },
+              "version": {
+                "description": "Handler contract version.",
+                "enum": [
+                  1
+                ],
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "version",
+              "options"
+            ],
+            "type": "object"
           }
         ]
       },
@@ -494,6 +629,36 @@
         "required": [],
         "type": "object"
       },
+      "HandlerOptions_body_limit": {
+        "additionalProperties": false,
+        "properties": {
+          "max_bytes": {
+            "description": "Maximum request body bytes; cannot raise the process limit. Excess receives 413 before the response starts.",
+            "maximum": 1073741824,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "max_bytes"
+        ],
+        "type": "object"
+      },
+      "HandlerOptions_concurrency_limit": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "Maximum simultaneous requests per binding; excess receives 503 without queuing.",
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit"
+        ],
+        "type": "object"
+      },
       "HandlerOptions_headers": {
         "additionalProperties": false,
         "properties": {
@@ -508,7 +673,7 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Allowed outgoing request headers to set after hop-by-hop cleanup.",
+            "description": "Allowed outgoing request headers to set after hop-by-hop cleanup; each value is bounded by limits.max_header_value_bytes.",
             "type": "object"
           },
           "response_remove": {
@@ -522,26 +687,32 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Allowed response headers to set.",
+            "description": "Allowed response headers to set; each value is bounded by limits.max_header_value_bytes.",
             "type": "object"
           }
         },
         "required": [],
         "type": "object"
       },
-      "HandlerOptions_powered_by": {
+      "HandlerOptions_rate_limit": {
         "additionalProperties": false,
         "properties": {
-          "value": {
-            "description": "X-Powered-By value, 1-128 Unicode characters with HTAB allowed and other ASCII controls rejected.",
-            "maxLength": 128,
-            "minLength": 1,
-            "pattern": "^[^\\x00-\\x08\\x0a-\\x1f\\x7f]+$",
-            "type": "string"
+          "burst": {
+            "description": "Maximum immediately available tokens; excess receives 429 without queuing.",
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "requests_per_second": {
+            "description": "Token refill rate per binding in requests per second.",
+            "maximum": 1000000,
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
-          "value"
+          "requests_per_second",
+          "burst"
         ],
         "type": "object"
       },
@@ -555,6 +726,26 @@
         "additionalProperties": false,
         "properties": {},
         "required": [],
+        "type": "object"
+      },
+      "HandlerOptions_token_allowlist": {
+        "additionalProperties": false,
+        "properties": {
+          "token_envs": {
+            "description": "Unique environment references containing Bearer tokens of at least 32 bytes; values are never stored in configuration. Required in manage and serve, including disabled definitions.",
+            "items": {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+              "type": "string"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "token_envs"
+        ],
         "type": "object"
       },
       "Problem": {
@@ -722,6 +913,12 @@
             "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
             "type": "string"
           },
+          "service_id": {
+            "description": "Optional service label: ASCII letters, digits, underscore, or hyphen; preserves case and does not affect routing.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]*$",
+            "type": "string"
+          },
           "strip_prefix": {
             "default": false,
             "description": "Remove matched prefix; requires prefix=true.",
@@ -842,6 +1039,12 @@
             "format": "duration",
             "nullable": true,
             "pattern": "^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$",
+            "type": "string"
+          },
+          "service_id": {
+            "description": "Optional service label: ASCII letters, digits, underscore, or hyphen; preserves case and does not affect routing.",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9_-]*$",
             "type": "string"
           },
           "targets": {

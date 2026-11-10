@@ -15,7 +15,7 @@ import (
 	"github.com/kmpoltorak/routetus/internal/testutil"
 )
 
-func TestServeStartsWithLegacyPoweredHTAB(t *testing.T) {
+func TestServeStartsWithHeaderHTAB(t *testing.T) {
 	ctx := context.Background()
 	s := database(t)
 	if err := s.Migrate(ctx); err != nil {
@@ -24,9 +24,9 @@ func TestServeStartsWithLegacyPoweredHTAB(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) }))
 	defer backend.Close()
 	c := testutil.Config(backend.URL)
-	c.Handlers[4].Options = []byte(`{"value":"legacy\tvalue"}`)
-	// Storage bypasses the current compiler to model a revision accepted by v0.1.0.
-	if _, err := s.Publish(ctx, c, 0, postgres.Metadata{Principal: "legacy-test"}); err != nil {
+	c.Handlers[4].Options = []byte(`{"response_set":{"X-Powered-By":"interior\tvalue"}}`)
+	// Stored header values must retain permitted interior HTAB after startup.
+	if _, err := s.Publish(ctx, c, 0, postgres.Metadata{Principal: "header-test"}); err != nil {
 		t.Fatal(err)
 	}
 	boot := bootstrap.Defaults()
@@ -50,7 +50,7 @@ func TestServeStartsWithLegacyPoweredHTAB(t *testing.T) {
 	eventually(t, 2*time.Second, func() bool {
 		select {
 		case <-done:
-			t.Fatalf("serve rejected legacy revision: %v", runErr)
+			t.Fatalf("serve rejected stored header revision: %v", runErr)
 		default:
 		}
 		res, err := client.Get("http://" + boot.Admin.Listen + "/readyz")
@@ -65,7 +65,7 @@ func TestServeStartsWithLegacyPoweredHTAB(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer res.Body.Close()
-	if res.StatusCode != 204 || res.Header.Get("X-Powered-By") != "legacy\tvalue" {
-		t.Fatal("legacy header changed", res.StatusCode, res.Header)
+	if res.StatusCode != 204 || res.Header.Get("X-Powered-By") != "interior\tvalue" {
+		t.Fatal("header changed", res.StatusCode, res.Header)
 	}
 }

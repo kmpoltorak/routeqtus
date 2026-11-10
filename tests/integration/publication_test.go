@@ -57,7 +57,7 @@ func TestLargeRevisionPublication(t *testing.T) {
 			c := testutil.Config("http://example.com")
 			c.Routes = nil
 			for i := 0; i < count; i++ {
-				c.Routes = append(c.Routes, config.Route{ID: fmt.Sprintf("route-%d", i), Path: fmt.Sprintf("/route-%d", i), Upstream: "demo", Handlers: []string{"powered"}})
+				c.Routes = append(c.Routes, config.Route{ID: fmt.Sprintf("route-%d", i), Path: fmt.Sprintf("/route-%d", i), Upstream: "demo", Handlers: []string{"route-headers"}})
 			}
 			svc := configservice.Service{Store: s, Compiler: testutil.Compiler(t)}
 			start := time.Now()

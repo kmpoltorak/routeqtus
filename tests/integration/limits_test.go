@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/kmpoltorak/routetus/internal/config"
@@ -12,6 +13,45 @@ import (
 	"github.com/kmpoltorak/routetus/internal/postgres"
 	"github.com/kmpoltorak/routetus/internal/testutil"
 )
+
+func TestMigrationFromVersionTwoPreservesRevision(t *testing.T) {
+	s := database(t)
+	ctx := context.Background()
+	if err := s.Migrate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	c := testutil.Config("http://example.com")
+	before, err := s.Publish(ctx, c, 0, postgres.Metadata{Principal: "migration-test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, original, err := s.Load(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Recreate the previous schema around a sealed revision, without changing its rows.
+	if _, err = s.Pool.Exec(ctx, `ALTER TABLE routetus.routes DROP COLUMN service_id; ALTER TABLE routetus.upstreams DROP COLUMN service_id; DELETE FROM routetus.schema_migrations WHERE version=3`); err != nil {
+		t.Fatal(err)
+	}
+	if s.CheckSchema(ctx) == nil {
+		t.Fatal("old schema accepted")
+	}
+	for range 2 {
+		if err = s.Migrate(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	after, loaded, err := s.Load(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before.RevisionID != after.RevisionID || before.Generation != after.Generation || !reflect.DeepEqual(original, loaded) {
+		t.Fatal("migration changed revision state or values")
+	}
+	if loaded.Routes[0].ServiceID != "" || loaded.Upstreams[0].ServiceID != "" {
+		t.Fatal("metadata invented for old revision")
+	}
+}
 
 func TestMigrationUpgradesVersionOneSchema(t *testing.T) {
 	s := database(t)
@@ -53,7 +93,7 @@ func TestMigrationUpgradesVersionOneSchema(t *testing.T) {
 		}
 		versions = append(versions, v)
 	}
-	if len(versions) != 2 || versions[0] != 1 || versions[1] != postgres.SchemaVersion {
+	if len(versions) != 3 || versions[0] != 1 || versions[1] != 2 || versions[2] != postgres.SchemaVersion {
 		t.Fatalf("versions %v", versions)
 	}
 }

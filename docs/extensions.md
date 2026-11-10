@@ -1,297 +1,160 @@
-# Adding a handler
+# Route handlers
 
-The contract is `type Middleware func(http.Handler) http.Handler`. A registry entry
-contains the type name, short description, contract version, factory, typed options schema, and example.
-The GUI handler guide uses that description and schema to explain options.
-Factories decode and validate options during compilation, never during requests.
-Compilation validates all definitions and creates a fresh middleware for each binding.
+Handlers are implemented and registered in Go. The Management API creates configured
+instances of those types; the local GUI only attaches existing route-specific instances.
+It does not create handler code or configurations. The GUI guide omits global bindings.
 
-See `internal/extensions/powered.go` for a complete extension. Its `Register` function
-is called explicitly by `app.Compiler`; no `init`, dynamic code loading, or router
-modification is involved. The typed `Powered` options struct supplies the schema;
-`config.DecodeTyped` rejects unknown, duplicate, missing-required, and null fields.
-The factory enforces the value constraint and returns a prepared closure.
+## Available route policies
 
-Its operational representation is already in `examples/config.json`:
+| Type | Purpose | Example options | Rejection |
+| --- | --- | --- | --- |
+| `headers` | Set/remove permitted request or response headers | `{"response_set":{"X-Service":"example"}}` | Invalid configuration is rejected |
+| `concurrency_limit` | Bound active requests on this route, without a queue | `{"limit":16}` | 503 |
+| `rate_limit` | Token bucket shared by requests on this route | `{"requests_per_second":100,"burst":20}` | 429 with `Retry-After: 1` |
+| `token_allowlist` | Require an allowed Bearer token | `{"token_envs":["ROUTETUS_ROUTE_TOKEN"]}` | 401 with a Bearer challenge |
+| `body_limit` | Bound request body bytes, including chunked uploads | `{"max_bytes":1048576}` | 413 before response start |
+
+`headers` already supports custom headers; no separate header type is needed.
+It forbids authentication, cookie, framing, hop-by-hop, Host, and forwarding headers.
+Use route `host_header` and forwarding configuration for their dedicated purposes.
+Header values permit interior HTAB and reject other ASCII controls; their byte bound
+comes from bootstrap `limits.max_header_value_bytes`.
+
+Concurrency counts active HTTP requests, not incoming TCP sockets. HTTP/2 can carry
+multiple requests on one connection. SSE and WebSockets occupy a permit until their
+proxy operation ends. Permits are released on return, cancellation, or panic.
+
+The rate bucket starts full, refills continuously, and never exceeds `burst`.
+It is per route, not per IP or token. Denied requests do not wait in a queue.
+`Retry-After: 1` is a conservative retry hint, not a reservation of future capacity.
+
+Body limits stream data and do not buffer entire uploads. The lower of the process
+and attached handler limits applies. A backend may receive part of an oversized chunked
+upload before rejection; if a response has started, the gateway aborts the stream
+instead of replacing it with a second status. This is a byte limit, not decompression.
+
+## Defaults and bootstrap ceilings
+
+Without an attached route policy, the process and upstream defaults still apply:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `server.max_in_flight` | 2048 | Active public requests across all routes in one process |
+| `server.max_body_bytes` | 16777216 (16 MiB) | Request body limit across all routes; supported maximum is 1 GiB |
+| `server.request_timeout` | 15s | Total request deadline, inherited unless the route overrides it |
+| `upstreams[].dial_timeout` | 3s | Establishing a new backend TCP connection |
+| `upstreams[].tls_handshake_timeout` | 5s | Backend TLS handshake |
+| `upstreams[].response_header_timeout` | 10s | Waiting for backend response headers after sending the request |
+| `upstreams[].max_conns` | 128 | Transport connections per backend target |
+
+There is no implicit per-route rate limit or token requirement. Attaching a disabled
+handler adds no wrapper. A route body limit cannot increase `server.max_body_bytes`;
+process-wide admission remains in force even if a route concurrency limit is higher.
+
+The bootstrap `limits` section bounds allowed policy settings, not live traffic.
+For example, `limits.max_concurrent_requests: 1000` permits a configured handler limit
+up to 1000; it does not automatically attach a 1000-request limiter to every route.
+Use identical ceilings on `manage` and every `serve` process. Lower them only after
+the active configuration fits. See [all fields and ranges](reference.md).
+
+Do not create timeout handlers that duplicate existing settings. Use
+`routes[].request_timeout` for the whole exchange and response copy, and the upstream
+fields above for connection/header phases. A header timeout does not bound the response
+body. Explicit route `request_timeout: "0s"` allows long streams; ordinary requests
+should retain a finite deadline. These fields are configured through the API.
+
+## Configure and attach a policy
+
+For example, create this handler through `POST /v1/handlers`, with the management
+Bearer token, JSON content type, and current `If-Match` generation:
 
 ```json
-{"id":"powered","type":"powered_by","version":1,"options":{"value":"Routetus"}}
+{"id":"api-concurrency","type":"concurrency_limit","version":1,"options":{"limit":16}}
 ```
 
-The route's `handlers: ["powered"]` binds it in entry order. Publishing through
-`config apply` stores it in `handlers.options` JSONB and the revision-scoped binding
-table. `GET /v1/handler-types/powered_by/schema` exposes its registered options contract
-automatically. `docs/openapi.json` is regenerated with `make docs`.
+Then include `api-concurrency` in the route's `handlers` list through the API or select
+it in the local GUI. The registered schema is available at
+`GET /v1/handler-types/concurrency_limit/schema`; new types also appear automatically
+in OpenAPI. A useful entry order is:
 
-Global handlers enter first, then route handlers; response-side work executes in
-reverse order. Headers are applied in the correct proxy phases, including WebSocket
-upgrades. Built-in `headers` forbids authentication, cookie, framing, hop-by-hop, Host,
-and forwarding headers; use the dedicated Host/forwarding configuration instead.
+```json
+["api-auth", "api-rate", "api-concurrency", "api-body", "route-headers"]
+```
 
-For a new type, add its typed options/factory/registration file and call registration
-from `app.Compiler`. Keep shared dependencies in constructors, never a global locator.
-Do not parse options, look up factories, or reflect on types during requests. A disabled
-instance is validated but contributes no wrapper. Do not log options or panic values.
+Create those definitions before binding them. Authentication runs first, so denied
+credentials do not consume the route's rate budget. Place headers earlier if they
+must also affect policy rejection responses. Global request IDs, recovery, and access
+logging are outside this list and are described in [operations](operations.md).
 
-Wrap HTTP writers only when necessary; implement `Unwrap()` for response-controller
-compatibility and preserve flushing/hijacking. Reuse the shared writer/state where
-possible. Outgoing request-header changes must run after proxy hop-by-hop cleanup;
-the shared state's prepared header operations demonstrate that phase.
+## Token allowlist
 
-Tests `TestRouting`, `TestRecoverAndHandlerOrder`, `TestSSETrailersAndHTTP2`,
-`TestWebSocket`, and `TestHandlerSchemaAndValidatorConformance` exercise the example,
-wrapper capabilities, order, and registry schema/examples. Add observable tests for
-your handler and a deliberate sabotage check before publishing its contract.
+Send exactly one `Authorization: Bearer <token>` header over HTTPS, directly or through
+your trusted TLS terminator. Tokens in query parameters are not accepted as credentials.
+The gateway consumes the route token and removes Authorization before forwarding, so
+backend services do not receive this credential. Avoid stacking multiple token policies
+on one request; the first consumes the header.
+
+Only environment names appear in operational JSON, PostgreSQL revisions, API responses,
+and GUI data. Token values must be provided to both `manage` and `serve` through their
+environment, for example from Kubernetes Secrets or an explicit Compose environment
+mapping. Adding a token to the host `.env` alone does not inject it into containers.
+Use route-specific tokens; do not reuse the Management API or diagnostics tokens.
+
+Each referenced value must be a 32-byte or longer opaque token using the Bearer token
+alphabet; maximum length/reference count comes from bootstrap. Empty lists, missing
+values, duplicate references, invalid values, and unknown options reject compilation.
+This validation also applies to unused or disabled definitions. Disabling a valid
+instance bypasses authentication; an invalid secret never silently opens a route.
+
+Factories hash tokens once. Requests compare fixed-size hashes against the complete
+allowlist using constant-time comparisons. No raw token values are logged, included
+in validation errors, or returned in error responses. Logs record request ID, route ID,
+method, status, duration, and size, excluding headers, query strings, and bodies.
+Do not use verbose HTTP traces or print environment values when diagnosing credentials.
+
+Changing a process environment requires recreating that process. A configuration
+recompile loads its current environment; old in-flight requests retain their original
+snapshot. To rotate a token, provision an additional reference in all processes,
+publish a list containing both references, move clients, then remove the old reference.
 
 ## Handler scope
 
-A configured handler ID names reusable settings. Each attachment to a route creates
-an independent runtime instance: the same limiter definition on 15 routes gives each
-route its own budget. Keep mutable counters, channels, and other state inside the
-factory's returned closures; do not share them through package globals.
+A configured ID names reusable settings. Each route attachment creates fresh state:
+the same concurrency definition on 15 routes gives each route its own capacity.
+Rate buckets are independent too. State lives in the factory closure, not a package global.
 
-An explicit `global_handlers` binding creates one separate instance around all routes,
-including 404/405 responses. Its state is shared across those requests within that
-snapshot. Binding the same ID both globally and on a route creates two independent
-instances; both processing steps execute. Choose the scope deliberately.
+An explicit `global_handlers` binding creates a separate shared instance around all
+routes and 404/405 responses. Binding the same ID globally and locally executes both
+policies. The GUI omits global definitions; use the API deliberately for that scope.
 
-Instances are local to one snapshot in one serving process. Reloads recreate them,
-and replicas do not share counters. The process-wide `server.max_in_flight` admission
-limit is separate from route handlers and remains in force across snapshot reloads.
-Factories may be called multiple times while validating and building a candidate,
-including for unused or disabled definitions; keep their state local and avoid
-external side effects during construction.
+Instances belong to one snapshot in one process. Reloads reset counters/buckets while
+old requests may still finish. Replicas do not share quotas. Use a separate distributed
+service if a cluster-wide quota is required; `server.max_in_flight` continues to protect
+one process across reloads. Factories also run during definition validation, including
+unused/disabled definitions, so construction must have no external side effects.
 
-## Use existing limits first
+## Add a new handler in code
 
-The shipped registry has `request_id`, `recover`, `access_log`, `headers`, and
-`powered_by`. It has no configurable per-route concurrency-limiter handler.
-Before writing one, check whether an existing limit fits your requirement:
+The contract is `type Middleware func(http.Handler) http.Handler`. For a working
+example, read `internal/extensions/concurrency.go`; registration is explicit in
+`internal/extensions/register.go`, called by `app.Compiler`.
 
-| Setting | What it limits | Scope |
-| --- | --- | --- |
-| Bootstrap `server.max_in_flight` | Concurrent public requests; excess receives 503 | One serving process, across all routes |
-| Bootstrap `management.max_in_flight` | Concurrent Management API requests; excess receives 503 | One management process |
-| Operational `upstreams[].max_conns` | Transport connections to each backend target; requests may wait for capacity until their deadlines | One upstream transport in one snapshot |
+1. Add a file in `internal/extensions/` with typed options, JSON/doc/required tags,
+   and a registration function. Decode with `config.DecodeTyped` to reject unknown,
+   duplicate, missing-required, and null fields.
+2. Derive its schema with `config.Schema`, adding bounds from bootstrap where needed.
+   Register a unique name, description, contract version, schema, example, and factory.
+3. Validate once in the factory and return prepared middleware. Keep mutable state
+   inside the factory so bindings stay independent; avoid SQL, reflection, or option
+   parsing on the request path.
+4. Add registration to the existing list. No router changes, `init`, or runtime code
+   loading are needed. Rebuild every management/serving binary that uses the type.
+5. Test public HTTP behavior, malformed options, disabled instances, parallel requests,
+   per-route isolation, and cleanup on cancellation/panic. Deliberately break a guard
+   and confirm its test fails, restore it, then run `make check test test-race docs`.
+6. Create an instance through the API and attach its ID to a route. Keep the GUI as
+   an attachment tool, and update this guide and the release notes.
 
-These limits are different from requests per second or open incoming TCP connections.
-HTTP/2 can carry several requests over one connection, and idle keep-alive sockets
-have no active request. An HTTP handler cannot enforce a raw client-socket limit;
-that requires listener/connection lifecycle integration or a suitable front proxy.
-See [configuration fields](reference.md) and [request lifecycle](operations.md#request-lifecycle).
-
-## Example: add a request concurrency handler
-
-The following is a tutorial extension, not a type already registered in the released
-binary. It allows a fixed number of requests through a handler instance at once and
-immediately returns 503 when full. It does not queue requests, impose a requests-per-second
-rate, or count raw sockets. Use it when the existing process-wide limit is too broad.
-
-Create `internal/extensions/concurrency.go`:
-
-```go
-package extensions
-
-import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-
-	"github.com/kmpoltorak/routetus/internal/config"
-	"github.com/kmpoltorak/routetus/internal/middleware"
-)
-
-const maxConcurrentRequests = 10000
-
-type ConcurrencyOptions struct {
-	Limit int `json:"limit" required:"true" doc:"Maximum simultaneous requests through this handler binding."`
-}
-
-func RegisterConcurrencyLimit(registry *middleware.Registry) error {
-	schema := config.Schema(ConcurrencyOptions{})
-	limit := schema["properties"].(map[string]any)["limit"].(map[string]any)
-	limit["minimum"] = 1
-	limit["maximum"] = maxConcurrentRequests
-	return registry.Register(middleware.Type{
-		Name: "concurrency_limit", Version: 1,
-        Description: "Limits simultaneous requests for each route binding.",
-		Schema: schema, Example: ConcurrencyOptions{Limit: 16},
-		Factory: func(raw json.RawMessage) (middleware.Middleware, error) {
-			var options ConcurrencyOptions
-			if err := config.DecodeTyped(raw, &options); err != nil {
-				return nil, err
-			}
-			if options.Limit < 1 || options.Limit > maxConcurrentRequests {
-				return nil, fmt.Errorf("limit must be between 1 and %d", maxConcurrentRequests)
-			}
-			slots := make(chan struct{}, options.Limit)
-			return func(next http.Handler) http.Handler {
-				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					select {
-					case slots <- struct{}{}:
-						defer func() { <-slots }()
-						next.ServeHTTP(w, r)
-					default:
-						http.Error(w, "request concurrency limit reached", http.StatusServiceUnavailable)
-					}
-				})
-			}, nil
-		},
-	})
-}
-```
-
-The channel is created by the factory, not inside a request. The compiler invokes
-the factory separately for each binding, so routes using the same handler ID have
-independent capacity. The deferred release runs even when downstream panics. A slot
-remains occupied until the downstream handler returns; this does not track the
-lifetime of a socket handed away by a handler.
-
-At the beginning of the existing `Register` function in `internal/extensions/powered.go`,
-before its current registration, add:
-
-```go
-if err := RegisterConcurrencyLimit(r); err != nil {
-    return err
-}
-```
-
-`app.Compiler` and the test compiler already call `extensions.Register`; no router
-change or runtime plugin loader is needed. Keep the example's schema bounds and
-factory bounds in agreement. An omitted/null, non-integer, unknown, or out-of-range
-option must fail configuration validation.
-
-### Test the extension
-
-Create `internal/extensions/concurrency_test.go` with a regression that exercises
-saturation and permit release over real HTTP:
-
-```go
-package extensions
-
-import (
-	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"sync"
-	"sync/atomic"
-	"testing"
-	"time"
-
-	"github.com/kmpoltorak/routetus/internal/config"
-	"github.com/kmpoltorak/routetus/internal/middleware"
-)
-
-func TestConcurrencyLimitRejectsAndReleases(t *testing.T) {
-	registry := middleware.NewRegistry()
-	if err := RegisterConcurrencyLimit(registry); err != nil {
-		t.Fatal(err)
-	}
-	limiter, err := registry.Build(config.Handler{
-		ID: "limit", Type: "concurrency_limit", Version: 1,
-		Options: []byte(`{"limit":1}`),
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	entered, release := make(chan struct{}), make(chan struct{})
-	var once sync.Once
-	unblock := func() { once.Do(func() { close(release) }) }
-	var calls atomic.Int32
-	server := httptest.NewServer(limiter(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if calls.Add(1) == 1 {
-			close(entered)
-			<-release
-		}
-		w.WriteHeader(http.StatusNoContent)
-	})))
-	defer server.Close()
-	defer unblock()
-	client := server.Client()
-	client.Timeout = 5 * time.Second
-	first := make(chan error, 1)
-	go func() {
-		response, err := client.Get(server.URL)
-		if err == nil {
-			response.Body.Close()
-			if response.StatusCode != http.StatusNoContent {
-				err = fmt.Errorf("first request status: %d", response.StatusCode)
-			}
-		}
-		first <- err
-	}()
-	select {
-	case <-entered:
-	case <-time.After(5 * time.Second):
-		t.Fatal("first request did not enter downstream")
-	}
-	checkStatus := func(want int) {
-		t.Helper()
-		response, err := client.Get(server.URL)
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer response.Body.Close()
-		if response.StatusCode != want {
-			t.Fatalf("status = %d, want %d", response.StatusCode, want)
-		}
-	}
-	checkStatus(http.StatusServiceUnavailable)
-	if calls.Load() != 1 {
-		t.Fatal("rejected request entered downstream")
-	}
-	unblock()
-	if err := <-first; err != nil {
-		t.Fatal(err)
-	}
-	checkStatus(http.StatusNoContent)
-}
-```
-
-Also cover these cases before deploying:
-
-- With limit 1, hold the first request in a real `httptest.Server` using channels;
-  confirm a second request receives 503 without entering the downstream handler.
-- Release the first request; a subsequent request must succeed. Exercise downstream
-  cancellation and panic too, so a lost permit cannot permanently block the handler.
-- Bind the same handler ID to two routes: saturating one must not reject a request
-  on the other. A global binding must share capacity across routes, while global and
-  route bindings of the same ID must have separate state. Verify disabled bindings
-  add no wrapper.
-- Reject missing/null/unknown options, wrong types, 0, negative values, and values
-  above 10000. Check both accepted boundaries against the published schema.
-
-Run `go test -race ./internal/extensions ./internal/gateway ./internal/management`,
-then `make docs check test`. Sabotage the rejection path and permit release separately:
-the saturation and recovery tests must fail, then pass after restoring the implementation.
-`TestHandlerSchemaAndValidatorConformance` checks registered examples; keep the generated
-OpenAPI and reference synchronized with the new type.
-
-### Deploy and bind the extension
-
-Rebuild and deploy the modified binary to management and serving processes before
-publishing this type. Run `make docs` for the modified registry. Confirm the running
-Management API advertises `concurrency_limit` at `/v1/handler-types` and its schema at
-`/v1/handler-types/concurrency_limit/schema`. A stock binary rejects the unknown type.
-
-Create a handler instance through `/v1/handlers` with the current generation precondition:
-
-```json
-{"id":"api-limit","type":"concurrency_limit","version":1,"options":{"limit":16}}
-```
-
-Add `api-limit` to a route's handler list, for example `["api-limit", "powered"]`,
-using `/v1/routes/demo/handlers`. Preserve the other required bindings, and read a
-fresh generation after each mutation. See the [API editing example](api.md#inspect-and-add-a-route)
-for authentication, generation handling, and checking when a serving instance has applied
-an update. Reusing `api-limit` on another route gives that route its own limit of 16;
-it does not consume the first route's budget. An explicit global binding alone would
-instead limit all routes together within that snapshot. Binding it globally and on
-a route applies both independent budgets.
-
-The example limit is local to one compiled snapshot in one process. Configuration
-reload creates fresh state while old in-flight requests can still finish; limits
-do not span old/new snapshots or replicas. It is not a strict shared backend or
-cluster-wide quota. Use the existing process-wide limit for admission across reloads,
-and design shared state explicitly if a quota must span replicas. Keep logging and
-recovery outside the limiter if rejected requests should pass through those handlers.
+Wrap writers only when necessary; provide `Unwrap()` and preserve flushing/hijacking.
+Use shared writer/state operations for headers and `middleware.LimitBody` for body
+limits, so early rejections, streaming errors, and proxy errors remain consistent.

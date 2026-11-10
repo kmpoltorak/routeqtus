@@ -761,44 +761,45 @@ textarea:focus { border-color:#668f77; box-shadow:0 0 0 3px #eaf3ed; }
 
 :root[data-theme="dark"] {
   color-scheme:dark;
-  color:#e1ebe7;
-  background:#101815;
-  .topbar, .card, .stat, dialog { background:#18231f; border-color:#2e4238; color:inherit; }
-  .brand { color:#e1ebe7; }
+  color:#e7e9ee;
+  background:#111318;
+  .topbar, .card, .stat, dialog { background:#1b1e25; border-color:#343a46; color:inherit; }
+  .brand-mark { background:#344566; }
+  .brand { color:#e7e9ee; }
   .brand-section, .connection, .eyebrow, .subtitle, .stat small,
   .route-path, .route-match, .handler-summary, .empty, .form-intro,
   .hint, .optional, .form-footer, footer, .dialog-intro,
-  .guide-item p, .guide-item li, .table-wrap td:nth-child(n):before { color:#9bafa4; }
+  .guide-item p, .guide-item li, .table-wrap td:nth-child(n):before { color:#a5acba; }
   .stat>span, form>label, legend, dialog label,
-  .check, .empty h3 { color:#c0d1c7; }
+  .check, .empty h3 { color:#c9ced9; }
   .badge, .empty-symbol, .close-button, .delete-target, .tabs,
-  .method-options span, .handler-choice { background:#202f28; border-color:#375044; color:#b5c8bc; }
-  .tabs button { color:#9bafa4; }
-  .tabs button:hover { background:#273e32; color:#dcf3e4; }
-  .tabs button[aria-current] { background:#2d4539; color:#dcf3e4; border-color:#486350; }
-  .button.secondary { background:#202f28; color:#d0e2d6; border-color:#405649; }
-  .button.secondary:hover:enabled { background:#2d4539; }
-  .button.primary { background:#287b57; }
-  .button.primary:hover:enabled { background:#326e50; }
-  .text-button { color:#90c8a8; text-decoration-color:#537d63; }
+  .method-options span, .handler-choice { background:#242832; border-color:#3c4351; color:#bbc2cf; }
+  .tabs button { color:#a5acba; }
+  .tabs button:hover { background:#2d3340; color:#e3eaff; }
+  .tabs button[aria-current] { background:#343e50; color:#e3eaff; border-color:#52617a; }
+  .button.secondary { background:#242832; color:#dce1ec; border-color:#424b5b; }
+  .button.secondary:hover:enabled { background:#343e50; }
+  .button.primary { background:#365ed3; }
+  .button.primary:hover:enabled { background:#4772ea; }
+  .text-button { color:#a5beff; text-decoration-color:#566c9b; }
   .delete-link { color:#f1ae95; text-decoration-color:#8d5f50; }
-  input, select, textarea { background:#111d17; color:#e1ebe7; border-color:#405649; }
-  input::placeholder, textarea::placeholder { color:#93a89a; }
-  input[readonly] { background:#23332b; color:#abc0b2; }
-  .search-wrap input, th { background:#152019; border-color:#304238; }
-  th { color:#abc0b2; }
-  td, .table-wrap tr, .matching-options, .guide-item { border-color:#304238; }
-  tbody tr:hover { background:#203329; }
+  input, select, textarea { background:#14171d; color:#e7e9ee; border-color:#424b5b; }
+  input::placeholder, textarea::placeholder { color:#959dad; }
+  input[readonly] { background:#292e39; color:#b5bdcc; }
+  .search-wrap input, th { background:#171b22; border-color:#343a46; }
+  th { color:#b5bdcc; }
+  td, .table-wrap tr, .matching-options, .guide-item { border-color:#343a46; }
+  tbody tr:hover { background:#252b36; }
   .method-tag { background:#1d3b2b; color:#9fd9b3; }
   .method-tag.post { background:#25324b; color:#aec5ff; }
   .method-tag.delete { background:#482c25; color:#ffc2aa; }
-  .method-options input:checked+span, .handler-choice:has(input:checked) { background:#294737; border-color:#547e62; color:#c9ead3; }
-  .upstream-name { color:#b0c8b8; }
+  .method-options input:checked+span, .handler-choice:has(input:checked) { background:#293a5a; border-color:#5271a5; color:#cfddff; }
+  .upstream-name { color:#b8c2d3; }
   .notice { background:#203d2b; color:#b7dfc2; border-color:#416b4d; }
-  .notice.error { background:#412820; color:#ffc6ae; border-color:#744a37; }
-  input[type=checkbox] { accent-color:#70b68a; }
-  input:focus, select:focus, textarea:focus { border-color:#87b89b; box-shadow:0 0 0 3px #507d6240; }
-  button:focus-visible, a:focus-visible, .method-options input:focus-visible+span { outline-color:#87bf9a; }
+  .notice.error { background:#41282c; color:#ffc6ae; border-color:#744a37; }
+  input[type=checkbox] { accent-color:#91afff; }
+  input:focus, select:focus, textarea:focus { border-color:#8eaefe; box-shadow:0 0 0 3px #5b7fcc40; }
+  button:focus-visible, a:focus-visible, .method-options input:focus-visible+span { outline-color:#9bb9ff; }
   .connection.connected:before { box-shadow:0 0 0 4px #234236; }
   dialog::backdrop { background:#0009; }
 }

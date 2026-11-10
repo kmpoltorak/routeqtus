@@ -37,7 +37,7 @@ func TestRouting(t *testing.T) {
 	}))
 	defer backend.Close()
 	c := testutil.Config(backend.URL)
-	c.Routes = []config.Route{{ID: "api", Path: "/api", Prefix: true, StripPrefix: true, HostHeader: "example.com", Methods: []string{"GET"}, Upstream: "demo", Handlers: []string{"powered"}}, {ID: "exact", Path: "/api/exact", Upstream: "demo", Handlers: []string{}, Methods: []string{"POST"}}}
+	c.Routes = []config.Route{{ID: "api", Path: "/api", Prefix: true, StripPrefix: true, HostHeader: "example.com", Methods: []string{"GET"}, Upstream: "demo", Handlers: []string{"route-headers"}}, {ID: "exact", Path: "/api/exact", Upstream: "demo", Handlers: []string{}, Methods: []string{"POST"}}}
 	s := compiled(t, c)
 	for _, tc := range []struct {
 		method, path string

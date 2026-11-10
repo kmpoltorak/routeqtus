@@ -43,12 +43,12 @@ function renderRoutes() {
   body.replaceChildren();
   const query = $("#search").value.trim().toLowerCase();
   const visibleHandlers = new Set(routeHandlers().map((handler) => handler.id));
-  const routes = (state.config?.routes || []).filter((route) => [route.id, route.path, route.upstream].some((value) => value.toLowerCase().includes(query)));
+  const routes = (state.config?.routes || []).filter((route) => [route.id, route.service_id || "", route.path, route.upstream].some((value) => value.toLowerCase().includes(query)));
   $("#visible-count").textContent = String(routes.length);
   $("#route-table").hidden = !routes.length;
   $("#empty").hidden = Boolean(routes.length);
   $("#empty-title").textContent = query ? "No matching routes" : "No routes yet";
-  $("#empty-description").textContent = query ? "Try another ID, path or upstream." : "Add a route to connect a path to your services.";
+  $("#empty-description").textContent = query ? "Try another ID, service, path or upstream." : "Add a route to connect a path to your services.";
   for (const route of routes) {
     const row = document.createElement("tr");
     const pathCell = row.insertCell();
@@ -62,6 +62,7 @@ function renderRoutes() {
     match.className = "route-match";
     match.textContent = route.prefix ? "Prefix match" : "Exact match";
     pathCell.append(name, path, match);
+    if (route.service_id) pathCell.append(element("span", "Service: " + route.service_id, "route-match"));
     const methodsCell = row.insertCell();
     for (const method of route.methods?.length ? route.methods : ["ANY"]) {
       const tag = document.createElement("span");
@@ -168,7 +169,7 @@ form.addEventListener("submit", async (event) => {
   const methods = [...form.querySelectorAll('input[name="methods"]:checked')].map((input) => input.value);
   if (!methods.length && !state.routeEdit) { notice("Select at least one HTTP method.", true); return; }
   const route = {
-    id: $("#route-id").value.trim(), path: $("#route-path").value.trim(), methods,
+    id: $("#route-id").value.trim(), service_id: $("#route-service-id").value.trim(), path: $("#route-path").value.trim(), methods,
     upstream: $("#upstream").value,
     handlers: [...form.querySelectorAll('input[name="handlers"]:checked')].map((input) => input.value),
     prefix: $("#prefix").checked, strip_prefix: $("#prefix").checked && $("#strip-prefix").checked,
@@ -260,6 +261,7 @@ function editRoute(route) {
   state.routeEdit = { id: route.id, original: structuredClone(route), etag: state.etag };
   renderChoices(route.handlers);
   $("#route-id").value = route.id;
+  $("#route-service-id").value = route.service_id || "";
   $("#route-id").readOnly = true;
   $("#route-path").value = route.path;
   $("#upstream").value = route.upstream;
@@ -297,9 +299,11 @@ function renderUpstreams() {
     references.get(route.upstream).push(route.id);
   }
   for (const upstream of state.config?.upstreams || []) {
-    if (![upstream.id, ...upstream.targets.map((target) => target.url)].some((value) => value.toLowerCase().includes(query))) continue;
+    if (![upstream.id, upstream.service_id || "", ...upstream.targets.map((target) => target.url)].some((value) => value.toLowerCase().includes(query))) continue;
     const row = document.createElement("tr");
-    row.insertCell().append(element("span", upstream.id, "route-name"));
+    const identity = row.insertCell();
+    identity.append(element("span", upstream.id, "route-name"));
+    if (upstream.service_id) identity.append(element("span", "Service: " + upstream.service_id, "route-match"));
     const targets = row.insertCell();
     for (const target of upstream.targets) targets.append(element("span", target.id + " · " + target.url, "route-path"));
     row.insertCell().textContent = (references.get(upstream.id) || []).join(", ") || "None";
@@ -368,6 +372,7 @@ function openUpstream(upstream = null) {
   state.upstreamEdit = upstream ? { id: upstream.id, original: structuredClone(upstream), etag: state.etag, targetsChanged: false } : null;
   $("#upstream-form").reset();
   $("#upstream-id").value = upstream?.id || "";
+  $("#upstream-service-id").value = upstream?.service_id || "";
   $("#upstream-id").readOnly = Boolean(upstream);
   $("#upstream-heading").textContent = upstream ? "Edit upstream" : "New upstream";
   $("#upstream-form button[type=submit]").textContent = upstream ? "Save upstream" : "Create upstream";
@@ -436,10 +441,11 @@ $("#upstream-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = $("#upstream-id").value.trim();
   const editing = state.upstreamEdit;
+  const service_id = $("#upstream-service-id").value.trim();
   if (editing?.targetsChanged) return;
   const targets = editing ? [...$("#target-fields").children].map((row) => ({ id: row.dataset.id, url: row.querySelector("input").value.trim() })) : $("#upstream-targets").value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean).map((url, index) => ({ id: "target-" + (index + 1), url }));
   if (!targets.length) { dialogError("#upstream-error", "Enter at least one backend URL."); return; }
-  await createResource("/api/upstreams", editing ? changedFields({ targets }, editing.original) : { id, targets }, "#upstream-dialog", "#upstream-error", () => {
+  await createResource("/api/upstreams", editing ? changedFields({ targets, service_id }, editing.original) : { id, targets, service_id }, "#upstream-dialog", "#upstream-error", () => {
     $("#upstream").value = id;
     notice('Upstream "' + id + '" ' + (editing ? "updated" : "created and selected") + '.');
   }, editing);

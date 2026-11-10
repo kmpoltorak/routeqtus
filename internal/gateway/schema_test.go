@@ -9,7 +9,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/kmpoltorak/routetus/internal/config"
-	"github.com/kmpoltorak/routetus/internal/extensions"
 	"github.com/kmpoltorak/routetus/internal/middleware"
 	"github.com/kmpoltorak/routetus/internal/testutil"
 )
@@ -62,20 +61,6 @@ func TestSchemaFactoryBounds(t *testing.T) {
 		_, err := compiler.Registry.Build(config.Handler{ID: "log", Type: "access_log", Version: 1, Options: b})
 		if (err == nil) != (n >= lo && n <= hi) {
 			t.Fatalf("sample=%d err=%v", n, err)
-		}
-	}
-	powered, _ := compiler.Registry.Get("powered_by")
-	value := property(powered.Schema, "value")
-	min, max := value["minLength"].(int), value["maxLength"].(int)
-	// The legacy schema used an ECMA Unicode escape; both spellings describe NUL.
-	pattern := regexp.MustCompile(strings.ReplaceAll(value["pattern"].(string), `\u0000`, `\x00`))
-	for _, text := range []string{"", strings.Repeat("a", max), strings.Repeat("a", max+1), strings.Repeat("é", max), strings.Repeat("é", max+1), "a\x01b", "a\tb", "a\rb", "a\nb", "a\x7fb"} {
-		n := utf8.RuneCountInString(text)
-		want := n >= min && n <= max && pattern.MatchString(text)
-		b, _ := json.Marshal(extensions.Powered{Value: text})
-		_, err := compiler.Registry.Build(config.Handler{ID: "powered", Type: "powered_by", Version: 1, Options: b})
-		if (err == nil) != want {
-			t.Errorf("value=%q characters=%d schema-valid=%v err=%v", text, n, want, err)
 		}
 	}
 }
@@ -193,17 +178,18 @@ func TestSchemaVersionsMatchCompiler(t *testing.T) {
 	}
 }
 
-func TestPoweredValueControlCompatibility(t *testing.T) {
+func TestHeaderValueControlCompatibility(t *testing.T) {
 	compiler := testutil.Compiler(t)
-	kind, _ := compiler.Registry.Get("powered_by")
-	pattern := regexp.MustCompile(property(kind.Schema, "value")["pattern"].(string))
 	for n := 0; n <= 127; n++ {
 		text := "a" + string(rune(n)) + "b"
-		b, _ := json.Marshal(extensions.Powered{Value: text})
-		_, err := compiler.Registry.Build(config.Handler{ID: "powered", Type: "powered_by", Version: 1, Options: b})
+		b, err := json.Marshal(middleware.Headers{ResponseSet: map[string]string{"X-Custom": text}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = compiler.Registry.Build(config.Handler{ID: "custom", Type: "headers", Version: 1, Options: b})
 		want := n == 9 || n >= 32 && n != 127
-		if (err == nil) != want || pattern.MatchString(text) != want {
-			t.Errorf("ASCII control %d: want accepted=%v, factory error=%v, schema accepted=%v", n, want, err, pattern.MatchString(text))
+		if (err == nil) != want {
+			t.Errorf("ASCII control %d: want accepted=%v, error=%v", n, want, err)
 		}
 	}
 }

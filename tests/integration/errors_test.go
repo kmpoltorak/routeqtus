@@ -33,7 +33,7 @@ func TestStoredConversionFailureDoesNotPublish(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := postgres.Empty()
-	c.Handlers = []config.Handler{{ID: "bad", Type: "powered_by", Version: 1, Options: json.RawMessage(`{"value":1e10000}`)}}
+	c.Handlers = []config.Handler{{ID: "bad", Type: "headers", Version: 1, Options: json.RawMessage(`{"value":1e10000}`)}}
 	p, err := s.Publish(ctx, c, 0, postgres.Metadata{Principal: "conversion-test"})
 	if err != nil {
 		t.Fatal(err)

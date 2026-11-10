@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"net/http"
@@ -89,6 +88,9 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	for i, u := range d.Upstreams {
 		entityErr := func() error {
 			field := fmt.Sprintf("/upstreams/%d", i)
+			if u.ServiceID != "" && !config.ValidID(u.ServiceID) {
+				return config.Invalid(field+"/service_id", "invalid service ID")
+			}
 			if !config.ValidID(u.ID) || pools[u.ID] != nil {
 				return config.Invalid(field+"/id", "invalid or duplicate upstream ID")
 			}
@@ -188,6 +190,9 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	for i, r := range d.Routes {
 		entityErr := func() error {
 			field := fmt.Sprintf("/routes/%d", i)
+			if r.ServiceID != "" && !config.ValidID(r.ServiceID) {
+				return config.Invalid(field+"/service_id", "invalid service ID")
+			}
 			if !config.ValidID(r.ID) || ids[r.ID] {
 				return config.Invalid(field+"/id", "invalid or duplicate route ID")
 			}
@@ -426,12 +431,10 @@ func (s *Snapshot) ServeTracked(w http.ResponseWriter, r *http.Request, track fu
 		http.Error(writer, invalid, 400)
 		return
 	}
-	if r.ContentLength > s.limits.MaxBodyBytes {
-		http.Error(writer, "request body too large", 413)
+	r = middleware.WithState(r, st)
+	if !middleware.LimitBody(writer, r, s.limits.MaxBodyBytes) {
 		return
 	}
-	r.Body = &limitedBody{ReadCloser: http.MaxBytesReader(writer, r.Body, s.limits.MaxBodyBytes), state: st, controller: http.NewResponseController(writer)}
-	r = middleware.WithState(r, st)
 	r = r.WithContext(context.WithValue(r.Context(), selectionKey{}, selection{v, allow}))
 	stat := &s.Stats[idx]
 	if stat.Enabled {
@@ -510,23 +513,6 @@ func (s *Snapshot) proxy(route config.Route, p *pool, logger *slog.Logger) *http
 	}, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelDebug)}
 }
 
-type limitedBody struct {
-	io.ReadCloser
-	state      *middleware.State
-	controller *http.ResponseController
-}
-
-func (b *limitedBody) Read(p []byte) (int, error) {
-	n, err := b.ReadCloser.Read(p)
-	var tooLarge *http.MaxBytesError
-	if errors.As(err, &tooLarge) {
-		b.state.BodyTooLarge.Store(true)
-	}
-	if err != nil {
-		_ = b.controller.SetReadDeadline(time.Time{})
-	}
-	return n, err
-}
 func strip(r *http.Request, prefix string) {
 	if prefix == "/" {
 		return

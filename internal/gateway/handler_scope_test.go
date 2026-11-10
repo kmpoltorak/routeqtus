@@ -42,31 +42,8 @@ func TestHandlerBindingConcurrencyScope(t *testing.T) {
 			defer backend.Close()
 			defer unblock()
 			compiler := testutil.Compiler(t)
-			if err := compiler.Registry.Register(middleware.Type{
-				Name: "test_limit", Version: 1, Schema: config.Schema(middleware.Empty{}),
-				Factory: func(raw json.RawMessage) (middleware.Middleware, error) {
-					var options middleware.Empty
-					if err := config.DecodeTyped(raw, &options); err != nil {
-						return nil, err
-					}
-					slots := make(chan struct{}, 1)
-					return func(next http.Handler) http.Handler {
-						return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-							select {
-							case slots <- struct{}{}:
-								defer func() { <-slots }()
-								next.ServeHTTP(w, r)
-							default:
-								http.Error(w, "request concurrency limit reached", http.StatusServiceUnavailable)
-							}
-						})
-					}, nil
-				},
-			}); err != nil {
-				t.Fatal(err)
-			}
 			c := testutil.Config(backend.URL)
-			c.Handlers = append(c.Handlers, config.Handler{ID: "limit", Type: "test_limit", Version: 1, Options: []byte(`{}`)})
+			c.Handlers = append(c.Handlers, config.Handler{ID: "limit", Type: "concurrency_limit", Version: 1, Options: []byte(`{"limit":1}`)})
 			c.Routes = []config.Route{
 				{ID: "first", Path: "/first", Upstream: "demo"},
 				{ID: "second", Path: "/second", Upstream: "demo"},

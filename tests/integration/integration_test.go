@@ -255,13 +255,17 @@ func TestControlPlaneAndReload(t *testing.T) {
 			for trafficCtx.Err() == nil {
 				res, err := front.Client().Get(front.URL)
 				if err != nil {
-					failures.Add(1)
+					if failures.Add(1) == 1 {
+						t.Logf("first reload traffic error: %v; runtime=%+v", err, rt1.Status())
+					}
 					continue
 				}
 				b, _ := io.ReadAll(res.Body)
 				res.Body.Close()
 				if res.StatusCode != 200 || string(b) != "backend" {
-					failures.Add(1)
+					if failures.Add(1) == 1 {
+						t.Logf("first reload traffic rejection: status=%d; runtime=%+v", res.StatusCode, rt1.Status())
+					}
 				}
 			}
 		}()

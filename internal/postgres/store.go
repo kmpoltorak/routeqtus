@@ -25,8 +25,11 @@ var migration string
 //go:embed migrations/002.sql
 var connectionBoundsMigration string
 
+//go:embed migrations/003.sql
+var serviceIDMigration string
+
 // SchemaVersion is the database schema version this binary requires.
-const SchemaVersion = 2
+const SchemaVersion = 3
 
 var ErrConfiguration = errors.New("postgres configuration error")
 var ErrPrecondition = errors.New("generation precondition failed")
@@ -148,7 +151,15 @@ func (s *Store) Migrate(ctx context.Context) error {
 		if _, err = tx.Exec(ctx, connectionBoundsMigration); err != nil {
 			return err
 		}
-	} else if v != SchemaVersion {
+		v = 2
+	}
+	if v == 2 {
+		if _, err = tx.Exec(ctx, serviceIDMigration); err != nil {
+			return err
+		}
+		v = 3
+	}
+	if v != SchemaVersion {
 		return fmt.Errorf("unsupported schema version")
 	}
 	return tx.Commit(ctx)
@@ -212,7 +223,7 @@ func loadRevision(ctx context.Context, q querier, id int64) (config.Config, erro
 	if err != nil {
 		return c, err
 	}
-	rows, err := q.Query(ctx, `SELECT jsonb_build_object('id',id,'dial_timeout',dial_timeout,'tls_handshake_timeout',tls_handshake_timeout,'response_header_timeout',response_header_timeout,'idle_timeout',idle_timeout,'max_conns',max_conns,'max_idle_conns',max_idle_conns,'max_idle_conns_per_host',max_idle_conns_per_host,'proxy_from_environment',proxy_from_environment,'tls',jsonb_build_object('server_name',tls_server_name,'ca_env',tls_ca_env,'cert_env',tls_cert_env,'key_env',tls_key_env)) FROM upstreams WHERE revision_id=$1 ORDER BY id`, id)
+	rows, err := q.Query(ctx, `SELECT jsonb_build_object('id',id,'service_id',service_id,'dial_timeout',dial_timeout,'tls_handshake_timeout',tls_handshake_timeout,'response_header_timeout',response_header_timeout,'idle_timeout',idle_timeout,'max_conns',max_conns,'max_idle_conns',max_idle_conns,'max_idle_conns_per_host',max_idle_conns_per_host,'proxy_from_environment',proxy_from_environment,'tls',jsonb_build_object('server_name',tls_server_name,'ca_env',tls_ca_env,'cert_env',tls_cert_env,'key_env',tls_key_env)) FROM upstreams WHERE revision_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return c, err
 	}
@@ -251,7 +262,7 @@ func loadRevision(ctx context.Context, q querier, id int64) (config.Config, erro
 	if err != nil {
 		return c, err
 	}
-	rows, err = q.Query(ctx, `SELECT jsonb_build_object('id',id,'host',host,'methods',methods,'path',path,'prefix',prefix,'priority',priority,'strip_prefix',strip_prefix,'host_header',host_header,'upstream',upstream_id,'request_timeout',request_timeout,'metrics',metrics,'handlers','[]'::jsonb) FROM routes WHERE revision_id=$1 ORDER BY id`, id)
+	rows, err = q.Query(ctx, `SELECT jsonb_build_object('id',id,'service_id',service_id,'host',host,'methods',methods,'path',path,'prefix',prefix,'priority',priority,'strip_prefix',strip_prefix,'host_header',host_header,'upstream',upstream_id,'request_timeout',request_timeout,'metrics',metrics,'handlers','[]'::jsonb) FROM routes WHERE revision_id=$1 ORDER BY id`, id)
 	if err != nil {
 		return c, err
 	}
@@ -325,7 +336,7 @@ func (s *Store) Publish(ctx context.Context, c config.Config, expected int64, m 
 	}
 	batch := &pgx.Batch{}
 	for _, u := range c.Upstreams {
-		batch.Queue(`INSERT INTO upstreams VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`, id, u.ID, duration(u.DialTimeout), duration(u.TLSHandshakeTimeout), duration(u.ResponseHeaderTimeout), duration(u.IdleTimeout), u.MaxConns, u.MaxIdleConns, u.MaxIdleConnsPerHost, u.ProxyFromEnvironment, u.TLS.ServerName, u.TLS.CAEnv, u.TLS.CertEnv, u.TLS.KeyEnv)
+		batch.Queue(`INSERT INTO upstreams VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`, id, u.ID, duration(u.DialTimeout), duration(u.TLSHandshakeTimeout), duration(u.ResponseHeaderTimeout), duration(u.IdleTimeout), u.MaxConns, u.MaxIdleConns, u.MaxIdleConnsPerHost, u.ProxyFromEnvironment, u.TLS.ServerName, u.TLS.CAEnv, u.TLS.CertEnv, u.TLS.KeyEnv, u.ServiceID)
 		for i, t := range u.Targets {
 			batch.Queue("INSERT INTO upstream_targets VALUES($1,$2,$3,$4,$5)", id, u.ID, t.ID, t.URL, i)
 		}
@@ -334,7 +345,7 @@ func (s *Store) Publish(ctx context.Context, c config.Config, expected int64, m 
 		batch.Queue("INSERT INTO handlers VALUES($1,$2,$3,$4,$5,$6)", id, h.ID, h.Type, h.Version, h.Enabled, []byte(h.Options))
 	}
 	for _, r := range c.Routes {
-		batch.Queue("INSERT INTO routes VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)", id, r.ID, r.Host, nonnil(r.Methods), r.Path, r.Prefix, r.Priority, r.StripPrefix, r.HostHeader, r.Upstream, duration(r.RequestTimeout), r.Metrics)
+		batch.Queue("INSERT INTO routes VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)", id, r.ID, r.Host, nonnil(r.Methods), r.Path, r.Prefix, r.Priority, r.StripPrefix, r.HostHeader, r.Upstream, duration(r.RequestTimeout), r.Metrics, r.ServiceID)
 		for i, h := range r.Handlers {
 			batch.Queue("INSERT INTO handler_bindings VALUES($1,$2,$3,$4)", id, r.ID, i, h)
 		}

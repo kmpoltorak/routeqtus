@@ -115,7 +115,7 @@ documents are rejected. No environment substitution is performed on YAML.
 | server.request_timeout | 15s | Inherited full request deadline; positive, at most 24h |
 | server.shutdown_timeout | 10s | Positive, at most 24h |
 | server.max_header_bytes | 16384 | 1024–1048576 bytes |
-| server.max_body_bytes | 16777216 | 1–1099511627776 bytes |
+| server.max_body_bytes | 16777216 | 1–1073741824 bytes |
 | server.max_in_flight | 2048 | 1–1000000 requests |
 | server.cert_file, server.key_file | empty | Both present or both absent; restart on change |
 | admin.listen | 127.0.0.1:9090 | Separate diagnostics bind address |
@@ -146,7 +146,13 @@ documents are rejected. No environment substitution is performed on YAML.
 | limits.max_connections | 100000 | 128–1000000; upper bound of upstream max_conns, max_idle_conns, max_idle_conns_per_host |
 | limits.max_priority | 1000000 | 1–10000000; route priority range is -max_priority to max_priority |
 | limits.max_sample_every | 1000000 | 1–10000000; upper bound of access_log sample_every |
-| limits.max_powered_characters | 128 | 1–1280 characters in a powered_by value |
+| limits.max_concurrent_requests | 1000000 | 1–10000000; upper bound of concurrency_limit.limit |
+| limits.max_requests_per_second | 1000000 | 1–10000000; upper bound of rate_limit.requests_per_second |
+| limits.max_burst | 1000000 | 1–10000000; upper bound of rate_limit.burst |
+| limits.max_token_references | 64 | 1–640; maximum token_allowlist environment references |
+| limits.max_token_bytes | 4096 | 32–40960; maximum bytes per referenced Bearer token; minimum token length remains 32 |
+| limits.max_header_value_bytes | 8192 | 1–81920; maximum bytes per custom request/response header value |
+| limits.max_route_body_bytes | 1073741824 | 1–1073741824; upper bound of body_limit.max_bytes; server.max_body_bytes still applies |
 | limits.max_identifier_length | 64 | 1–640 characters in route, upstream, target, and handler IDs |
 
 `limits` values bound publication and loading. Use identical `limits` on every `serve`

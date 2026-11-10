@@ -44,7 +44,7 @@
         <div class="card-heading">
           <h2 id="routes-heading">Configured routes</h2><span class="badge" id="visible-count">0</span>
         </div>
-        <div class="search-wrap"><input id="search" type="search" placeholder="Search ID, path or upstream"
+        <div class="search-wrap"><input id="search" type="search" placeholder="Search ID, service, path or upstream"
             aria-label="Search routes"></div>
         <div class="table-wrap" id="route-table" hidden>
           <table>
@@ -73,6 +73,8 @@
           <label for="route-id">Route ID</label><input id="route-id" name="id" required maxlength="64"
             pattern="[A-Za-z0-9_-]{1,64}" placeholder="hello" autocomplete="off">
           <p class="hint">Letters, numbers, underscores or hyphens.</p>
+          <label for="route-service-id">Service ID <span class="optional">optional</span></label><input id="route-service-id" maxlength="640" pattern="[A-Za-z0-9_-]*" placeholder="Orders-API01" autocomplete="off">
+          <p class="hint">Descriptive label only. Letters, digits, underscores or hyphens.</p>
           <label for="route-path">Request path</label><input id="route-path" name="path" required pattern="/.*"
             placeholder="/hello" autocomplete="off">
           <fieldset>
@@ -111,7 +113,7 @@
     </div>
     <section class="card" id="upstreams-panel" aria-labelledby="upstreams-heading" hidden>
       <div class="card-heading"><h2 id="upstreams-heading">Configured upstreams</h2><button id="add-upstream" class="text-button" type="button">+ Add upstream</button></div>
-      <div class="search-wrap"><input id="upstream-search" type="search" placeholder="Search ID or backend URL" aria-label="Search upstreams"></div>
+      <div class="search-wrap"><input id="upstream-search" type="search" placeholder="Search ID, service or backend URL" aria-label="Search upstreams"></div>
       <div class="table-wrap"><table><thead><tr><th scope="col">Upstream</th><th scope="col">Backend URLs</th><th scope="col">Used by routes</th><th scope="col">Actions</th></tr></thead><tbody id="upstreams"></tbody></table></div>
       <p id="upstream-empty" class="empty" hidden>No upstreams match. Add an upstream or change your search.</p>
     </section>
@@ -123,6 +125,8 @@
     <p class="notice error" id="upstream-error" role="status" hidden></p>
     <form id="upstream-form">
       <label for="upstream-id">Upstream ID</label><input id="upstream-id" required maxlength="64" pattern="[A-Za-z0-9_-]{1,64}" placeholder="my-service" autocomplete="off">
+      <label for="upstream-service-id">Service ID <span class="optional">optional</span></label><input id="upstream-service-id" maxlength="640" pattern="[A-Za-z0-9_-]*" placeholder="Orders-API01" autocomplete="off">
+      <p class="hint">Descriptive label only. Letters, digits, underscores or hyphens.</p>
       <div id="new-targets"><label for="upstream-targets">Backend URLs</label><textarea id="upstream-targets" required rows="4" placeholder="http://backend-a:8081&#10;http://backend-b:8081"></textarea><p class="hint">One http:// or https:// URL per line. Transport settings use server defaults.</p></div>
       <div id="edit-targets" hidden><p class="hint">Edit backend URLs while keeping target IDs and order. Unshown transport and TLS settings are preserved.</p><div id="target-fields"></div><button id="add-target" class="text-button" type="button">+ Add backend</button></div>
       <div class="dialog-actions"><button class="button secondary" type="button" data-close="upstream-dialog">Cancel</button><button class="button primary resource-submit" type="submit">Create upstream</button></div>

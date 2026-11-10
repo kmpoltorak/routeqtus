@@ -7,8 +7,11 @@ Upgrading from v0.2.0 to v0.3.0 requires `routetus migrate` (database schema ver
 before the new `serve` and `manage` processes start; see
 [release notes](docs/release_notes.md#v030--2026-11-10). Upgrading from v0.1.1 also
 crosses the v0.2.0 [breaking rename](docs/release_notes.md#v020--2026-11-09): use a fresh
-demo database and the `ROUTETUS_` environment prefix. Existing `powered_by.value`
-options containing HTAB remain valid.
+demo database and the `ROUTETUS_` environment prefix. For source builds after v0.3.0,
+[replace the test handler](#replace-the-test-powered_by-handler), stop old processes,
+run `routetus migrate` to schema version 3, and restart all management/serving processes.
+Migration preserves existing revisions and initializes their optional Service IDs as empty.
+Old binaries refuse schema version 3; new binaries refuse older schemas.
 
 ## Install
 
@@ -199,3 +202,47 @@ Outside numeric loopback, management must terminate TLS itself.
 
 See [the API examples](docs/api.md), [configuration reference](docs/reference.md),
 [operations](docs/operations.md), and [extension guide](docs/extensions.md).
+
+## Replace the test powered_by handler
+
+Source builds after v0.3.0 remove `powered_by` and its bootstrap ceiling
+`limits.max_powered_characters`. Stop using that key in every bootstrap file.
+Before replacing old binaries, use the existing Management API to migrate active
+handler definitions. Preserve their IDs and route/global bindings; change only:
+
+```json
+{"id":"powered","type":"powered_by","version":1,"options":{"value":"Routetus"}}
+```
+
+to:
+
+```json
+{"id":"powered","type":"headers","version":1,"options":{"response_set":{"X-Powered-By":"Routetus"}}}
+```
+
+The old binary already supports `headers`, so publish this before upgrading either
+`manage` or `serve`. Retain `enabled` when present. With the authenticated `api` helper
+from [API documentation](docs/api.md#inspect-and-add-a-route), this operation
+for the old demo's `powered` definition uses the current generation precondition:
+
+```sh
+GEN=$(api /v1/status | jq -r .generation)
+api /v1/handlers/powered | jq '
+  .type = "headers" |
+  .options = {response_set: {"X-Powered-By": .options.value}}
+' | curl --fail-with-body --silent --show-error -X PUT \
+  -H "Authorization: Bearer $ROUTETUS_MANAGEMENT_TOKEN" \
+  -H "If-Match: \"g-$GEN\"" -H "Content-Type: application/json" \
+  --data-binary @- "$API/v1/handlers/powered"
+```
+
+Repeat for other configured IDs, reading a fresh generation each time. Inspect their
+current type before running the conversion; do not run it twice on the same instance.
+A 412 means another writer changed configuration: re-read and review before retrying.
+Before starting new binaries, choose `limits.max_header_value_bytes` to accommodate
+the migrated values or shorten them. Interior HTAB remains allowed by the header handler.
+
+Confirm every serving instance applied the converted revision, then replace binaries.
+Historical revisions stay immutable and readable, but rollback to one containing
+`powered_by` is rejected; convert an exported copy and publish a new revision instead.
+Fresh demos already use `route-headers` with type `headers`, so need no conversion.

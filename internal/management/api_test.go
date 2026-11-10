@@ -56,6 +56,7 @@ func TestMergeAndWholeCandidate(t *testing.T) {
 	}
 }
 func TestHandlerSchemaAndValidatorConformance(t *testing.T) {
+	t.Setenv("ROUTETUS_ROUTE_TOKEN", strings.Repeat("t", 32))
 	compiler := testutil.Compiler(t)
 	a := New(&configservice.Service{Compiler: compiler}, "", "", 1024, 1, nil)
 	var contract map[string]any

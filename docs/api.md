@@ -141,11 +141,11 @@ Inspect a route, the upstream it selects, and a handler bound to it:
 ```sh
 api /v1/routes/demo | jq
 api /v1/upstreams/demo | jq
-api /v1/handlers/powered | jq
-api /v1/handler-types/powered_by/schema | jq
+api /v1/handlers/route-headers | jq
+api /v1/handler-types/headers/schema | jq
 ```
 
-The handler ID `powered` names a configured instance; `powered_by` names its registered
+The handler ID `route-headers` names a configured instance; `headers` names its registered
 type. Its schema explains which options the instance accepts. Use `api /v1/config`
 for configured values or `api /v1/config/effective` to inspect resolved defaults;
 export configured values when preparing a document for re-import.
@@ -159,7 +159,7 @@ curl --fail-with-body --silent --show-error -X POST \
   -H "Authorization: Bearer $ROUTETUS_MANAGEMENT_TOKEN" \
   -H "If-Match: \"g-$GEN\"" \
   -H 'Content-Type: application/json' \
-  --data '{"id":"hello","methods":["GET"],"path":"/hello","prefix":false,"strip_prefix":false,"upstream":"demo","handlers":["powered"]}' \
+  --data '{"id":"hello","methods":["GET"],"path":"/hello","prefix":false,"strip_prefix":false,"upstream":"demo","handlers":["route-headers"]}' \
   "$API/v1/routes"
 api /v1/routes/hello | jq
 ```

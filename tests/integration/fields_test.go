@@ -39,10 +39,13 @@ func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
 	t.Setenv("ROUTETUS_TEST_CA", string(certificate))
 	t.Setenv("ROUTETUS_TEST_CERT", string(certificate))
 	t.Setenv("ROUTETUS_TEST_KEY", string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: key})))
+	routeToken := strings.Repeat("route-token-", 4)
+	t.Setenv("ROUTETUS_FIELD_ROUTE_TOKEN", routeToken)
 	c := testutil.Config(backend.URL)
 	c.Metrics = config.B(false)
 	c.TrustedProxies = []string{"198.51.100.0/24"}
 	u := &c.Upstreams[0]
+	u.ServiceID = "Orders_API01"
 	u.DialTimeout = config.D(0)
 	u.TLSHandshakeTimeout = config.D(time.Second)
 	u.ResponseHeaderTimeout = config.D(2 * time.Second)
@@ -53,6 +56,7 @@ func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
 	u.ProxyFromEnvironment = true
 	u.TLS = config.TLS{ServerName: "example.com", CAEnv: "ROUTETUS_TEST_CA", CertEnv: "ROUTETUS_TEST_CERT", KeyEnv: "ROUTETUS_TEST_KEY"}
 	r := &c.Routes[0]
+	r.ServiceID = "Orders-API01"
 	r.Host = "example.com"
 	r.Methods = []string{"GET", "POST"}
 	r.Path = "/api"
@@ -70,7 +74,16 @@ func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
 	second.ID = "secondary"
 	second.Targets = []config.Target{c.Upstreams[0].Targets[1], c.Upstreams[0].Targets[0]}
 	c.Upstreams = append(c.Upstreams, second)
-	c.Routes = append(c.Routes, config.Route{ID: "secondary", Path: "/secondary", Upstream: "secondary", Handlers: []string{"headers", "powered"}})
+	c.Routes = append(c.Routes, config.Route{ID: "secondary", Path: "/secondary", Upstream: "secondary", Handlers: []string{"headers", "route-headers"}})
+	for _, h := range []config.Handler{
+		{ID: "concurrency", Type: "concurrency_limit", Version: 1, Options: []byte(`{"limit":16}`)},
+		{ID: "rate", Type: "rate_limit", Version: 1, Options: []byte(`{"requests_per_second":100,"burst":20}`)},
+		{ID: "body", Type: "body_limit", Version: 1, Options: []byte(`{"max_bytes":1048576}`)},
+		{ID: "auth", Type: "token_allowlist", Version: 1, Options: []byte(`{"token_envs":["ROUTETUS_FIELD_ROUTE_TOKEN"]}`)},
+	} {
+		c.Handlers = append(c.Handlers, h)
+		c.Routes[1].Handlers = append(c.Routes[1].Handlers, h.ID)
+	}
 	slices.SortFunc(c.Handlers, func(a, b config.Handler) int { return cmp.Compare(a.ID, b.ID) })
 	compiler := testutil.Compiler(t)
 	token := strings.Repeat("x", 32)
@@ -103,7 +116,7 @@ func TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres(t *testing.T) {
 	if !reflect.DeepEqual(want, got) {
 		t.Fatalf("configured round-trip changed fields\nwant: %s\ngot: %s", data, body)
 	}
-	if bytes.Contains(body, certificate) || bytes.Contains(body, key) || res.Header.Get("ETag") != `"g-1"` {
+	if bytes.Contains(body, certificate) || bytes.Contains(body, key) || bytes.Contains(body, []byte(routeToken)) || res.Header.Get("ETag") != `"g-1"` {
 		t.Fatal("secret material exported or wrong ETag")
 	}
 }

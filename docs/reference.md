@@ -53,6 +53,7 @@ about request paths; encoded percent characters in query values remain supported
 | routes[].prefix | /v1/config; /v1/routes/{id} | boolean | no | false | rejected; PATCH removes optional fields | Segment-boundary prefix matcher; otherwise exact. |
 | routes[].priority | /v1/config; /v1/routes/{id} | integer | no | 0 | rejected; PATCH removes optional fields | Higher values win before host/path specificity; range -1000000 to 1000000. minimum=-1000000; maximum=1000000 |
 | routes[].request_timeout | /v1/config; /v1/routes/{id} | string | no | none / see description | inherit/default | Full request deadline; null inherits bootstrap, 0s explicitly enables long streams. pattern `^([0-9]+(\.[0-9]+)?(ns\|us\|µs\|ms\|s\|m\|h))+$` |
+| routes[].service_id | /v1/config; /v1/routes/{id} | string | no | none / see description | rejected; PATCH removes optional fields | Optional service label: ASCII letters, digits, underscore, or hyphen; preserves case and does not affect routing. maxLength=64; pattern `^[A-Za-z0-9_-]*$` |
 | routes[].strip_prefix | /v1/config; /v1/routes/{id} | boolean | no | false | rejected; PATCH removes optional fields | Remove matched prefix; requires prefix=true. |
 | routes[].upstream | /v1/config; /v1/routes/{id} | string | yes | none / see description | rejected; PATCH removes optional fields | Existing upstream ID. minLength=1; maxLength=64; pattern `^[A-Za-z0-9_-]{1,64}$` |
 | schema_version | /v1/config | integer | yes | none / see description | rejected; PATCH removes optional fields | Configuration contract version. enum=[1] |
@@ -66,6 +67,7 @@ about request paths; encoded percent characters in query values remain supported
 | upstreams[].max_idle_conns_per_host | /v1/config; /v1/upstreams/{id} | integer | no | 32 | rejected; PATCH removes optional fields | Idle connections per target; 0 selects default, range 1-100000. minimum=0; maximum=100000 |
 | upstreams[].proxy_from_environment | /v1/config; /v1/upstreams/{id} | boolean | no | false | rejected; PATCH removes optional fields | Explicitly enable HTTP_PROXY/HTTPS_PROXY/NO_PROXY. |
 | upstreams[].response_header_timeout | /v1/config; /v1/upstreams/{id} | string | no | "10s" | inherit/default | Wait for upstream response headers; zero disables. pattern `^([0-9]+(\.[0-9]+)?(ns\|us\|µs\|ms\|s\|m\|h))+$` |
+| upstreams[].service_id | /v1/config; /v1/upstreams/{id} | string | no | none / see description | rejected; PATCH removes optional fields | Optional service label: ASCII letters, digits, underscore, or hyphen; preserves case and does not affect routing. maxLength=64; pattern `^[A-Za-z0-9_-]*$` |
 | upstreams[].targets | /v1/config; /v1/upstreams/{id} | array | yes | none / see description | rejected; PATCH removes optional fields | At least one target, selected by lock-free round robin. minItems=1; maxItems=1024 |
 | upstreams[].targets[].id | /v1/config; /v1/upstreams/{id} | string | yes | none / see description | rejected; PATCH removes optional fields | Unique identifier within its upstream. minLength=1; maxLength=64; pattern `^[A-Za-z0-9_-]{1,64}$` |
 | upstreams[].targets[].url | /v1/config; /v1/upstreams/{id} | string | yes | none / see description | rejected; PATCH removes optional fields | Absolute http/https URL with optional base path; no userinfo, query, or fragment. |
@@ -92,6 +94,22 @@ about request paths; encoded percent characters in query values remain supported
 | --- | --- | --- | --- | --- |
 | sample_every | integer | no | 1 | Log one in N requests; range 1-1000000. Zero selects default. minimum=0; maximum=1000000 |
 
+## Handler options: body_limit
+
+`GET /v1/handler-types/body_limit/schema` (contract version 1).
+
+| Field | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| max_bytes | integer | yes | none / see description | Maximum request body bytes; cannot raise the process limit. Excess receives 413 before the response starts. minimum=1; maximum=1073741824 |
+
+## Handler options: concurrency_limit
+
+`GET /v1/handler-types/concurrency_limit/schema` (contract version 1).
+
+| Field | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| limit | integer | yes | none / see description | Maximum simultaneous requests per binding; excess receives 503 without queuing. minimum=1; maximum=1000000 |
+
 ## Handler options: headers
 
 `GET /v1/handler-types/headers/schema` (contract version 1).
@@ -99,17 +117,18 @@ about request paths; encoded percent characters in query values remain supported
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | request_remove | array | no | none / see description | Allowed outgoing request headers to remove. |
-| request_set | object | no | none / see description | Allowed outgoing request headers to set after hop-by-hop cleanup. |
+| request_set | object | no | none / see description | Allowed outgoing request headers to set after hop-by-hop cleanup; each value is bounded by limits.max_header_value_bytes. |
 | response_remove | array | no | none / see description | Allowed response headers to remove. |
-| response_set | object | no | none / see description | Allowed response headers to set. |
+| response_set | object | no | none / see description | Allowed response headers to set; each value is bounded by limits.max_header_value_bytes. |
 
-## Handler options: powered_by
+## Handler options: rate_limit
 
-`GET /v1/handler-types/powered_by/schema` (contract version 1).
+`GET /v1/handler-types/rate_limit/schema` (contract version 1).
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| value | string | yes | none / see description | X-Powered-By value, 1-128 Unicode characters with HTAB allowed and other ASCII controls rejected. minLength=1; maxLength=128; pattern `^[^\x00-\x08\x0a-\x1f\x7f]+$` |
+| burst | integer | yes | none / see description | Maximum immediately available tokens; excess receives 429 without queuing. minimum=1; maximum=1000000 |
+| requests_per_second | integer | yes | none / see description | Token refill rate per binding in requests per second. minimum=1; maximum=1000000 |
 
 ## Handler options: recover
 
@@ -126,6 +145,14 @@ about request paths; encoded percent characters in query values remain supported
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `{}` | object | yes | empty object | No options; unknown keys are rejected. |
+
+## Handler options: token_allowlist
+
+`GET /v1/handler-types/token_allowlist/schema` (contract version 1).
+
+| Field | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| token_envs | array | yes | none / see description | Unique environment references containing Bearer tokens of at least 32 bytes; values are never stored in configuration. Required in manage and serve, including disabled definitions. minItems=1; maxItems=64 |
 
 
 ## Bootstrap YAML
@@ -144,7 +171,7 @@ documents are rejected. No environment substitution is performed on YAML.
 | server.request_timeout | 15s | Inherited full request deadline; positive, at most 24h |
 | server.shutdown_timeout | 10s | Positive, at most 24h |
 | server.max_header_bytes | 16384 | 1024–1048576 bytes |
-| server.max_body_bytes | 16777216 | 1–1099511627776 bytes |
+| server.max_body_bytes | 16777216 | 1–1073741824 bytes |
 | server.max_in_flight | 2048 | 1–1000000 requests |
 | server.cert_file, server.key_file | empty | Both present or both absent; restart on change |
 | admin.listen | 127.0.0.1:9090 | Separate diagnostics bind address |
@@ -175,7 +202,13 @@ documents are rejected. No environment substitution is performed on YAML.
 | limits.max_connections | 100000 | 128–1000000; upper bound of upstream max_conns, max_idle_conns, max_idle_conns_per_host |
 | limits.max_priority | 1000000 | 1–10000000; route priority range is -max_priority to max_priority |
 | limits.max_sample_every | 1000000 | 1–10000000; upper bound of access_log sample_every |
-| limits.max_powered_characters | 128 | 1–1280 characters in a powered_by value |
+| limits.max_concurrent_requests | 1000000 | 1–10000000; upper bound of concurrency_limit.limit |
+| limits.max_requests_per_second | 1000000 | 1–10000000; upper bound of rate_limit.requests_per_second |
+| limits.max_burst | 1000000 | 1–10000000; upper bound of rate_limit.burst |
+| limits.max_token_references | 64 | 1–640; maximum token_allowlist environment references |
+| limits.max_token_bytes | 4096 | 32–40960; maximum bytes per referenced Bearer token; minimum token length remains 32 |
+| limits.max_header_value_bytes | 8192 | 1–81920; maximum bytes per custom request/response header value |
+| limits.max_route_body_bytes | 1073741824 | 1–1073741824; upper bound of body_limit.max_bytes; server.max_body_bytes still applies |
 | limits.max_identifier_length | 64 | 1–640 characters in route, upstream, target, and handler IDs |
 
 `limits` values bound publication and loading. Use identical `limits` on every `serve`

@@ -1,6 +1,7 @@
 # Verification
 
-Local verification was performed on 2026-11-08 with Go 1.27.3, macOS/amd64,
+Local verification was performed on 2026-11-08, with follow-up checks on 2026-11-10,
+using Go 1.27.3, macOS/amd64,
 Docker Engine 29.8.0, and real PostgreSQL 17.11. CI repeats correctness and container
 checks on Ubuntu. Run commands from the repository root.
 
@@ -23,7 +24,7 @@ checks on Ubuntu. Run commands from the repository root.
 | Every operational field | `TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres` | Passed, including TLS references, explicit zero/false, and ordering |
 | Request-path SQL | `TestDatabaseOutageAndNoRequestSQL` | 100 requests caused zero configuration pool acquisitions |
 | Live changes/outage | `TestRuntimeTrafficDuringPublicationAndOutage` | Zero traffic errors; summary in [benchmarks](benchmarks.md) |
-| Sabotage | `ROUTETUS_TEST_DATABASE_URL=... make sabotage` | Four deliberate behavior failures detected; sources restored |
+| Sabotage | `ROUTETUS_TEST_DATABASE_URL=... make sabotage` | 16 deliberate guard failures detected; sources restored |
 | Performance | See [benchmarks](benchmarks.md) | Measured results, method, and limits summarized |
 
 Integration tests require an administrative, disposable PostgreSQL connection with
@@ -50,7 +51,7 @@ and configuration paths before reading individual packages.
 | `internal/postgres/` | Database connections, migrations, revisions, notifications, and health monitoring |
 | `internal/runtime/` | Background synchronization, readiness, and replacement/retirement of active settings |
 | `internal/gateway/` | Compile settings into request handlers; match routes and proxy HTTP traffic |
-| `internal/middleware/`, `internal/extensions/` | Shared processing steps and the registered `powered_by` extension |
+| `internal/middleware/`, `internal/extensions/` | Shared processing steps and registered route policy implementations |
 | `internal/neterror/` | Safe connection-error categories used by process startup and the CLI |
 | `internal/testutil/`, package `*_test.go` files | Shared test fixtures and unit/HTTP tests beside their implementation |
 | `tests/integration/`, `tests/workflows/` | Real PostgreSQL/process integration tests and release-workflow contract tests |
@@ -126,13 +127,10 @@ cleanup. Serving readiness continues to use its runtime snapshot state.
 Boundary tests derive declared numeric, pattern, length, and collection constraints
 from schemas and exercise the real compiler/factories. Coverage includes priority,
 connection/default-zero limits, sampling, identifiers/methods, 1024 targets and 10000
-entities, plus Unicode and control characters in powered_by values. Common constants
-keep declarations and validators aligned. The previous byte-based powered_by limit
-rejected schema-valid Unicode strings; its pattern also admitted controls rejected by
-the factory. Values use the documented character limit and permit HTAB while
-rejecting other ASCII controls, matching the v0.1.0 header-value behavior. The
-pre-release blanket tab rejection was corrected before publishing v0.1.1; no manual
-tab-cleanup migration is required. Ordinary header handler behavior is unchanged.
+entities. Custom-header control-character tests permit interior HTAB while rejecting
+NUL, CR, LF, DEL, and other ASCII controls. Route-policy tests compare live schemas
+with compiler validation under customized bootstrap ceilings. Header value bounds
+count bytes, including multibyte Unicode, rather than characters.
 
 ## Contract and failure coverage
 
@@ -337,16 +335,13 @@ no publication/history/notification on API rejection, and last-good proxy traffi
 when privileged storage inserts the bad revision. The existing Problem schema is
 unchanged; no new response fields or dependencies are introduced.
 
-## powered_by legacy compatibility
+## Header startup compatibility
 
-The shared schema/factory pattern allows HTAB and still rejects NUL, CR, LF, DEL,
-and other invalid ASCII controls. An independent control-character regression checks
-both acceptance and rejection, alongside the existing Unicode/schema boundaries.
-`TestServeStartsWithLegacyPoweredHTAB` loads a stored legacy revision, starts a real
-serve process, observes readiness, and receives the unchanged interior tab through
-an actual proxied response header. Before the fix it failed with a startup timeout.
-RFC 9110 [field values](https://www.rfc-editor.org/rfc/rfc9110.html#section-5.5)
-permit interior HTAB; no validation looseness beyond the old header behavior is added.
+`TestServeStartsWithHeaderHTAB` starts a real serving process from a stored `headers`
+configuration and receives an unchanged interior tab through a proxied response.
+The test-only `powered_by` extension is removed; active definitions must be converted
+before upgrading as described in getting_started.md. Historical revisions are not
+rewritten, and a removed handler type cannot be compiled on rollback.
 
 ## Routetus naming checks
 
@@ -364,7 +359,7 @@ fresh test data rather than a compatibility migration. Existing releases remain 
 ## Handler binding isolation
 
 `TestHandlerBindingConcurrencyScope` uses real frontend/backend HTTP servers and a
-stateful test extension. It verifies saturation on one route does not exhaust another
+shipped `concurrency_limit` policy. It verifies saturation on one route does not exhaust another
 route using the same handler ID, while explicit global bindings share capacity. It
 also binds the same ID globally and locally to prove their state is separate, and
 checks capacity returns after the held request completes.
@@ -383,7 +378,7 @@ overrides. `TestBootstrapLimitsReachCompilerAndSchema` builds compilers through
 `app.Compiler`: for every limit, a configuration one above the default is rejected with
 defaults and accepted after raising that bootstrap limit, and the generated schemas report
 the raised values. `TestMigrationUpgradesVersionOneSchema` applies the version 1 SQL,
-checks that the new binary refuses it, migrates twice, and expects versions 1 and 2.
+checks that the new binary refuses it, migrates twice, and expects versions 1, 2, and 3.
 `TestRaisedConnectionLimitPersists` publishes and loads 1000000 upstream connections and
 checks the remaining `>= 0` constraints. Sabotage: replacing `config.SetLimits(c.Limits)`
 with defaults → `TestBootstrapLimitsReachCompilerAndSchema` failed; skipping migration 002
@@ -435,3 +430,40 @@ overlay: `TestResourceEditsAndUpstreamDeletion` failed for both resource types. 
 temporary browser response override replaced the edited-field PATCH with the full old
 route: the concurrent-priority assertion failed (`42` instead of `43`). The unchanged
 implementation passes both checks. Working overlays and screenshots are not published.
+
+## Route policy verification
+
+The HTTP/registry regressions exercise concurrency rejection and released permits,
+independent bindings, token-bucket burst/refill, and parallel admission. Rate timing
+uses the standard library virtual clock (`testing/synctest`) rather than wall sleeps.
+Body-limit tests send both known-length and chunked requests through real proxy/backend
+servers, confirm untouched/disabled routes retain the process default, and confirm a
+larger route policy cannot bypass the process ceiling.
+
+Token tests cover both allowed tokens, missing/wrong/oversized credentials, duplicate
+Authorization headers, query-only credentials, invalid environment references, empty
+allowlists, weak/missing secrets, disabled definition validation, and secret-free errors.
+`TestRouteTokensNeverReachBackendOrLogs` captures debug-level logs around actual proxy
+requests: allowed and denied token values never appear, the backend receives no route
+Authorization, and an unprotected route remains usable without a token.
+
+Bootstrap tests cover every new ceiling and compare numeric handler schemas with
+acceptance at and beyond custom boundaries. The maximum process and route body value
+is 1 GiB, while the default process body limit remains 16 MiB. Header bounds use bytes.
+GUI browser checks verify registered route configurations and both manual/system
+appearance, including neutral graphite dark surfaces.
+
+`TestEveryOperationalFieldRoundTripsThroughAPIAndPostgres` persists all five policy
+definitions with environment references and both Service ID fields, checking values
+and casing without exposing the route token. `TestMigrationFromVersionTwoPreservesRevision`
+checks old-schema rejection, repeated migration, unchanged revision/generation and
+configured values, and empty service labels on an existing sealed revision.
+`TestOptionalServiceIDsAreAlphanumeric` rejects spaces, Unicode, and overlong labels;
+letters of either case, digits, underscores, and hyphens are accepted.
+The browser flow creates, edits, clears, and searches Service IDs on both tabs.
+
+All 16 scripted sabotage cases were observed failing their named regressions, including
+the ten route-policy/service-metadata guards. Restored sources passed the normal checks.
+One PostgreSQL traffic run overlapped container builds and failed the deliberately short
+250 ms freshness guard; the isolated full integration run passed without changing that
+guard. Production freshness budgets still require validation under deployment load.
