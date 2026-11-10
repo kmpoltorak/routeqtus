@@ -91,20 +91,14 @@ docker compose --profile ui up -d --build ui
 
 Open **http://127.0.0.1:9180**. The Routes and Upstreams tabs let you list, add, edit,
 and delete each resource. Delete referring routes before deleting an upstream. The route
-form's **Configure handler** action creates settings for a type already registered by
-the server. New handler types require Go code, registration, and a rebuilt server.
-Handler options use typed fields derived from its schema;
-structured map/array options use JSON fields. The top-bar **Handler guide** explains
-the available types and their options.
-
-Global handlers are shown separately and apply automatically; select only additional
-route handlers. Choose **Light**, **Dark**, or **System** in the header's Theme selector.
+form attaches existing route handler configurations; it does not create or edit handlers.
+The top-bar **Handler guide** describes only those available route handlers.
+Choose **Light**, **Dark**, or **System** in the header's Theme selector.
 Your browser remembers the choice when local storage is available.
 
 It has no login screen; the Management API token stays in the GUI container.
 Configuration conflicts refresh the list and preserve your form for review and retry.
-Creating a handler gives its settings an ID; selecting that ID attaches it to the
-route. Create a separate ID when a route needs different option values. New handler
+Selecting a configured handler ID attaches it to the route. New handler
 types still require code registration and a binary deployment.
 
 The `ui` profile builds its own image from this checkout. It is not part of the

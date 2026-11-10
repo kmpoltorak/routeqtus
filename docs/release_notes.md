@@ -4,13 +4,14 @@
 
 - The local GUI offers Light, Dark, and System appearance choices and remembers the
   preference in browser local storage when available.
-- The route form separates automatic global handlers from additional route selections.
-  Existing global+route bindings remain visible for explicit removal.
+- The GUI only attaches existing route handler configurations. It has no handler
+  creation form or write endpoint; global handlers are omitted from the panel and guide.
+  Hidden existing global+route bindings are preserved when editing routes.
 
 - Add an optional, separate local route GUI container using the Management API. It
-  provides Routes and Upstreams tabs with list/add/edit/delete, and creates configured handlers with generation
-  preconditions. Handler forms use their schemas, and a small guide shows registry
-  descriptions. Credentials stay server-side. The gateway image/archive exclude it.
+  provides Routes and Upstreams tabs with list/add/edit/delete and generation
+  preconditions. A small guide describes the available route handlers.
+  Credentials stay server-side. The gateway image/archive exclude it.
 - Handler type metadata adds an optional `description` for discoverable help text.
 
 - Give each route handler binding independent runtime state, even when routes reuse

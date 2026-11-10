@@ -118,7 +118,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.proxy(w, r, "/v1/"+strings.TrimPrefix(r.URL.Path, "/api/"), nil)
-	case "/api/routes", "/api/upstreams", "/api/handlers":
+	case "/api/routes", "/api/upstreams":
 		if r.Method != "POST" {
 			w.Header().Set("Allow", "POST")
 			problem(w, 405, "Method not allowed")

@@ -510,8 +510,6 @@ legend {
   opacity: .5;
   cursor: default;
 }
-.global-handlers { margin:8px 0 14px; }
-.global-handler { font-size:10px; color:inherit; border:1px solid #dfe7e2; border-radius:6px; padding:5px 8px; }
 .matching-options {
   border-top: 1px solid #edf1ee;
   padding-top: 16px;
@@ -730,7 +728,6 @@ a:focus-visible {
 .text-button { border:0; padding:0; background:none; color:#38684e; font:inherit; font-size:11px; font-weight:600; cursor:pointer; text-decoration:underline; text-decoration-color:#b9cdbf; text-underline-offset:3px; }
 .field-caption { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:15px 0 6px; }
 .field-caption label { font-size:11px; font-weight:650; color:#46614e; }
-.new-handler { margin:0 0 10px; }
 dialog { color:#243e31; border:1px solid #dce6df; border-radius:14px; padding:24px; width:min(500px,calc(100vw - 32px)); max-height:88vh; overflow-y:auto; box-shadow:0 24px 80px #173b2833; }
 dialog::backdrop { background:#18352c55; backdrop-filter:blur(3px); }
 .dialog-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
@@ -738,7 +735,7 @@ dialog::backdrop { background:#18352c55; backdrop-filter:blur(3px); }
 .dialog-intro { font-size:12px; color:#7b8d80; margin:10px 0 20px; }
 .close-button { border:0; background:#f0f5f1; border-radius:6px; color:#6b8171; font-size:21px; width:29px; height:29px; cursor:pointer; }
 dialog form { padding:0; }
-dialog label,.parameter-fields label { display:block; font-size:11px; font-weight:650; color:#46614e; margin:16px 0 6px; }
+dialog label { display:block; font-size:11px; font-weight:650; color:#46614e; margin:16px 0 6px; }
 dialog input,dialog select,dialog textarea { display:block; width:100%; font-size:12px; }
 textarea { resize:vertical; border:1px solid #dce5de; border-radius:7px; padding:10px; font:inherit; color:#314e3e; outline:none; }
 textarea:focus { border-color:#668f77; box-shadow:0 0 0 3px #eaf3ed; }
@@ -750,7 +747,6 @@ textarea:focus { border-color:#668f77; box-shadow:0 0 0 3px #eaf3ed; }
 .guide-item p,.guide-item li { font-size:12px; color:#74877a; }
 .guide-item p { margin:5px 0; }
 .guide-item ul { padding-left:18px; margin:10px 0; }
-.parameter-fields { margin-top:14px; border-top:1px solid #edf1ee; }
 @media(max-width:780px) { .header-actions { gap:16px; } .header-actions .text-button { font-size:10px; } dialog { padding:20px; } }
 
 .delete-link { color:#a55b45; text-decoration-color:#dfc0b5; }
@@ -776,7 +772,7 @@ textarea:focus { border-color:#668f77; box-shadow:0 0 0 3px #eaf3ed; }
   .hint, .optional, .form-footer, footer, .dialog-intro,
   .guide-item p, .guide-item li, .table-wrap td:nth-child(n):before { color:#9bafa4; }
   .stat>span, form>label, legend, .field-caption label, dialog label,
-  .parameter-fields label, .check, .empty h3 { color:#c0d1c7; }
+  .check, .empty h3 { color:#c0d1c7; }
   .badge, .empty-symbol, .close-button, .delete-target, .tabs,
   .method-options span, .handler-choice { background:#202f28; border-color:#375044; color:#b5c8bc; }
   .tabs button { color:#9bafa4; }
@@ -793,7 +789,7 @@ textarea:focus { border-color:#668f77; box-shadow:0 0 0 3px #eaf3ed; }
   input[readonly] { background:#23332b; color:#abc0b2; }
   .search-wrap input, th { background:#152019; border-color:#304238; }
   th { color:#abc0b2; }
-  td, .table-wrap tr, .matching-options, .parameter-fields, .guide-item, .global-handler { border-color:#304238; }
+  td, .table-wrap tr, .matching-options, .guide-item { border-color:#304238; }
   tbody tr:hover { background:#203329; }
   .method-tag { background:#1d3b2b; color:#9fd9b3; }
   .method-tag.post { background:#25324b; color:#aec5ff; }

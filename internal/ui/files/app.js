@@ -2,7 +2,7 @@
 
 const $ = (selector) => document.querySelector(selector);
 const form = $("#route-form");
-const state = { config: null, etag: "", saving: false, loading: false, types: [], deleting: null, routeEdit: null, upstreamEdit: null };
+const state = { config: null, etag: "", saving: false, loading: false, deleting: null, routeEdit: null, upstreamEdit: null };
 
 function notice(message, error = false) {
   const box = $("#notice");
@@ -42,6 +42,7 @@ function renderRoutes() {
   const body = $("#routes");
   body.replaceChildren();
   const query = $("#search").value.trim().toLowerCase();
+  const visibleHandlers = new Set(routeHandlers().map((handler) => handler.id));
   const routes = (state.config?.routes || []).filter((route) => [route.id, route.path, route.upstream].some((value) => value.toLowerCase().includes(query)));
   $("#visible-count").textContent = String(routes.length);
   $("#route-table").hidden = !routes.length;
@@ -74,36 +75,30 @@ function renderRoutes() {
     row.insertCell().append(destination);
     const handlers = document.createElement("span");
     handlers.className = "handler-summary";
-    handlers.textContent = route.handlers?.length ? route.handlers.join(", ") : "None";
+    handlers.textContent = route.handlers.filter((id) => visibleHandlers.has(id)).join(", ") || "None";
     row.insertCell().append(handlers);
     row.insertCell().append(action("Edit", "route " + route.id, () => editRoute(route)), action("Delete", "route " + route.id, () => openDelete("routes", route.id)));
     body.append(row);
   }
 }
 
+function routeHandlers() {
+  const globals = new Set(state.config?.global_handlers || []);
+  return (state.config?.handlers || []).filter((handler) => !globals.has(handler.id));
+}
+
 function renderChoices(selectedHandlers = null) {
   const previousUpstream = $("#upstream").value;
   const selected = new Set(selectedHandlers || [...form.querySelectorAll('input[name="handlers"]:checked')].map((input) => input.value));
+  const previousChoices = new Set([...form.querySelectorAll('input[name="handlers"]')].map((input) => input.value));
   $("#upstream").replaceChildren(new Option("Choose an upstream", ""));
   for (const upstream of state.config.upstreams) $("#upstream").append(new Option(upstream.id, upstream.id));
   if (state.config.upstreams.some((item) => item.id === previousUpstream)) $("#upstream").value = previousUpstream;
   $("#upstream-hint").textContent = state.config.upstreams.length ? "Destination groups come from the Management API." : "No upstreams configured. Add one through the Management API first.";
   const choices = $("#handler-options");
   choices.replaceChildren();
-  const globals = new Set(state.config.global_handlers || []);
-  const existingBindings = new Set([...selected, ...(state.routeEdit?.original.handlers || [])]);
-  const definitions = new Map(state.config.handlers.map((handler) => [handler.id, handler]));
-  const summary = $("#global-handlers");
-  summary.replaceChildren();
-  for (const id of globals) {
-    const item = element("span", id + (definitions.get(id)?.enabled === false ? " · disabled" : " · automatic"), "global-handler");
-    item.setAttribute("role", "listitem");
-    summary.append(item);
-  }
-  $("#global-handler-section").hidden = !globals.size;
-  for (const handler of state.config.handlers) {
-    const global = globals.has(handler.id);
-    if (global && !existingBindings.has(handler.id)) continue;
+  const original = new Set(state.routeEdit?.original.handlers || []);
+  for (const handler of routeHandlers()) {
     const label = document.createElement("label");
     label.className = "handler-choice";
     label.title = handler.type + (handler.enabled === false ? " (disabled)" : "");
@@ -111,17 +106,15 @@ function renderChoices(selectedHandlers = null) {
     input.type = "checkbox";
     input.name = "handlers";
     input.value = handler.id;
-    input.disabled = handler.enabled === false && !global;
-    input.checked = selected.has(handler.id);
-    label.append(input, document.createTextNode(handler.id + (global ? " · also global; uncheck to remove route binding" : input.disabled ? " · disabled" : "")));
-    if (global && !input.checked) input.disabled = true;
-    if (global) input.addEventListener("change", () => { if (!input.checked) input.disabled = true; });
+    input.disabled = handler.enabled === false;
+    input.checked = selected.has(handler.id) || (!previousChoices.has(handler.id) && original.has(handler.id));
+    label.append(input, document.createTextNode(handler.id + (input.disabled ? " · disabled" : "")));
     choices.append(label);
   }
   if (!choices.children.length) {
     const empty = document.createElement("p");
     empty.className = "hint";
-    empty.textContent = "No additional handlers configured.";
+    empty.textContent = "No route handlers configured.";
     choices.append(empty);
   }
 }
@@ -138,7 +131,7 @@ async function load(announce = false) {
     state.etag = response.headers.get("ETag") || "";
     $("#route-count").textContent = String(config.routes.length);
     $("#upstream-count").textContent = String(config.upstreams.length);
-    $("#handler-count").textContent = String(config.handlers.length);
+    $("#handler-count").textContent = String(routeHandlers().length);
     renderRoutes();
     renderUpstreams();
     renderChoices();
@@ -183,6 +176,8 @@ form.addEventListener("submit", async (event) => {
   const editing = state.routeEdit;
   const selected = new Set(route.handlers);
   if (editing) {
+    const visible = new Set(routeHandlers().map((handler) => handler.id));
+    for (const id of editing.original.handlers) if (!visible.has(id)) selected.add(id);
     route.handlers = [...editing.original.handlers.filter((id) => selected.has(id)), ...route.handlers.filter((id) => !editing.original.handlers.includes(id))];
     route.methods = [...(editing.original.methods || []).filter((method) => methods.includes(method)), ...methods.filter((method) => !(editing.original.methods || []).includes(method))];
   }
@@ -341,7 +336,6 @@ async function handlerTypes() {
   const response = await fetch("/api/handler-types", { cache: "no-store" });
   const types = await readResponse(response);
   if (!Array.isArray(types)) throw new Error("Handler types could not be read.");
-  state.types = types;
   return types;
 }
 
@@ -351,9 +345,12 @@ $("#handler-guide").addEventListener("click", async () => {
   $("#guide-dialog").showModal();
   try {
     content.replaceChildren();
-    for (const type of await handlerTypes()) {
+    const configured = routeHandlers();
+    const names = new Set(configured.map((handler) => handler.type));
+    for (const type of (await handlerTypes()).filter((type) => names.has(type.name))) {
       const card = element("section", undefined, "guide-item");
       card.append(element("h3", type.name), element("p", type.description || "Custom registered handler. Review its option descriptions before use."));
+      card.append(element("p", "Configurations: " + configured.filter((handler) => handler.type === type.name).map((handler) => handler.id).join(", ")));
       const options = Object.entries(type.schema?.properties || {});
       if (!options.length) card.append(element("p", "No options."));
       else {
@@ -363,6 +360,7 @@ $("#handler-guide").addEventListener("click", async () => {
       }
       content.append(card);
     }
+    if (!content.children.length) content.append(element("p", "No route-specific handlers configured.", "hint"));
   } catch (error) { content.replaceChildren(element("p", error.message, "notice error")); }
 });
 
@@ -402,62 +400,6 @@ $("#add-target").addEventListener("click", () => {
   let index = 1;
   while (ids.has("target-" + index)) index++;
   addTarget("target-" + index);
-});
-
-function renderParameters() {
-  const type = state.types.find((item) => item.name === $("#handler-type").value);
-  const fields = $("#handler-fields");
-  fields.replaceChildren();
-  $("#handler-description").textContent = type?.description || "";
-  if (!type) return;
-  for (const [name, property] of Object.entries(type.schema?.properties || {})) {
-    const id = "option-" + fields.children.length;
-    const label = element("label", name.replaceAll("_", " "));
-    label.htmlFor = id;
-    let input;
-    let kind = property.type || "object";
-    if (Array.isArray(property.enum) || kind === "boolean") {
-      input = document.createElement("select");
-      input.append(new Option("Use default", ""));
-      for (const value of property.enum || [true, false]) input.append(new Option(String(value), JSON.stringify(value)));
-      kind = "enum";
-    } else if (kind === "integer" || kind === "number") {
-      input = document.createElement("input");
-      input.type = "number";
-      input.step = kind === "integer" ? "1" : "any";
-      if (property.minimum !== undefined) input.min = property.minimum;
-      if (property.maximum !== undefined) input.max = property.maximum;
-    } else if (kind === "string") {
-      input = document.createElement("input");
-      input.type = "text";
-    } else {
-      input = document.createElement("textarea");
-      input.rows = 3;
-      input.placeholder = kind === "array" ? "[]" : "{}";
-      kind = "json";
-    }
-    input.id = id;
-    input.dataset.option = name;
-    input.dataset.kind = kind;
-    input.required = (type.schema?.required || []).includes(name);
-    if (property.default !== undefined && property.default !== null) input.value = kind === "json" || kind === "enum" ? JSON.stringify(property.default) : String(property.default);
-    fields.append(label, input);
-    if (property.description) fields.append(element("p", property.description, "hint"));
-  }
-  if (!fields.children.length) fields.append(element("p", "This handler has no options.", "hint"));
-}
-
-$("#handler-type").addEventListener("change", renderParameters);
-$("#new-handler").addEventListener("click", async () => {
-  dialogError("#handler-error", "");
-  $("#handler-dialog").showModal();
-  try {
-    const selected = $("#handler-type").value;
-    $("#handler-type").replaceChildren(new Option("Choose a registered type", ""));
-    for (const type of await handlerTypes()) $("#handler-type").append(new Option(type.name, type.name));
-    $("#handler-type").value = selected;
-    renderParameters();
-  } catch (error) { dialogError("#handler-error", error.message); }
 });
 
 async function createResource(path, payload, dialog, errorBox, onCreated, editing = null) {
@@ -502,25 +444,6 @@ $("#upstream-form").addEventListener("submit", async (event) => {
     $("#upstream").value = id;
     notice('Upstream "' + id + '" ' + (editing ? "updated" : "created and selected") + '.');
   }, editing);
-});
-
-$("#handler-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const type = state.types.find((item) => item.name === $("#handler-type").value);
-  if (!type) { dialogError("#handler-error", "Choose a registered handler type."); return; }
-  const options = Object.create(null);
-  try {
-    for (const input of $("#handler-fields").querySelectorAll("[data-option]")) {
-      if (input.value === "" && !input.required) continue;
-      const kind = input.dataset.kind;
-      options[input.dataset.option] = kind === "json" || kind === "enum" ? JSON.parse(input.value) : kind === "integer" || kind === "number" ? Number(input.value) : input.value;
-    }
-  } catch { dialogError("#handler-error", "Enter valid JSON in the structured option fields."); return; }
-  const id = $("#handler-id").value.trim();
-  await createResource("/api/handlers", { id, type: type.name, version: type.version, options }, "#handler-dialog", "#handler-error", () => {
-    for (const input of form.querySelectorAll('input[name="handlers"]')) if (input.value === id) input.checked = true;
-    notice('Handler configuration "' + id + '" created and selected.');
-  });
 });
 
 $("#confirm-delete").addEventListener("click", async () => {

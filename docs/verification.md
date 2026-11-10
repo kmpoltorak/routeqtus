@@ -383,7 +383,7 @@ Management API TLS. They use real HTTP servers and do not need the application d
 
 CI starts the optional GUI container after initializing its disposable demo, verifies
 its API connection, and runs `tests/ui/browser.cjs` with Playwright 1.65.0 and Chrome.
-Browser checks exercise the handler guide, numeric handler options, upstream registration,
+Browser checks exercise the route handler guide, existing-handler attachment, upstream registration,
 Routes/Upstreams tabs, CRUD and filtering, cancellation, stale generation refresh and retry,
 preserved advanced fields, handler/method order, stable target IDs, target-array conflicts,
 referenced-upstream deletion rejection (including a late concurrent reference), invalid-route
@@ -394,12 +394,13 @@ build step. The production image check rejects a leaked GUI executable.
 `tests/ui/theme.cjs` checks Light/Dark/System selection, live OS changes in System
 mode, explicit overrides, persistence after reload, invalid preferences, and blocked
 storage. It checks rendered page/card/input/dialog/tab/error colors. The selector
-regression failed before the control existed. `tests/ui/handlers.cjs` checks automatic
-global summaries, disabled-global labels, and their exclusion from new route choices;
-the CRUD flow also checks preservation and removal of existing double bindings.
-Sabotage overrides that restored global checkboxes and removed preference persistence
-failed the selection and reload assertions respectively. The normal implementation
-passes both checks. Overrides and screenshots remain private working material.
+regression failed before the control existed. `tests/ui/handlers.cjs` checks that handler
+creation and global information are absent, choices/count/guide contain only route
+configurations, disabled bindings remain checked, and the empty-handler state is usable.
+The CRUD flow verifies that changing visible bindings preserves hidden legacy bindings.
+HTTP tests reject handler creation through the GUI proxy. Sabotage overrides restoring
+global types in the guide or dropping hidden bindings failed the guide and preservation
+checks respectively. Overrides and screenshots remain private working material.
 
 To repeat the browser check, install Playwright into an ignored or temporary tool directory,
 initialize a disposable demo with the GUI profile, and run from the repository root:
