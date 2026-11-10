@@ -147,7 +147,7 @@ handler binding per route. Publication timings include validation/compilation an
 
 These are single observed runs. The race-detector run also passed: publication/load
 were 0.779s/0.279s for 2000 routes and 7.498s/1.309s for 10000 routes. Do not treat the
-structural 10000-entity cap as a universal capacity promise or assume the default 2s
+default 10000-entity cap (`limits.max_entities`) as a universal capacity promise or assume the default 2s
 budget fits it. Compilation currently checks route conflicts with a quadratic scan;
 that control-plane cost is included in publication, not in the SQL timeout.
 

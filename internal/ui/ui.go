@@ -23,7 +23,8 @@ import (
 //go:embed files/*
 var assets embed.FS
 
-var resourceID = regexp.MustCompile(config.IdentifierPattern)
+// The GUI has no bootstrap limits; it gates path safety and the Management API enforces length.
+var resourceID = regexp.MustCompile(fmt.Sprintf(`^[A-Za-z0-9_-]{1,%d}$`, config.IdentifierLengthCeiling))
 
 type Handler struct {
 	api         *url.URL

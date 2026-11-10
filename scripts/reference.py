@@ -44,7 +44,7 @@ intro = """# Configuration reference
 
 | Source | Contains | Changes take effect |
 | --- | --- | --- |
-| Bootstrap YAML | Listeners, environment references, process limits, synchronization | Restart |
+| Bootstrap YAML | Listeners, environment references, process and configuration limits, synchronization | Restart |
 | PostgreSQL revision | Routes, targets, upstream transport/TLS, handlers, forwarding trust, metrics | Snapshot reload |
 | Environment | DSNs, management/admin tokens, referenced upstream TLS material | Restart/recompile as documented |
 
@@ -141,6 +141,23 @@ documents are rejected. No environment substitution is performed on YAML.
 | config_sync.poll_interval | 10s | Positive, at most 24h; serve synchronization jitter ±10%; manage database-health sampling uses this interval |
 | config_sync.max_staleness | 5m | Positive, at most 24h |
 | config_sync.notifications | true | One dedicated session; polling always remains enabled |
+| limits.max_entities | 10000 | 1–100000 routes, upstreams, and handlers, each counted separately per revision |
+| limits.max_targets | 1024 | 1–10240 targets per upstream |
+| limits.max_connections | 100000 | 128–1000000; upper bound of upstream max_conns, max_idle_conns, max_idle_conns_per_host |
+| limits.max_priority | 1000000 | 1–10000000; route priority range is -max_priority to max_priority |
+| limits.max_sample_every | 1000000 | 1–10000000; upper bound of access_log sample_every |
+| limits.max_powered_characters | 128 | 1–1280 characters in a powered_by value |
+| limits.max_identifier_length | 64 | 1–640 characters in route, upstream, target, and handler IDs |
+
+`limits` values bound publication and loading. Use identical `limits` on every `serve`
+and `manage` process: a serving process with lower limits rejects a revision that
+`manage` published, keeps its last valid snapshot, and becomes stale after
+`config_sync.max_staleness`; a starting `serve` process fails its startup timeout.
+Lower limits only after the active revision fits them. Route conflict checks scan
+route pairs, so compilation time grows quadratically with routes; measure before raising
+`max_entities` (see benchmarks.md#large-revision-publication).
+The OpenAPI document served by `manage` reports its own limits; `docs/openapi.json`
+shows the defaults.
 
 All listener strings must differ. Valid syntax does not reserve a port; listener
 conflicts and unreadable certificates are startup errors. `check` is offline and

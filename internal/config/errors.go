@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -47,8 +46,6 @@ func FieldErrors(err error) []FieldError {
 	}
 }
 
-var validErrorID = regexp.MustCompile(IdentifierPattern)
-
 func (c Config) WithErrorContext(err error) error {
 	fields := FieldErrors(err)
 	if len(fields) == 0 {
@@ -91,7 +88,7 @@ func (c Config) WithErrorContext(err error) error {
 			}
 		}
 		for _, id := range []*string{&f.RouteID, &f.UpstreamID, &f.HandlerID} {
-			if !validErrorID.MatchString(*id) {
+			if !ValidID(*id) {
 				*id = ""
 			}
 		}

@@ -10,17 +10,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kmpoltorak/routetus/internal/config"
 	"go.yaml.in/yaml/v4"
 )
 
 type Config struct {
-	Version    int        `yaml:"version"`
-	Server     Server     `yaml:"server"`
-	Admin      Admin      `yaml:"admin"`
-	Management Management `yaml:"management"`
-	Logging    Logging    `yaml:"logging"`
-	Postgres   Postgres   `yaml:"postgres"`
-	Sync       Sync       `yaml:"config_sync"`
+	Version    int           `yaml:"version"`
+	Server     Server        `yaml:"server"`
+	Admin      Admin         `yaml:"admin"`
+	Management Management    `yaml:"management"`
+	Logging    Logging       `yaml:"logging"`
+	Postgres   Postgres      `yaml:"postgres"`
+	Sync       Sync          `yaml:"config_sync"`
+	Limits     config.Limits `yaml:"limits"`
 }
 type Server struct {
 	Listen            string `yaml:"listen"`
@@ -78,6 +80,7 @@ func Defaults() Config {
 		Logging:    Logging{Level: "info", Format: "json"},
 		Postgres:   Postgres{DSNEnv: "DATABASE_URL", MaxConns: 4, ConnectTimeout: "3s", QueryTimeout: "2s", MaxConnLifetime: "30m"},
 		Sync:       Sync{StartupTimeout: "30s", PollInterval: "10s", MaxStaleness: "5m", Notifications: true},
+		Limits:     config.DefaultLimits,
 	}
 }
 
@@ -182,7 +185,7 @@ func (c Config) Validate() error {
 	default:
 		return fmt.Errorf("logging.level must be debug, info, warn, or error")
 	}
-	return nil
+	return c.Limits.Validate()
 }
 func Loopback(address string) bool {
 	host, _, _ := net.SplitHostPort(address)

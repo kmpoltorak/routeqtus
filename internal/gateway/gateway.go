@@ -55,11 +55,11 @@ type pool struct {
 	transport *http.Transport
 }
 
-var identifier = regexp.MustCompile(config.IdentifierPattern)
 var method = regexp.MustCompile(config.HTTPMethodPattern)
 
 func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	s := &Snapshot{limits: c.Limits}
+	limits := config.CurrentLimits()
 	defer func() {
 		if err != nil {
 			s.Close()
@@ -69,8 +69,8 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	if input.SchemaVersion != 1 {
 		return nil, config.Invalid("/schema_version", "unsupported version")
 	}
-	if len(input.Routes) > config.MaxEntities || len(input.Upstreams) > config.MaxEntities || len(input.Handlers) > config.MaxEntities {
-		return nil, config.Invalid("/", fmt.Sprintf("at most %d routes, upstreams, or handlers", config.MaxEntities))
+	if len(input.Routes) > limits.MaxEntities || len(input.Upstreams) > limits.MaxEntities || len(input.Handlers) > limits.MaxEntities {
+		return nil, config.Invalid("/", fmt.Sprintf("at most %d routes, upstreams, or handlers", limits.MaxEntities))
 	}
 	d, e := input.Effective()
 	if e != nil {
@@ -89,14 +89,14 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	for i, u := range d.Upstreams {
 		entityErr := func() error {
 			field := fmt.Sprintf("/upstreams/%d", i)
-			if !identifier.MatchString(u.ID) || pools[u.ID] != nil {
+			if !config.ValidID(u.ID) || pools[u.ID] != nil {
 				return config.Invalid(field+"/id", "invalid or duplicate upstream ID")
 			}
-			if len(u.Targets) < 1 || len(u.Targets) > config.MaxTargets {
-				return config.Invalid(field+"/targets", fmt.Sprintf("must have 1-%d targets", config.MaxTargets))
+			if len(u.Targets) < 1 || len(u.Targets) > limits.MaxTargets {
+				return config.Invalid(field+"/targets", fmt.Sprintf("must have 1-%d targets", limits.MaxTargets))
 			}
 			for _, n := range []int{u.MaxConns, u.MaxIdleConns, u.MaxIdleConnsPerHost} {
-				if n < 1 || n > config.MaxConnections {
+				if n < 1 || n > limits.MaxConnections {
 					return config.Invalid(field, "connection limit outside range")
 				}
 			}
@@ -112,7 +112,7 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 			p := &pool{transport: t}
 			ids := map[string]bool{}
 			for j, target := range u.Targets {
-				if !identifier.MatchString(target.ID) || ids[target.ID] {
+				if !config.ValidID(target.ID) || ids[target.ID] {
 					return config.Invalid(fmt.Sprintf("%s/targets/%d/id", field, j), "invalid or duplicate target ID")
 				}
 				ids[target.ID] = true
@@ -138,7 +138,7 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	for i, h := range d.Handlers {
 		entityErr := func() error {
 			field := fmt.Sprintf("/handlers/%d", i)
-			if !identifier.MatchString(h.ID) {
+			if !config.ValidID(h.ID) {
 				return config.Invalid(field+"/id", "invalid handler ID")
 			}
 			if _, ok := handlers[h.ID]; ok {
@@ -188,14 +188,14 @@ func (c *Compiler) Compile(input config.Config) (out *Snapshot, err error) {
 	for i, r := range d.Routes {
 		entityErr := func() error {
 			field := fmt.Sprintf("/routes/%d", i)
-			if !identifier.MatchString(r.ID) || ids[r.ID] {
+			if !config.ValidID(r.ID) || ids[r.ID] {
 				return config.Invalid(field+"/id", "invalid or duplicate route ID")
 			}
 			ids[r.ID] = true
 			if r.Path == "" || !strings.HasPrefix(r.Path, "/") || !validPath(r.Path, "") || strings.Contains(r.Path, "%") || strings.HasSuffix(r.Path, "/") && r.Path != "/" && r.Prefix {
 				return config.Invalid(field+"/path", "invalid or ambiguous route path")
 			}
-			if r.Priority < -config.MaxPriority || r.Priority > config.MaxPriority {
+			if r.Priority < -limits.MaxPriority || r.Priority > limits.MaxPriority {
 				return config.Invalid(field+"/priority", "outside range")
 			}
 			if r.StripPrefix && !r.Prefix {

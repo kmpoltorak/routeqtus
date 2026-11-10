@@ -21,6 +21,13 @@ import (
 
 //go:embed migrations/001.sql
 var migration string
+
+//go:embed migrations/002.sql
+var connectionBoundsMigration string
+
+// SchemaVersion is the database schema version this binary requires.
+const SchemaVersion = 2
+
 var ErrConfiguration = errors.New("postgres configuration error")
 var ErrPrecondition = errors.New("generation precondition failed")
 var ErrNotFound = errors.New("revision not found")
@@ -108,7 +115,7 @@ func (s *Store) CheckSchema(ctx context.Context) error {
 	defer cancel()
 	var v int
 	err := s.Pool.QueryRow(ctx, "SELECT max(version) FROM routetus.schema_migrations").Scan(&v)
-	if err != nil || v != 1 {
+	if err != nil || v != SchemaVersion {
 		return fmt.Errorf("unsupported or missing database schema; run migrate")
 	}
 	return nil
@@ -128,18 +135,21 @@ func (s *Store) Migrate(ctx context.Context) error {
 	if err = tx.QueryRow(ctx, "SELECT to_regclass('routetus.schema_migrations') IS NOT NULL").Scan(&exists); err != nil {
 		return err
 	}
-	if exists {
-		var v int
-		if err = tx.QueryRow(ctx, "SELECT max(version) FROM routetus.schema_migrations").Scan(&v); err != nil {
-			return err
-		}
-		if v != 1 {
-			return fmt.Errorf("unsupported schema version")
-		}
-	} else {
+	if !exists {
 		if _, err = tx.Exec(ctx, migration); err != nil {
 			return err
 		}
+	}
+	var v int
+	if err = tx.QueryRow(ctx, "SELECT max(version) FROM routetus.schema_migrations").Scan(&v); err != nil {
+		return err
+	}
+	if v == 1 {
+		if _, err = tx.Exec(ctx, connectionBoundsMigration); err != nil {
+			return err
+		}
+	} else if v != SchemaVersion {
+		return fmt.Errorf("unsupported schema version")
 	}
 	return tx.Commit(ctx)
 }

@@ -34,3 +34,12 @@ config_sync:
   poll_interval: "10s"
   max_staleness: "5m"
   notifications: true
+# Keep limits identical on every serve and manage process.
+limits:
+  max_entities: 10000
+  max_targets: 1024
+  max_connections: 100000
+  max_priority: 1000000
+  max_sample_every: 1000000
+  max_powered_characters: 128
+  max_identifier_length: 64

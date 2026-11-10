@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/kmpoltorak/routetus/internal/bootstrap"
+	"github.com/kmpoltorak/routetus/internal/config"
 	"github.com/kmpoltorak/routetus/internal/configservice"
 	"github.com/kmpoltorak/routetus/internal/extensions"
 	"github.com/kmpoltorak/routetus/internal/gateway"
@@ -28,6 +29,7 @@ import (
 )
 
 func Compiler(c bootstrap.Config, logger *slog.Logger) (*gateway.Compiler, error) {
+	config.SetLimits(c.Limits)
 	r := middleware.NewRegistry()
 	if err := middleware.RegisterBuiltins(r, logger); err != nil {
 		return nil, err
@@ -75,7 +77,7 @@ func Run(parent context.Context, mode string, c bootstrap.Config, logger *slog.L
 		if err = store.Migrate(startup); err != nil {
 			return fmt.Errorf("migration failed: %w", err)
 		}
-		logger.Info("database schema ready", "schema_version", 1)
+		logger.Info("database schema ready", "schema_version", postgres.SchemaVersion)
 		return nil
 	}
 	if err = store.CheckSchema(startup); err != nil {

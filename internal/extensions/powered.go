@@ -24,9 +24,9 @@ func Register(r *middleware.Registry) error {
 		if err := config.DecodeTyped(b, &o); err != nil {
 			return nil, err
 		}
-		characters := utf8.RuneCountInString(o.Value)
-		if characters < 1 || characters > config.MaxPoweredCharacters || !poweredValue.MatchString(o.Value) {
-			return nil, fmt.Errorf("value must have 1-%d characters with HTAB allowed and other ASCII controls rejected", config.MaxPoweredCharacters)
+		characters, limit := utf8.RuneCountInString(o.Value), config.CurrentLimits().MaxPoweredCharacters
+		if characters < 1 || characters > limit || !poweredValue.MatchString(o.Value) {
+			return nil, fmt.Errorf("value must have 1-%d characters with HTAB allowed and other ASCII controls rejected", limit)
 		}
 		h := middleware.Headers{ResponseSet: map[string]string{"X-Powered-By": o.Value}}
 		return func(next http.Handler) http.Handler {

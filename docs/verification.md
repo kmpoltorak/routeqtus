@@ -374,6 +374,21 @@ each route emits its own first sampled request. Before the fix, the shared count
 sampled only one of the two interleaved routes. `TestUnboundAndDisabledHandlersRemainValidated`
 retains strict option validation and handler IDs for unused and disabled definitions.
 
+## Configurable limits
+
+`TestLimitsValidateRanges` accepts each `limits` field at its lower and upper bound and
+rejects one below and one above, naming the field. `TestLoad` and
+`TestPartialLimitsKeepDefaults` cover YAML range errors, unknown limit keys, and partial
+overrides. `TestBootstrapLimitsReachCompilerAndSchema` builds compilers through
+`app.Compiler`: for every limit, a configuration one above the default is rejected with
+defaults and accepted after raising that bootstrap limit, and the generated schemas report
+the raised values. `TestMigrationUpgradesVersionOneSchema` applies the version 1 SQL,
+checks that the new binary refuses it, migrates twice, and expects versions 1 and 2.
+`TestRaisedConnectionLimitPersists` publishes and loads 1000000 upstream connections and
+checks the remaining `>= 0` constraints. Sabotage: replacing `config.SetLimits(c.Limits)`
+with defaults → `TestBootstrapLimitsReachCompilerAndSchema` failed; skipping migration 002
+→ `TestMigrationUpgradesVersionOneSchema` failed (both in `scripts/sabotage.py`).
+
 ## Local GUI checks
 
 Unit HTTP tests cover server-only credentials, resource creation/editing/deletion, type discovery, generation propagation, validation/conflict

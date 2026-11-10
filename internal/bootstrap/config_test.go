@@ -4,13 +4,31 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/kmpoltorak/routetus/internal/config"
 )
+
+func TestPartialLimitsKeepDefaults(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "bootstrap.yaml")
+	if err := os.WriteFile(p, []byte("version: 1\nlimits:\n  max_entities: 20000\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	c, err := Load(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := config.DefaultLimits
+	want.MaxEntities = 20000
+	if c.Limits != want {
+		t.Fatalf("limits %+v, want %+v", c.Limits, want)
+	}
+}
 
 func TestLoad(t *testing.T) {
 	for _, tc := range []struct {
 		name, body string
 		valid      bool
-	}{{"minimal", "version: 1\n", true}, {"unknown", "routes: []\n", false}, {"duplicate", "version: 1\nversion: 1\n", false}, {"type", "server:\n  max_in_flight: nope\n", false}, {"range", "server:\n  max_in_flight: 0\n", false}, {"documents", "version: 1\n---\nversion: 1\n", false}, {"token", "management:\n  listen: ':9080'\n", false}, {"pprof", "admin:\n  pprof: true\n", false}} {
+	}{{"minimal", "version: 1\n", true}, {"unknown", "routes: []\n", false}, {"duplicate", "version: 1\nversion: 1\n", false}, {"type", "server:\n  max_in_flight: nope\n", false}, {"range", "server:\n  max_in_flight: 0\n", false}, {"documents", "version: 1\n---\nversion: 1\n", false}, {"token", "management:\n  listen: ':9080'\n", false}, {"pprof", "admin:\n  pprof: true\n", false}, {"limits", "limits:\n  max_entities: 100000\n", true}, {"limits-range", "limits:\n  max_entities: 100001\n", false}, {"limits-connections", "limits:\n  max_connections: 127\n", false}, {"limits-unknown", "limits:\n  max_routes: 1\n", false}} {
 		t.Run(tc.name, func(t *testing.T) {
 			p := filepath.Join(t.TempDir(), "bootstrap.yaml")
 			if err := os.WriteFile(p, []byte(tc.body), 0600); err != nil {
