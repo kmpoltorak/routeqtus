@@ -58,6 +58,10 @@ func schema(t reflect.Type) map[string]any {
 				p["pattern"] = IdentifierPattern()
 				p["minLength"] = 1
 				p["maxLength"] = current.MaxIdentifierLength
+			case "ServiceID":
+				p["pattern"] = `^[A-Za-z0-9_-]*$`
+				p["maxLength"] = current.MaxIdentifierLength
+
 			case "Priority":
 				p["minimum"] = -current.MaxPriority
 				p["maximum"] = current.MaxPriority
@@ -67,10 +71,6 @@ func schema(t reflect.Type) map[string]any {
 			case "SampleEvery":
 				p["minimum"] = 0
 				p["maximum"] = current.MaxSampleEvery
-			case "Value":
-				p["minLength"] = 1
-				p["maxLength"] = current.MaxPoweredCharacters
-				p["pattern"] = PoweredValuePattern
 			case "URL":
 				p["format"] = "uri"
 			case "CAEnv", "CertEnv", "KeyEnv":

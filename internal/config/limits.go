@@ -6,43 +6,56 @@ import (
 )
 
 const (
-	HTTPMethodPattern   = `^[A-Z][A-Z0-9_-]{0,31}$`
-	PoweredValuePattern = `^[^\x00-\x08\x0a-\x1f\x7f]+$`
+	HTTPMethodPattern = `^[A-Z][A-Z0-9_-]{0,31}$`
 	// IdentifierLengthCeiling is the largest accepted limits.max_identifier_length.
 	IdentifierLengthCeiling = 640
 )
 
 // Limits bounds operational configuration. The bootstrap `limits` section sets them.
 type Limits struct {
-	MaxEntities          int `yaml:"max_entities"`
-	MaxTargets           int `yaml:"max_targets"`
-	MaxConnections       int `yaml:"max_connections"`
-	MaxPriority          int `yaml:"max_priority"`
-	MaxSampleEvery       int `yaml:"max_sample_every"`
-	MaxPoweredCharacters int `yaml:"max_powered_characters"`
-	MaxIdentifierLength  int `yaml:"max_identifier_length"`
+	MaxHeaderValueBytes   int   `yaml:"max_header_value_bytes"`
+	MaxConcurrentRequests int   `yaml:"max_concurrent_requests"`
+	MaxRequestsPerSecond  int   `yaml:"max_requests_per_second"`
+	MaxBurst              int   `yaml:"max_burst"`
+	MaxTokenReferences    int   `yaml:"max_token_references"`
+	MaxTokenBytes         int   `yaml:"max_token_bytes"`
+	MaxRouteBodyBytes     int64 `yaml:"max_route_body_bytes"`
+	MaxEntities           int   `yaml:"max_entities"`
+	MaxTargets            int   `yaml:"max_targets"`
+	MaxConnections        int   `yaml:"max_connections"`
+	MaxPriority           int   `yaml:"max_priority"`
+	MaxSampleEvery        int   `yaml:"max_sample_every"`
+	MaxIdentifierLength   int   `yaml:"max_identifier_length"`
 }
 
-var DefaultLimits = Limits{MaxEntities: 10000, MaxTargets: 1024, MaxConnections: 100000, MaxPriority: 1000000, MaxSampleEvery: 1000000, MaxPoweredCharacters: 128, MaxIdentifierLength: 64}
+var DefaultLimits = Limits{MaxHeaderValueBytes: 8192, MaxConcurrentRequests: 1000000, MaxRequestsPerSecond: 1000000, MaxBurst: 1000000, MaxTokenReferences: 64, MaxTokenBytes: 4096, MaxRouteBodyBytes: 1 << 30, MaxEntities: 10000, MaxTargets: 1024, MaxConnections: 100000, MaxPriority: 1000000, MaxSampleEvery: 1000000, MaxIdentifierLength: 64}
 
-// Validate accepts 1 through 10x each default. max_connections starts at 128, the
+// Validate bounds bootstrap ceilings. max_connections starts at 128, the
 // default upstream max_conns and max_idle_conns, so omitted upstream fields stay valid.
 func (l Limits) Validate() error {
 	for _, f := range []struct {
 		name          string
 		value, lo, hi int
 	}{
+		{"max_concurrent_requests", l.MaxConcurrentRequests, 1, 10000000},
+		{"max_requests_per_second", l.MaxRequestsPerSecond, 1, 10000000},
+		{"max_burst", l.MaxBurst, 1, 10000000},
+		{"max_token_references", l.MaxTokenReferences, 1, 640},
+		{"max_token_bytes", l.MaxTokenBytes, 32, 40960},
+		{"max_header_value_bytes", l.MaxHeaderValueBytes, 1, 81920},
 		{"max_entities", l.MaxEntities, 1, 100000},
 		{"max_targets", l.MaxTargets, 1, 10240},
 		{"max_connections", l.MaxConnections, 128, 1000000},
 		{"max_priority", l.MaxPriority, 1, 10000000},
 		{"max_sample_every", l.MaxSampleEvery, 1, 10000000},
-		{"max_powered_characters", l.MaxPoweredCharacters, 1, 1280},
 		{"max_identifier_length", l.MaxIdentifierLength, 1, IdentifierLengthCeiling},
 	} {
 		if f.value < f.lo || f.value > f.hi {
 			return fmt.Errorf("limits.%s must be between %d and %d", f.name, f.lo, f.hi)
 		}
+	}
+	if l.MaxRouteBodyBytes < 1 || l.MaxRouteBodyBytes > 1<<30 {
+		return fmt.Errorf("limits.max_route_body_bytes must be between 1 and 1073741824")
 	}
 	return nil
 }

@@ -35,7 +35,7 @@ For the configuration in `examples/config.json`:
    within that serving instance. `strip_prefix: true` removes `/api`, so the backend
    receives `/`.
 4. That backend generates `routetus demo backend: backend-a` or the equivalent
-   `backend-b` response. The route's `powered` handler adds `X-Powered-By: Routetus`,
+   `backend-b` response. The route's `route-headers` handler adds `X-Powered-By: Routetus`,
    and the gateway sends the response to the client.
 
 The two demo containers run the same program from `cmd/demo-backend/main.go`;
@@ -250,11 +250,22 @@ See [handler scope](extensions.md#handler-scope).
 | `recover` | `{}`; recover before response start, preserve `http.ErrAbortHandler` |
 | `access_log` | `sample_every`; includes method, excludes bodies, URLs, query strings, and auth headers |
 | `headers` | Allowed request/response set/remove maps and lists |
-| `powered_by` | `value`; example registered extension |
+| `concurrency_limit` | `limit`; concurrent requests per route binding, excess 503 |
+| `rate_limit` | `requests_per_second`, `burst`; per-route token bucket, excess 429 |
+| `token_allowlist` | `token_envs`; environment-backed Bearer allowlist, failure 401; tokens removed before proxying |
+| `body_limit` | `max_bytes`; per-route request body bound, excess 413 before response start |
 
-Handler bounds are tested against their schemas. `powered_by.value` permits 1–128
-Unicode characters, permits HTAB, and rejects other ASCII control characters.
-Discover contracts at `/v1/handler-types`. See [extensions](extensions.md).
+Handler numeric bounds are tested against the schemas derived from bootstrap ceilings.
+The five route policies, default limits, token handling, and binding order are described
+in [the route handler guide](extensions.md). The test-only `powered_by` type is removed;
+use `headers.response_set` and follow the [upgrade instructions](../getting_started.md#replace-the-test-powered_by-handler).
+
+Routes and upstreams have optional `service_id` labels for identification and search.
+They preserve case and accept ASCII letters, digits, hyphens, and underscores, up to
+`limits.max_identifier_length`. Empty or omitted values mean no label. The values need
+not be unique or equal across a route and its upstream and never affect matching,
+load balancing, authentication, or handler state. The GUI can add, edit, clear, and
+search these labels in both tabs; route IDs and upstream references remain unchanged.
 
 ## Routing methods and fallback
 
@@ -305,7 +316,9 @@ body-limit violation to 413. An error after response start aborts the stream rat
 than appending a second error body. The client may observe connection termination
 instead of a 504 when the socket deadline has already expired.
 
-Bodies and responses stream without whole-message buffering. The body limit applies
+Bodies and responses stream without whole-message buffering. A route body handler can
+only tighten the process-wide body limit. Without one, the default remains 16 MiB; the
+maximum supported process/policy body setting is 1 GiB. The body limit applies
 to content-length and chunked requests. Headers are bounded by the server limit;
 Go's HTTP/1 parser has a documented small read-ahead allowance. The in-flight limit
 rejects excess requests with 503; there is no unbounded admission queue.

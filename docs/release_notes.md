@@ -1,5 +1,29 @@
 # Release notes
 
+## Unreleased
+
+- Add optional `service_id` metadata to routes and upstreams, including GUI creation,
+  editing, display, and search. It preserves case and accepts ASCII letters, digits,
+  underscores, and hyphens; it does not change routing or enforce relationships.
+- Database schema version 3 adds the two metadata columns. Stop old processes, run
+  `routetus migrate`, then start all new processes; old binaries refuse the new schema.
+  Existing revisions remain readable with empty Service IDs.
+
+- Add per-route concurrency, rate, token allowlist, and request body policies; custom
+  headers use the existing `headers` type. Rate/concurrency state is independent per
+  route binding and serving replica; reloads recreate it.
+- Move policy ceilings and the custom-header byte bound into bootstrap `limits`.
+  Process-wide defaults still apply without attached policies. The maximum supported
+  process/route body bound is now 1 GiB; its process default remains 16 MiB.
+- Token configurations contain environment references only. Missing/invalid secrets
+  reject compilation; accepted route tokens are consumed before forwarding, and token
+  values never appear in request logs or validation errors.
+- Remove the test-only `powered_by` type and `limits.max_powered_characters`. Convert
+  active definitions to `headers.response_set` before upgrading, remove the obsolete
+  bootstrap key, and avoid rolling back to old revisions containing the removed type.
+  See [migration instructions](../getting_started.md#replace-the-test-powered_by-handler).
+- Use neutral graphite surfaces for the GUI dark appearance.
+
 ## v0.3.0 — 2026-11-10
 
 - Upgrade from v0.2.0: run `routetus migrate`, then restart every `serve` and `manage`

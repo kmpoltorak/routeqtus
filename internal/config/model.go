@@ -36,6 +36,7 @@ type Config struct {
 	Routes         []Route    `json:"routes" required:"true" doc:"Complete routing table."`
 }
 type Upstream struct {
+	ServiceID             string    `json:"service_id,omitempty" doc:"Optional service label: ASCII letters, digits, underscore, or hyphen; preserves case and does not affect routing."`
 	ID                    string    `json:"id" required:"true" doc:"Unique stable identifier: 1-64 ASCII letters, digits, underscore, or hyphen."`
 	Targets               []Target  `json:"targets" required:"true" doc:"At least one target, selected by lock-free round robin."`
 	DialTimeout           *Duration `json:"dial_timeout,omitempty" default:"3s" doc:"TCP connect timeout; zero disables."`
@@ -59,6 +60,7 @@ type Target struct {
 	URL string `json:"url" required:"true" doc:"Absolute http/https URL with optional base path; no userinfo, query, or fragment."`
 }
 type Route struct {
+	ServiceID      string    `json:"service_id,omitempty" doc:"Optional service label: ASCII letters, digits, underscore, or hyphen; preserves case and does not affect routing."`
 	ID             string    `json:"id" required:"true" doc:"Unique route identifier."`
 	Host           string    `json:"host,omitempty" doc:"Optional lowercase DNS host without port; empty matches all hosts."`
 	Methods        []string  `json:"methods,omitempty" doc:"Uppercase HTTP methods; empty matches all methods."`

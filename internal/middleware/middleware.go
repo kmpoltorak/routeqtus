@@ -180,9 +180,9 @@ type AccessLog struct {
 	SampleEvery int `json:"sample_every,omitempty" default:"1" doc:"Log one in N requests; range 1-1000000. Zero selects default."`
 }
 type Headers struct {
-	RequestSet     map[string]string `json:"request_set,omitempty" doc:"Allowed outgoing request headers to set after hop-by-hop cleanup."`
+	RequestSet     map[string]string `json:"request_set,omitempty" doc:"Allowed outgoing request headers to set after hop-by-hop cleanup; each value is bounded by limits.max_header_value_bytes."`
 	RequestRemove  []string          `json:"request_remove,omitempty" doc:"Allowed outgoing request headers to remove."`
-	ResponseSet    map[string]string `json:"response_set,omitempty" doc:"Allowed response headers to set."`
+	ResponseSet    map[string]string `json:"response_set,omitempty" doc:"Allowed response headers to set; each value is bounded by limits.max_header_value_bytes."`
 	ResponseRemove []string          `json:"response_remove,omitempty" doc:"Allowed response headers to remove."`
 }
 
@@ -236,6 +236,8 @@ func ValidHeaderValue(v string) bool {
 	return true
 }
 func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
+	headerExample := "routetus"
+	headerExample = headerExample[:min(len(headerExample), config.CurrentLimits().MaxHeaderValueBytes)]
 	types := []Type{
 		{Name: "request_id", Description: "Assigns a request ID and includes it in the response.", Version: 1, Schema: config.Schema(Empty{}), Example: Empty{}, Factory: func(b json.RawMessage) (Middleware, error) {
 			var o Empty
@@ -314,14 +316,14 @@ func RegisterBuiltins(r *Registry, logger *slog.Logger) error {
 				})
 			}, nil
 		}},
-		{Name: "headers", Description: "Adds or removes permitted request and response headers.", Version: 1, Schema: config.Schema(Headers{}), Example: Headers{ResponseSet: map[string]string{"X-Gateway": "routetus"}}, Factory: func(b json.RawMessage) (Middleware, error) {
+		{Name: "headers", Description: "Adds or removes permitted request and response headers.", Version: 1, Schema: config.Schema(Headers{}), Example: Headers{ResponseSet: map[string]string{"X-Gateway": headerExample}}, Factory: func(b json.RawMessage) (Middleware, error) {
 			var o Headers
 			if err := config.DecodeTyped(b, &o); err != nil {
 				return nil, err
 			}
 			for _, set := range []map[string]string{o.RequestSet, o.ResponseSet} {
 				for k, v := range set {
-					if !AllowedHeader(k) || !ValidHeaderValue(v) || len(v) > 8192 {
+					if !AllowedHeader(k) || !ValidHeaderValue(v) || len(v) > config.CurrentLimits().MaxHeaderValueBytes {
 						return nil, fmt.Errorf("disallowed header or value %q", k)
 					}
 				}

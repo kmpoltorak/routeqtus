@@ -24,6 +24,16 @@ func TestPartialLimitsKeepDefaults(t *testing.T) {
 	}
 }
 
+func TestServerBodyLimitMaximumIsOneGiB(t *testing.T) {
+	for _, size := range []int64{0, 1, 1 << 30, (1 << 30) + 1} {
+		c := Defaults()
+		c.Server.MaxBodyBytes = size
+		if err := c.Validate(); (err == nil) != (size >= 1 && size <= 1<<30) {
+			t.Fatalf("server.max_body_bytes=%d: %v", size, err)
+		}
+	}
+}
+
 func TestLoad(t *testing.T) {
 	for _, tc := range []struct {
 		name, body string

@@ -103,7 +103,7 @@ func TestRuntimeTrafficDuringPublicationAndOutage(t *testing.T) {
 			if err != nil {
 				return err
 			}
-			c.Handlers[len(c.Handlers)-1].Options = []byte(fmt.Sprintf(`{"value":"generation-%d"}`, st.Generation+1))
+			c.Handlers[len(c.Handlers)-1].Options = []byte(fmt.Sprintf(`{"response_set":{"X-Powered-By":"generation-%d"}}`, st.Generation+1))
 			if _, err = svc.Publish(ctx, c, st.Generation, postgres.Metadata{Principal: "traffic"}); err != nil {
 				return err
 			}

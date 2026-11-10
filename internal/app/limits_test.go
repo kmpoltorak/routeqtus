@@ -17,7 +17,13 @@ import (
 func TestBootstrapLimitsReachCompilerAndSchema(t *testing.T) {
 	t.Cleanup(func() { config.SetLimits(config.DefaultLimits) })
 	d := config.DefaultLimits
-	raised := config.Limits{MaxEntities: d.MaxEntities + 1, MaxTargets: d.MaxTargets + 1, MaxConnections: d.MaxConnections + 1, MaxPriority: d.MaxPriority + 1, MaxSampleEvery: d.MaxSampleEvery + 1, MaxPoweredCharacters: d.MaxPoweredCharacters + 1, MaxIdentifierLength: d.MaxIdentifierLength + 1}
+	raised := d
+	raised.MaxEntities++
+	raised.MaxTargets++
+	raised.MaxConnections++
+	raised.MaxPriority++
+	raised.MaxSampleEvery++
+	raised.MaxIdentifierLength++
 	handler := func(c *config.Config, id, options string) {
 		for i := range c.Handlers {
 			if c.Handlers[i].ID == id {
@@ -38,12 +44,9 @@ func TestBootstrapLimitsReachCompilerAndSchema(t *testing.T) {
 				c.Upstreams[0].Targets = append(c.Upstreams[0].Targets, config.Target{ID: fmt.Sprintf("t%d", i), URL: "http://example.com"})
 			}
 		},
-		"max_connections":  func(c *config.Config) { c.Upstreams[0].MaxConns = raised.MaxConnections },
-		"max_priority":     func(c *config.Config) { c.Routes[0].Priority = raised.MaxPriority },
-		"max_sample_every": func(c *config.Config) { handler(c, "log", fmt.Sprintf(`{"sample_every":%d}`, raised.MaxSampleEvery)) },
-		"max_powered_characters": func(c *config.Config) {
-			handler(c, "powered", `{"value":"`+strings.Repeat("a", raised.MaxPoweredCharacters)+`"}`)
-		},
+		"max_connections":       func(c *config.Config) { c.Upstreams[0].MaxConns = raised.MaxConnections },
+		"max_priority":          func(c *config.Config) { c.Routes[0].Priority = raised.MaxPriority },
+		"max_sample_every":      func(c *config.Config) { handler(c, "log", fmt.Sprintf(`{"sample_every":%d}`, raised.MaxSampleEvery)) },
 		"max_identifier_length": func(c *config.Config) { c.Routes[0].ID = strings.Repeat("r", raised.MaxIdentifierLength) },
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -92,11 +95,9 @@ func TestBootstrapLimitsReachCompilerAndSchema(t *testing.T) {
 		switch typ.Name {
 		case "access_log":
 			got["max_sample_every"] = prop(typ.Schema, "sample_every")["maximum"]
-		case "powered_by":
-			got["max_powered_characters"] = prop(typ.Schema, "value")["maxLength"]
 		}
 	}
-	want := map[string]int{"max_entities": raised.MaxEntities, "max_targets": raised.MaxTargets, "max_connections": raised.MaxConnections, "max_priority": raised.MaxPriority, "max_sample_every": raised.MaxSampleEvery, "max_powered_characters": raised.MaxPoweredCharacters, "max_identifier_length": raised.MaxIdentifierLength}
+	want := map[string]int{"max_entities": raised.MaxEntities, "max_targets": raised.MaxTargets, "max_connections": raised.MaxConnections, "max_priority": raised.MaxPriority, "max_sample_every": raised.MaxSampleEvery, "max_identifier_length": raised.MaxIdentifierLength}
 	for name, v := range want {
 		if got[name] != v {
 			t.Errorf("schema %s = %v, want %d", name, got[name], v)

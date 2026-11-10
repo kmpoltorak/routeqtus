@@ -23,7 +23,7 @@
     {"id":"recover","type":"recover","version":1,"options":{}},
     {"id":"access-log","type":"access_log","version":1,"enabled":true,"options":{"sample_every":1}},
     {"id":"headers","type":"headers","version":1,"options":{"response_set":{"X-Gateway":"routetus"}}},
-    {"id":"powered","type":"powered_by","version":1,"options":{"value":"Routetus"}}
+    {"id":"route-headers","type":"headers","version":1,"options":{"response_set":{"X-Powered-By":"Routetus"}}}
   ],
   "global_handlers": ["request-id","recover","access-log","headers"],
   "routes": [{
@@ -33,6 +33,6 @@
     "prefix":true,
     "strip_prefix":true,
     "upstream":"demo",
-    "handlers":["powered"]
+    "handlers":["route-headers"]
   }]
 }

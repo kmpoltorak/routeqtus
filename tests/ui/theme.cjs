@@ -7,7 +7,7 @@ module.exports = async function checkSystemTheme(page) {
   await choice.selectOption("system");
   const checkColors = async (target, dark) => {
     await target.waitForFunction((background) => getComputedStyle(document.querySelector(".button.secondary")).backgroundColor === background,
-      dark ? "rgb(32, 47, 40)" : "rgb(255, 255, 255)");
+      dark ? "rgb(36, 40, 50)" : "rgb(255, 255, 255)");
     const colors = await target.evaluate(() => {
       const style = (selector) => {
         const value = getComputedStyle(document.querySelector(selector));
@@ -15,14 +15,14 @@ module.exports = async function checkSystemTheme(page) {
       };
       return { page: style(":root"), card: style(".card"), input: style("#route-id"), dialog: style("dialog"), tabs: style(".tabs"), error: style("#upstream-error") };
     });
-    assert.equal(colors.page.background, dark ? "rgb(16, 24, 21)" : "rgb(244, 247, 246)", "Page must respect the selected appearance");
-    assert.equal(colors.card.background, dark ? "rgb(24, 35, 31)" : "rgb(255, 255, 255)");
-    assert.equal(colors.input.background, dark ? "rgb(17, 29, 23)" : "rgb(255, 255, 255)");
+    assert.equal(colors.page.background, dark ? "rgb(17, 19, 24)" : "rgb(244, 247, 246)", "Page must respect the selected appearance");
+    assert.equal(colors.card.background, dark ? "rgb(27, 30, 37)" : "rgb(255, 255, 255)");
+    assert.equal(colors.input.background, dark ? "rgb(20, 23, 29)" : "rgb(255, 255, 255)");
     if (dark) {
       assert.equal(colors.dialog.background, colors.card.background);
-      assert.equal(colors.input.color, "rgb(225, 235, 231)");
-      assert.equal(colors.tabs.background, "rgb(32, 47, 40)");
-      assert.equal(colors.error.background, "rgb(65, 40, 32)");
+      assert.equal(colors.input.color, "rgb(231, 233, 238)");
+      assert.equal(colors.tabs.background, "rgb(36, 40, 50)");
+      assert.equal(colors.error.background, "rgb(65, 40, 44)");
     }
   };
   for (const scheme of ["light", "dark", "light"]) {

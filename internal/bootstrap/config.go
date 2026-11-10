@@ -150,7 +150,7 @@ func (c Config) Validate() error {
 			return fmt.Errorf("%s must be greater than 0s and at most 24h", name)
 		}
 	}
-	if c.Server.MaxHeaderBytes < 1024 || c.Server.MaxHeaderBytes > 1048576 || c.Server.MaxBodyBytes < 1 || c.Server.MaxBodyBytes > 1<<40 || c.Server.MaxInFlight < 1 || c.Server.MaxInFlight > 1000000 {
+	if c.Server.MaxHeaderBytes < 1024 || c.Server.MaxHeaderBytes > 1048576 || c.Server.MaxBodyBytes < 1 || c.Server.MaxBodyBytes > 1<<30 || c.Server.MaxInFlight < 1 || c.Server.MaxInFlight > 1000000 {
 		return fmt.Errorf("server resource limits are outside supported ranges")
 	}
 	if c.Management.MaxBodyBytes < 1 || c.Management.MaxBodyBytes > 64<<20 || c.Management.MaxInFlight < 1 || c.Management.MaxInFlight > 10000 {
