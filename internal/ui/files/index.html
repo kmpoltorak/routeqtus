@@ -32,7 +32,7 @@
       </div>
       <div class="stat"><span>Upstreams</span><strong id="upstream-count">—</strong><small>Available destination
           groups</small></div>
-      <div class="stat"><span>Handlers</span><strong id="handler-count">—</strong><small>Configured processing
+      <div class="stat"><span>Route handlers</span><strong id="handler-count">—</strong><small>Available route processing
           steps</small></div>
     </section>
     <nav class="tabs" aria-label="Configuration sections">
@@ -93,9 +93,7 @@
           </select>
           <p class="hint" id="upstream-hint">Destination groups come from the Management API.</p>
           <fieldset>
-            <legend>Handlers <span class="optional">optional</span></legend><button class="text-button new-handler" id="new-handler" type="button" aria-haspopup="dialog">+ Configure handler</button>
-            <div id="global-handler-section" hidden><p class="hint">Global handlers apply automatically. Disabled configurations do not run.</p><div id="global-handlers" class="handler-options global-handlers" role="list" aria-label="Global handlers"></div></div>
-            <p class="hint">Additional handlers for this route</p>
+            <legend>Route handlers <span class="optional">optional</span></legend>
             <div class="handler-options" id="handler-options">
               <p class="hint">Loading configured handlers.</p>
             </div>
@@ -130,20 +128,9 @@
       <div class="dialog-actions"><button class="button secondary" type="button" data-close="upstream-dialog">Cancel</button><button class="button primary resource-submit" type="submit">Create upstream</button></div>
     </form>
   </dialog>
-  <dialog id="handler-dialog" aria-labelledby="handler-heading">
-    <div class="dialog-heading"><div><p class="eyebrow">REQUEST PROCESSING</p><h2 id="handler-heading">Configure handler</h2></div><button class="close-button" type="button" data-close="handler-dialog" aria-label="Close handler form">×</button></div>
-    <p class="dialog-intro">Configure a type already registered in the server. Give its settings an ID and attach it to your route. New types require Go code, registration, and a rebuilt server.</p>
-    <p class="notice error" id="handler-error" role="status" hidden></p>
-    <form id="handler-form">
-      <label for="handler-id">Handler ID</label><input id="handler-id" required maxlength="64" pattern="[A-Za-z0-9_-]{1,64}" placeholder="my-handler" autocomplete="off">
-      <label for="handler-type">Handler type</label><select id="handler-type" required><option value="">Choose a registered type</option></select>
-      <p class="hint" id="handler-description"></p><div id="handler-fields" class="parameter-fields"></div>
-      <div class="dialog-actions"><button class="button secondary" type="button" data-close="handler-dialog">Cancel</button><button class="button primary resource-submit" type="submit">Create configuration</button></div>
-    </form>
-  </dialog>
   <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-heading">
-    <div class="dialog-heading"><div><p class="eyebrow">REGISTERED PROCESSING STEPS</p><h2 id="guide-heading">Handler guide</h2></div><button class="close-button" type="button" data-close="guide-dialog" aria-label="Close handler guide">×</button></div>
-    <p class="dialog-intro">Descriptions and options come from the running server. New types must be registered in its binary first.</p>
+    <div class="dialog-heading"><div><p class="eyebrow">ROUTE HANDLERS</p><h2 id="guide-heading">Handler guide</h2></div><button class="close-button" type="button" data-close="guide-dialog" aria-label="Close handler guide">×</button></div>
+    <p class="dialog-intro">Descriptions for existing route handler configurations. New types require server code and registration.</p>
     <div id="guide-content"></div>
   </dialog>
   <dialog id="delete-dialog" aria-labelledby="delete-heading">

@@ -126,6 +126,7 @@ func TestBrowserRequestsCannotUseLocalCredentials(t *testing.T) {
 		{name: "patch form content", method: "PATCH", path: "/api/upstreams/demo", origin: server.URL, contentType: "text/plain", body: `{}`, status: 415},
 		{name: "large patch", method: "PATCH", path: "/api/routes/hello", origin: server.URL, contentType: "application/json", body: strings.Repeat(" ", (4<<20)+1), status: 413},
 		{name: "handler editing unavailable", method: "PATCH", path: "/api/handlers/example", origin: server.URL, contentType: "application/json", body: `{}`, status: 404},
+		{name: "handler creation unavailable", method: "POST", path: "/api/handlers", origin: server.URL, contentType: "application/json", body: `{"id":"log","type":"access_log","version":1,"options":{}}`, status: 404},
 		{name: "target endpoint unavailable", method: "DELETE", path: "/api/upstreams/demo/targets/a", origin: server.URL, status: 404},
 		{name: "invalid upstream ID", method: "DELETE", path: "/api/upstreams/..", origin: server.URL, status: 404},
 	} {
@@ -252,7 +253,7 @@ func TestResourceCreationAndHandlerDiscovery(t *testing.T) {
 		switch r.Method + " " + r.URL.Path {
 		case "GET /v1/handler-types":
 			io.WriteString(w, `[{"name":"access_log","version":1,"description":"Logs requests","schema":{"type":"object","properties":{"sample_every":{"type":"integer","default":1}}}}]`)
-		case "POST /v1/upstreams", "POST /v1/handlers":
+		case "POST /v1/upstreams":
 			io.WriteString(w, `{"status":"committed"}`)
 		default:
 			http.NotFound(w, r)
@@ -260,7 +261,7 @@ func TestResourceCreationAndHandlerDiscovery(t *testing.T) {
 	}))
 	defer api.Close()
 	server := localUI(t, api.URL, token)
-	for _, tc := range []struct{ method, path, body string }{{"GET", "/api/handler-types", ""}, {"POST", "/api/upstreams", `{"id":"demo","targets":[{"id":"a","url":"http://example.com"}]}`}, {"POST", "/api/handlers", `{"id":"log","type":"access_log","version":1,"options":{"sample_every":2}}`}} {
+	for _, tc := range []struct{ method, path, body string }{{"GET", "/api/handler-types", ""}, {"POST", "/api/upstreams", `{"id":"demo","targets":[{"id":"a","url":"http://example.com"}]}`}} {
 		request, err := http.NewRequest(tc.method, server.URL+tc.path, strings.NewReader(tc.body))
 		if err != nil {
 			t.Fatal(err)

@@ -384,29 +384,31 @@ the UI executable nor its static assets. See [startup instructions](../getting_s
 
 The browser talks only to the GUI's origin. The GUI process attaches its environment-backed
 Management API token to narrowly scoped operations: reading `/v1/config` and
-`/v1/handler-types`, and creating routes, upstreams, and configured handlers through
+`/v1/handler-types`, and creating routes and upstreams through
 their collection endpoints, plus editing and deleting individual routes/upstreams through
 `/v1/routes/{id}` and `/v1/upstreams/{id}`. It forwards the observed generation precondition, status,
 field errors, and ETag. The browser receives no token, login cookie, or stored credentials.
 
-The upstream form accepts one backend URL per line and uses transport defaults. The
-handler form builds string, number, enum/boolean, or structured JSON fields from the
-registered type schema. Numeric parameters such as a custom limiter's `limit` become
-number fields. It can configure registered types; it cannot load new executable code.
-The Handler guide uses the registry descriptions and option schemas, with a generic
-fallback for legacy/custom types without a description.
+The upstream form accepts one backend URL per line and uses transport defaults.
+The route form only attaches existing handler configurations. The GUI does not create,
+edit, or delete handlers, and its API proxy rejects handler creation. New types require
+code and registration as described in [extensions](extensions.md); publish their
+configuration through the Management API before attaching them in the panel.
+The Handler guide uses registry descriptions and option schemas for types used by
+existing route handler configurations, with a generic fallback for missing descriptions.
+Types used only by global configurations are omitted.
 
 Selecting an existing configured handler attaches its ID without changing its options.
-Global handlers appear separately as automatic, with disabled definitions marked as
-disabled. They are excluded from new route selections. If an existing route explicitly
-binds the same handler globally and locally, its local binding remains checked and is
-marked "also global"; uncheck it to remove only that route binding. Saving other fields
-does not silently remove it. Global configuration and the shared definition are unchanged.
+Global handler IDs are omitted from choices, route-table summaries, the handler count,
+and the guide. Existing explicit global+route bindings are also hidden and are preserved
+when saving a route, including when its visible handler selection changes. Use the
+Management API to change those bindings. Disabled route configurations remain marked
+disabled; their existing bindings are preserved.
 Create a new configured ID for different option values on another route; editing a
 shared definition would otherwise change all of its users. Runtime state is still
 independent per route as described in [extensions](extensions.md#handler-scope).
-A newly created upstream/handler is selected automatically, preserving the pending
-route form. Each creation is a separate publication, with fresh generation reads.
+A newly created upstream is selected automatically, preserving the pending route form.
+Each creation is a separate publication, with fresh generation reads.
 
 The Routes and Upstreams tabs each list, filter, add, edit, and delete resources. The
 route form stays beside the route list; Cancel edit returns it to creation mode. Each
