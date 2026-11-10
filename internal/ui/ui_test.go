@@ -120,6 +120,14 @@ func TestBrowserRequestsCannotUseLocalCredentials(t *testing.T) {
 		{name: "unexpected endpoint", method: "GET", path: "/api/revisions", status: 404},
 		{name: "unexpected mutation", method: "DELETE", path: "/api/routes", origin: server.URL, status: 405},
 		{name: "large document", method: "POST", path: "/api/routes", origin: server.URL, contentType: "application/json", body: strings.Repeat(" ", (4<<20)+1), status: 413},
+		{name: "patch missing origin", method: "PATCH", path: "/api/routes/hello", contentType: "application/json", body: `{}`, status: 403},
+		{name: "upstream patch missing origin", method: "PATCH", path: "/api/upstreams/demo", contentType: "application/json", body: `{}`, status: 403},
+		{name: "upstream delete missing origin", method: "DELETE", path: "/api/upstreams/demo", status: 403},
+		{name: "patch form content", method: "PATCH", path: "/api/upstreams/demo", origin: server.URL, contentType: "text/plain", body: `{}`, status: 415},
+		{name: "large patch", method: "PATCH", path: "/api/routes/hello", origin: server.URL, contentType: "application/json", body: strings.Repeat(" ", (4<<20)+1), status: 413},
+		{name: "handler editing unavailable", method: "PATCH", path: "/api/handlers/example", origin: server.URL, contentType: "application/json", body: `{}`, status: 404},
+		{name: "target endpoint unavailable", method: "DELETE", path: "/api/upstreams/demo/targets/a", origin: server.URL, status: 404},
+		{name: "invalid upstream ID", method: "DELETE", path: "/api/upstreams/..", origin: server.URL, status: 404},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			request, err := http.NewRequest(tc.method, server.URL+tc.path, strings.NewReader(tc.body))
@@ -307,5 +315,48 @@ func TestRouteDeletionRequiresOriginAndPreservesGeneration(t *testing.T) {
 	}
 	if forwarded.Load() != 1 {
 		t.Fatalf("forwarded %d deletes, want 1", forwarded.Load())
+	}
+}
+
+func TestResourceEditsAndUpstreamDeletion(t *testing.T) {
+	for _, resource := range []string{"routes", "upstreams"} {
+		for _, method := range []string{"PATCH", "DELETE"} {
+			for _, status := range []int{200, 412, 422} {
+				t.Run(resource+method+http.StatusText(status), func(t *testing.T) {
+					api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						if r.Method != method || r.URL.Path != "/v1/"+resource+"/hello" || r.Header.Get("If-Match") != `"g-7"` || r.Header.Get("Authorization") != "Bearer "+strings.Repeat("t", 32) {
+							t.Error("mutation lost its target, credentials, or generation")
+						}
+						if method == "PATCH" {
+							body, _ := io.ReadAll(r.Body)
+							if string(body) != `{"path":"/edited"}` || r.Header.Get("Content-Type") != "application/json" {
+								t.Error("patch body or content type lost")
+							}
+						}
+						w.Header().Set("ETag", `"g-8"`)
+						w.WriteHeader(status)
+						io.WriteString(w, `{"message":"example","fields":[{"path":"/routes/demo/upstream","message":"unknown upstream"}]}`)
+					}))
+					defer api.Close()
+					server := localUI(t, api.URL, strings.Repeat("t", 32))
+					request, err := http.NewRequest(method, server.URL+"/api/"+resource+"/hello", strings.NewReader(`{"path":"/edited"}`))
+					if err != nil {
+						t.Fatal(err)
+					}
+					request.Header.Set("Origin", server.URL)
+					request.Header.Set("Content-Type", "application/json")
+					request.Header.Set("If-Match", `"g-7"`)
+					response, err := server.Client().Do(request)
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer response.Body.Close()
+					body, _ := io.ReadAll(response.Body)
+					if response.StatusCode != status || response.Header.Get("ETag") != `"g-8"` || !strings.Contains(string(body), "unknown upstream") {
+						t.Fatalf("mutation response: %d %s", response.StatusCode, body)
+					}
+				})
+			}
+		}
 	}
 }

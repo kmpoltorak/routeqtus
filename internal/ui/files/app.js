@@ -2,7 +2,7 @@
 
 const $ = (selector) => document.querySelector(selector);
 const form = $("#route-form");
-const state = { config: null, etag: "", saving: false, loading: false, types: [], deleting: null };
+const state = { config: null, etag: "", saving: false, loading: false, types: [], deleting: null, routeEdit: null, upstreamEdit: null };
 
 function notice(message, error = false) {
   const box = $("#notice");
@@ -19,7 +19,10 @@ function connection(label, status) {
 function updateSubmit() {
   document.querySelectorAll(".resource-submit").forEach((button) => { button.disabled = state.saving || state.loading || !state.etag; });
   $("#submit").disabled = state.saving || state.loading || !state.etag || !state.config?.upstreams.length;
-  $("#submit").firstChild.textContent = state.saving ? "Creating route " : "Create route ";
+  $("#submit").firstChild.textContent = state.saving ? "Saving route " : state.routeEdit ? "Save route " : "Create route ";
+  $("#cancel-route-edit").disabled = state.saving || state.loading;
+  if (state.deleting?.kind === "upstreams" && referencingRoutes(state.deleting.id).length) $("#confirm-delete").disabled = true;
+  if (state.upstreamEdit?.targetsChanged) $("#upstream-form button[type=submit]").disabled = true;
 }
 
 async function readResponse(response) {
@@ -73,18 +76,7 @@ function renderRoutes() {
     handlers.className = "handler-summary";
     handlers.textContent = route.handlers?.length ? route.handlers.join(", ") : "None";
     row.insertCell().append(handlers);
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "text-button delete-link";
-    remove.textContent = "Delete";
-    remove.setAttribute("aria-label", "Delete route " + route.id);
-    remove.addEventListener("click", () => {
-      state.deleting = route.id;
-      $("#delete-target").textContent = route.id + " · " + route.path;
-      dialogError("#delete-error", "");
-      $("#delete-dialog").showModal();
-    });
-    row.insertCell().append(remove);
+    row.insertCell().append(action("Edit", "route " + route.id, () => editRoute(route)), action("Delete", "route " + route.id, () => openDelete("routes", route.id)));
     body.append(row);
   }
 }
@@ -107,7 +99,7 @@ function renderChoices() {
     input.name = "handlers";
     input.value = handler.id;
     input.disabled = handler.enabled === false;
-    input.checked = !input.disabled && selected.has(handler.id);
+    input.checked = selected.has(handler.id);
     label.append(input, document.createTextNode(handler.id + (input.disabled ? " · disabled" : "")));
     choices.append(label);
   }
@@ -133,9 +125,10 @@ async function load(announce = false) {
     $("#upstream-count").textContent = String(config.upstreams.length);
     $("#handler-count").textContent = String(config.handlers.length);
     renderRoutes();
+    renderUpstreams();
     renderChoices();
     connection("Connected", "connected");
-    if (!state.etag) notice("The Management API did not provide a configuration generation. Creating routes is unavailable.", true);
+    if (!state.etag) notice("The Management API did not provide a configuration generation. Changes are unavailable.", true);
     else if (announce) notice("Configuration refreshed.");
     return true;
   } catch (error) {
@@ -165,26 +158,36 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (state.saving || state.loading || !state.etag || !form.reportValidity()) return;
   const methods = [...form.querySelectorAll('input[name="methods"]:checked')].map((input) => input.value);
-  if (!methods.length) { notice("Select at least one HTTP method.", true); return; }
+  if (!methods.length && !state.routeEdit) { notice("Select at least one HTTP method.", true); return; }
   const route = {
     id: $("#route-id").value.trim(), path: $("#route-path").value.trim(), methods,
     upstream: $("#upstream").value,
     handlers: [...form.querySelectorAll('input[name="handlers"]:checked')].map((input) => input.value),
     prefix: $("#prefix").checked, strip_prefix: $("#prefix").checked && $("#strip-prefix").checked,
   };
+  const editing = state.routeEdit;
+  const selected = new Set(route.handlers);
+  if (editing) {
+    route.handlers = [...editing.original.handlers.filter((id) => selected.has(id)), ...route.handlers.filter((id) => !editing.original.handlers.includes(id))];
+    route.methods = [...(editing.original.methods || []).filter((method) => methods.includes(method)), ...methods.filter((method) => !(editing.original.methods || []).includes(method))];
+  }
+  const payload = editing ? changedFields(route, editing.original) : route;
+  if (editing) delete payload.id;
   state.saving = true;
   $("#refresh").disabled = true;
   updateSubmit();
   notice("");
   try {
-    const response = await fetch("/api/routes", { method: "POST", headers: { "Content-Type": "application/json", "If-Match": state.etag }, body: JSON.stringify(route) });
+    const response = await fetch("/api/routes" + (editing ? "/" + encodeURIComponent(editing.id) : ""), { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json", "If-Match": editing ? editing.etag : state.etag }, body: JSON.stringify(payload) });
     await readResponse(response);
-    form.reset();
-    $("#strip-prefix").disabled = true;
-    if (await load()) notice('Route "' + route.id + '" created. Serving instances apply the change in the background.');
+    resetRoute();
+    if (await load()) notice('Route "' + route.id + '" ' + (editing ? "updated" : "created") + '. Serving instances apply the change in the background.');
   } catch (error) {
     if (error.status === 412) {
-      if (await load()) notice("Configuration changed while you were editing. The list is refreshed; review your form and try again.", true);
+      if (await load()) {
+        if (editing) editing.etag = state.etag;
+        notice("Configuration changed while you were editing. The list is refreshed; review your form and try again.", true);
+      }
     } else notice(error.message, true);
   } finally {
     state.saving = false;
@@ -204,6 +207,116 @@ function dialogError(id, message) {
   const box = $(id);
   box.textContent = message;
   box.hidden = !message;
+}
+
+function action(label, subject, onClick) {
+  const button = element("button", label, "text-button" + (label === "Delete" ? " delete-link" : ""));
+  button.type = "button";
+  button.setAttribute("aria-label", label + " " + subject);
+  button.addEventListener("click", () => { if (!state.saving && !state.loading) onClick(); });
+  return button;
+}
+
+function changedFields(values, original) {
+  return Object.fromEntries(Object.entries(values).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(original[key] ?? (Array.isArray(value) ? [] : typeof value === "boolean" ? false : ""))));
+}
+
+function showSection(section) {
+  for (const name of ["routes", "upstreams"]) {
+    $("#" + name + "-panel").hidden = name !== section;
+    if (name === section) $("#" + name + "-tab").setAttribute("aria-current", "page");
+    else $("#" + name + "-tab").removeAttribute("aria-current");
+  }
+  $("#page-title").textContent = section === "routes" ? "Routes" : "Upstreams";
+  document.title = $("#page-title").textContent + " · Routetus";
+}
+
+for (const section of ["routes", "upstreams"]) $("#" + section + "-tab").addEventListener("click", () => showSection(section));
+
+function resetRoute() {
+  state.routeEdit = null;
+  form.reset();
+  form.querySelectorAll(".extra-method").forEach((node) => node.remove());
+  $("#route-id").readOnly = false;
+  $("#strip-prefix").disabled = true;
+  $("#form-heading").textContent = "Add a route";
+  $("#cancel-route-edit").hidden = true;
+  updateSubmit();
+}
+
+function editRoute(route) {
+  resetRoute();
+  state.routeEdit = { id: route.id, original: structuredClone(route), etag: state.etag };
+  $("#route-id").value = route.id;
+  $("#route-id").readOnly = true;
+  $("#route-path").value = route.path;
+  $("#upstream").value = route.upstream;
+  for (const method of route.methods || []) {
+    if ([...form.querySelectorAll('input[name="methods"]')].some((input) => input.value === method)) continue;
+    const label = element("label", undefined, "extra-method");
+    const input = document.createElement("input");
+    input.type = "checkbox"; input.name = "methods"; input.value = method;
+    label.append(input, element("span", method));
+    $(".method-options").append(label);
+  }
+  for (const input of form.querySelectorAll('input[name="methods"]')) input.checked = (route.methods || []).includes(input.value);
+  for (const input of form.querySelectorAll('input[name="handlers"]')) input.checked = route.handlers.includes(input.value);
+  $("#prefix").checked = Boolean(route.prefix);
+  $("#strip-prefix").checked = Boolean(route.strip_prefix);
+  $("#strip-prefix").disabled = !route.prefix;
+  $("#form-heading").textContent = "Edit route";
+  $("#cancel-route-edit").hidden = false;
+  updateSubmit();
+  $("#route-path").focus();
+}
+
+$("#cancel-route-edit").addEventListener("click", resetRoute);
+
+function referencingRoutes(id) {
+  return (state.config?.routes || []).filter((route) => route.upstream === id).map((route) => route.id);
+}
+
+function renderUpstreams() {
+  const body = $("#upstreams");
+  body.replaceChildren();
+  const query = $("#upstream-search").value.trim().toLowerCase();
+  const references = new Map();
+  for (const route of state.config?.routes || []) {
+    if (!references.has(route.upstream)) references.set(route.upstream, []);
+    references.get(route.upstream).push(route.id);
+  }
+  for (const upstream of state.config?.upstreams || []) {
+    if (![upstream.id, ...upstream.targets.map((target) => target.url)].some((value) => value.toLowerCase().includes(query))) continue;
+    const row = document.createElement("tr");
+    row.insertCell().append(element("span", upstream.id, "route-name"));
+    const targets = row.insertCell();
+    for (const target of upstream.targets) targets.append(element("span", target.id + " · " + target.url, "route-path"));
+    row.insertCell().textContent = (references.get(upstream.id) || []).join(", ") || "None";
+    row.insertCell().append(action("Edit", "upstream " + upstream.id, () => openUpstream(upstream)), action("Delete", "upstream " + upstream.id, () => openDelete("upstreams", upstream.id)));
+    body.append(row);
+  }
+  $("#upstream-empty").hidden = Boolean(body.children.length);
+}
+
+$("#upstream-search").addEventListener("input", renderUpstreams);
+
+function openDelete(kind, id) {
+  state.deleting = { kind, id, etag: state.etag };
+  renderDelete();
+  $("#delete-dialog").showModal();
+}
+
+function renderDelete() {
+  const { kind, id } = state.deleting;
+  const upstream = kind === "upstreams";
+  const current = state.config[kind].find((item) => item.id === id);
+  $("#delete-heading").textContent = upstream ? "Delete upstream?" : "Delete route?";
+  $("#confirm-delete").textContent = upstream ? "Delete upstream" : "Delete route";
+  $("#delete-description").textContent = upstream ? "Delete all routes using this upstream first. Routes are never removed automatically." : "This removes the route from the published configuration. Its upstream and handlers remain available.";
+  $("#delete-target").textContent = id + (upstream ? "" : " · " + current?.path);
+  const references = upstream ? referencingRoutes(id) : [];
+  dialogError("#delete-error", references.length ? "Remove these routes first: " + references.join(", ") : "");
+  updateSubmit();
 }
 
 document.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", () => $("#" + button.dataset.close).close()));
@@ -237,9 +350,42 @@ $("#handler-guide").addEventListener("click", async () => {
   } catch (error) { content.replaceChildren(element("p", error.message, "notice error")); }
 });
 
-$("#new-upstream").addEventListener("click", () => {
+function openUpstream(upstream = null) {
+  state.upstreamEdit = upstream ? { id: upstream.id, original: structuredClone(upstream), etag: state.etag, targetsChanged: false } : null;
+  $("#upstream-form").reset();
+  $("#upstream-id").value = upstream?.id || "";
+  $("#upstream-id").readOnly = Boolean(upstream);
+  $("#upstream-heading").textContent = upstream ? "Edit upstream" : "New upstream";
+  $("#upstream-form button[type=submit]").textContent = upstream ? "Save upstream" : "Create upstream";
+  $("#new-targets").hidden = Boolean(upstream);
+  $("#upstream-targets").required = !upstream;
+  $("#edit-targets").hidden = !upstream;
+  $("#target-fields").replaceChildren();
+  for (const target of upstream?.targets || []) addTarget(target.id, target.url);
   dialogError("#upstream-error", "");
+  updateSubmit();
   $("#upstream-dialog").showModal();
+}
+
+$("#new-upstream").addEventListener("click", () => openUpstream());
+$("#add-upstream").addEventListener("click", () => openUpstream());
+
+function addTarget(id, url = "") {
+  const row = element("div", undefined, "target-row");
+  row.dataset.id = id;
+  const label = element("label", "Backend URL · " + id);
+  const input = document.createElement("input");
+  input.type = "url"; input.required = true; input.value = url;
+  label.append(input);
+  row.append(label, action("Remove", "backend " + id, () => row.remove()));
+  $("#target-fields").append(row);
+}
+
+$("#add-target").addEventListener("click", () => {
+  const ids = new Set([...(state.upstreamEdit?.original.targets || []).map((target) => target.id), ...[...$("#target-fields").children].map((row) => row.dataset.id)]);
+  let index = 1;
+  while (ids.has("target-" + index)) index++;
+  addTarget("target-" + index);
 });
 
 function renderParameters() {
@@ -298,22 +444,29 @@ $("#new-handler").addEventListener("click", async () => {
   } catch (error) { dialogError("#handler-error", error.message); }
 });
 
-async function createResource(path, payload, dialog, errorBox, onCreated) {
+async function createResource(path, payload, dialog, errorBox, onCreated, editing = null) {
   if (state.saving || state.loading || !state.etag) return;
   state.saving = true;
   $("#refresh").disabled = true;
   updateSubmit();
   dialogError(errorBox, "");
   try {
-    const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json", "If-Match": state.etag }, body: JSON.stringify(payload) });
+    const response = await fetch(path + (editing ? "/" + encodeURIComponent(editing.id) : ""), { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json", "If-Match": editing ? editing.etag : state.etag }, body: JSON.stringify(payload) });
     await readResponse(response);
     if (await load()) {
       onCreated();
       $(dialog).close();
       $(dialog).querySelector("form").reset();
-    } else dialogError(errorBox, "Created, but configuration could not be refreshed. Refresh before continuing.");
+    } else dialogError(errorBox, "Saved, but configuration could not be refreshed. Refresh before continuing.");
   } catch (error) {
-    if (error.status === 412 && await load()) dialogError(errorBox, "Configuration changed. Review this form and submit again.");
+    if (error.status === 412 && await load()) {
+      if (editing) {
+        editing.etag = state.etag;
+        const current = state.config.upstreams.find((item) => item.id === editing.id);
+        editing.targetsChanged = !current || JSON.stringify(current.targets) !== JSON.stringify(editing.original.targets);
+      }
+      dialogError(errorBox, editing?.targetsChanged ? "Backend targets changed in another session. Your draft is kept here; close and reopen this upstream to review the latest targets before saving." : "Configuration changed. Review this form and submit again.");
+    }
     else dialogError(errorBox, error.message);
   } finally {
     state.saving = false;
@@ -325,12 +478,14 @@ async function createResource(path, payload, dialog, errorBox, onCreated) {
 $("#upstream-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const id = $("#upstream-id").value.trim();
-  const targets = $("#upstream-targets").value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean).map((url, index) => ({ id: "target-" + (index + 1), url }));
+  const editing = state.upstreamEdit;
+  if (editing?.targetsChanged) return;
+  const targets = editing ? [...$("#target-fields").children].map((row) => ({ id: row.dataset.id, url: row.querySelector("input").value.trim() })) : $("#upstream-targets").value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean).map((url, index) => ({ id: "target-" + (index + 1), url }));
   if (!targets.length) { dialogError("#upstream-error", "Enter at least one backend URL."); return; }
-  await createResource("/api/upstreams", { id, targets }, "#upstream-dialog", "#upstream-error", () => {
+  await createResource("/api/upstreams", editing ? changedFields({ targets }, editing.original) : { id, targets }, "#upstream-dialog", "#upstream-error", () => {
     $("#upstream").value = id;
-    notice('Upstream "' + id + '" created and selected.');
-  });
+    notice('Upstream "' + id + '" ' + (editing ? "updated" : "created and selected") + '.');
+  }, editing);
 });
 
 $("#handler-form").addEventListener("submit", async (event) => {
@@ -348,32 +503,36 @@ $("#handler-form").addEventListener("submit", async (event) => {
   const id = $("#handler-id").value.trim();
   await createResource("/api/handlers", { id, type: type.name, version: type.version, options }, "#handler-dialog", "#handler-error", () => {
     for (const input of form.querySelectorAll('input[name="handlers"]')) if (input.value === id) input.checked = true;
-    notice('Handler "' + id + '" created and selected.');
+    notice('Handler configuration "' + id + '" created and selected.');
   });
 });
 
 $("#confirm-delete").addEventListener("click", async () => {
   if (state.saving || state.loading || !state.etag || !state.deleting) return;
-  const id = state.deleting;
+  const { kind, id, etag } = state.deleting;
+  if (kind === "upstreams" && referencingRoutes(id).length) return;
+  const label = kind === "upstreams" ? "Upstream" : "Route";
   state.saving = true;
   updateSubmit();
   dialogError("#delete-error", "");
   try {
-    const response = await fetch("/api/routes/" + encodeURIComponent(id), { method: "DELETE", headers: { "If-Match": state.etag } });
+    const response = await fetch("/api/" + kind + "/" + encodeURIComponent(id), { method: "DELETE", headers: { "If-Match": etag } });
     await readResponse(response);
     $("#delete-dialog").close();
     state.deleting = null;
-    if (await load()) notice('Route "' + id + '" deleted.');
+    if (state.routeEdit?.id === id && kind === "routes") resetRoute();
+    if (await load()) notice(label + ' "' + id + '" deleted.');
   } catch (error) {
     if (error.status === 412 && await load()) {
-      const current = state.config.routes.find((route) => route.id === id);
+      const current = state.config[kind].find((item) => item.id === id);
       if (current) {
-        $("#delete-target").textContent = current.id + " · " + current.path;
-        dialogError("#delete-error", "Configuration changed. Review this route and confirm again.");
+        state.deleting.etag = state.etag;
+        renderDelete();
+        if (kind !== "upstreams" || !referencingRoutes(id).length) dialogError("#delete-error", "Configuration changed. Review this " + label.toLowerCase() + " and confirm again.");
       } else {
         $("#delete-dialog").close();
         state.deleting = null;
-        notice("This route has already been removed.");
+        notice("This " + label.toLowerCase() + " has already been removed.");
       }
     } else dialogError("#delete-error", error.message);
   } finally { state.saving = false; updateSubmit(); }

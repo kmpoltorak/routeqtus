@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Add an optional, separate local route GUI container using the Management API. It
-  lists/deletes routes and creates routes, upstreams, and configured handlers with generation
+  provides Routes and Upstreams tabs with list/add/edit/delete, and creates configured handlers with generation
   preconditions. Handler forms use their schemas, and a small guide shows registry
   descriptions. Credentials stay server-side. The gateway image/archive exclude it.
 - Handler type metadata adds an optional `description` for discoverable help text.

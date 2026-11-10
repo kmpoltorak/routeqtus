@@ -376,7 +376,7 @@ retains strict option validation and handler IDs for unused and disabled definit
 
 ## Local GUI checks
 
-Unit HTTP tests cover server-only credentials, resource creation/type discovery, generation propagation, validation/conflict
+Unit HTTP tests cover server-only credentials, resource creation/editing/deletion, type discovery, generation propagation, validation/conflict
 responses, exact Host/Origin checks, malformed/duplicate origins, wrong content type,
 request size, loopback configuration, static assets, redirect rejection, and untrusted
 Management API TLS. They use real HTTP servers and do not need the application demo.
@@ -384,8 +384,10 @@ Management API TLS. They use real HTTP servers and do not need the application d
 CI starts the optional GUI container after initializing its disposable demo, verifies
 its API connection, and runs `tests/ui/browser.cjs` with Playwright 1.65.0 and Chrome.
 Browser checks exercise the handler guide, numeric handler options, upstream registration,
-listing/filtering, route creation/deletion, cancellation, stale generation refresh and retry, invalid-route
-rejection, safe rendering of path text, and mobile layout.
+Routes/Upstreams tabs, CRUD and filtering, cancellation, stale generation refresh and retry,
+preserved advanced fields, handler/method order, stable target IDs, target-array conflicts,
+referenced-upstream deletion rejection (including a late concurrent reference), invalid-route
+and invalid-backend rejection, safe rendering of path text, and mobile layout in both sections.
 Playwright is test tooling only; it is not a Go/runtime dependency and adds no frontend
 build step. The production image check rejects a leaked GUI executable.
 
@@ -401,3 +403,9 @@ Chrome must be installed. `ROUTETUS_UI_URL` overrides the default `http://127.0.
 The test creates routes and intentionally triggers conflicts/validation errors; use only
 a disposable configuration. Optional screenshots go to `ROUTETUS_UI_SCREENSHOT_DIR`.
 It does not establish production capacity or support a public GUI deployment.
+
+CRUD regression sabotage checks removed If-Match forwarding through a temporary Go
+overlay: `TestResourceEditsAndUpstreamDeletion` failed for both resource types. A
+temporary browser response override replaced the edited-field PATCH with the full old
+route: the concurrent-priority assertion failed (`42` instead of `43`). The unchanged
+implementation passes both checks. Working overlays and screenshots are not published.

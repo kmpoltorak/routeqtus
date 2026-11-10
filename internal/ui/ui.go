@@ -23,7 +23,7 @@ import (
 //go:embed files/*
 var assets embed.FS
 
-var routeID = regexp.MustCompile(config.IdentifierPattern)
+var resourceID = regexp.MustCompile(config.IdentifierPattern)
 
 type Handler struct {
 	api         *url.URL
@@ -71,17 +71,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		problem(w, 403, "Cross-site API requests are not allowed")
 		return
 	}
-	if r.Method == "DELETE" && strings.HasPrefix(r.URL.Path, "/api/routes/") {
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "/")
+	if strings.HasPrefix(r.URL.Path, "/api/") && len(parts) == 2 && (parts[0] == "routes" || parts[0] == "upstreams") && (r.Method == "PATCH" || r.Method == "DELETE") {
 		if r.Header.Get("Origin") != "http://"+h.host {
 			problem(w, 403, "A same-origin request is required")
 			return
 		}
-		id := strings.TrimPrefix(r.URL.Path, "/api/routes/")
-		if !routeID.MatchString(id) {
+		if !resourceID.MatchString(parts[1]) {
 			http.NotFound(w, r)
 			return
 		}
-		h.proxy(w, r, "/v1/routes/"+id, nil)
+		if r.Method == "PATCH" {
+			h.writeJSON(w, r, "/v1/"+parts[0]+"/"+parts[1])
+		} else {
+			h.proxy(w, r, "/v1/"+parts[0]+"/"+parts[1], nil)
+		}
 		return
 	}
 	switch r.URL.Path {
@@ -124,20 +128,24 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			problem(w, 403, "A same-origin request is required")
 			return
 		}
-		mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-		if err != nil || mediaType != "application/json" {
-			problem(w, 415, "A JSON request is required")
-			return
-		}
-		body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 4<<20))
-		if err != nil {
-			problem(w, 413, "Configuration document exceeds the request limit or could not be read")
-			return
-		}
-		h.proxy(w, r, "/v1/"+strings.TrimPrefix(r.URL.Path, "/api/"), bytes.NewReader(body))
+		h.writeJSON(w, r, "/v1/"+strings.TrimPrefix(r.URL.Path, "/api/"))
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+func (h *Handler) writeJSON(w http.ResponseWriter, r *http.Request, path string) {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		problem(w, 415, "A JSON request is required")
+		return
+	}
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 4<<20))
+	if err != nil {
+		problem(w, 413, "Configuration document exceeds the request limit or could not be read")
+		return
+	}
+	h.proxy(w, r, path, bytes.NewReader(body))
 }
 
 func (h *Handler) proxy(w http.ResponseWriter, r *http.Request, path string, requestBody io.Reader) {
@@ -150,10 +158,10 @@ func (h *Handler) proxy(w http.ResponseWriter, r *http.Request, path string, req
 	}
 	request.Header.Set("Authorization", "Bearer "+h.token)
 	request.Header.Set("Accept", "application/json")
-	if r.Method == "POST" {
+	if r.Method == "POST" || r.Method == "PATCH" {
 		request.Header.Set("Content-Type", "application/json")
 	}
-	if r.Method == "POST" || r.Method == "DELETE" {
+	if r.Method == "POST" || r.Method == "PATCH" || r.Method == "DELETE" {
 		request.Header.Set("If-Match", r.Header.Get("If-Match"))
 	}
 	response, err := h.client.Do(request)
