@@ -3,20 +3,18 @@
 Routetus needs PostgreSQL and an explicitly published revision before `serve`
 accepts traffic. `manage` can start with an empty, migrated database.
 
-See [release notes](docs/release_notes.md#v020--2026-11-09) for the breaking rename
-in v0.2.0. Use a fresh demo database and the `ROUTETUS_` environment prefix; old-name
-compatibility aliases and automatic data migration are not provided. Existing
-`powered_by.value` options containing HTAB remain valid.
-
-Upgrading an existing database to a release with configurable `limits` requires
-`routetus migrate` (database schema version 2) before the new `serve` and `manage`
-processes start. See [release notes](docs/release_notes.md#unreleased).
+Upgrading from v0.2.0 to v0.3.0 requires `routetus migrate` (database schema version 2)
+before the new `serve` and `manage` processes start; see
+[release notes](docs/release_notes.md#v030--2026-11-10). Upgrading from v0.1.1 also
+crosses the v0.2.0 [breaking rename](docs/release_notes.md#v020--2026-11-09): use a fresh
+demo database and the `ROUTETUS_` environment prefix. Existing `powered_by.value`
+options containing HTAB remain valid.
 
 ## Install
 
 For a prebuilt binary, download the archive for your OS/architecture and `checksums.txt`
 from [GitHub Releases](https://github.com/kmpoltorak/routetus/releases). Starting with
-v0.2.0, archives use `routetus_v0.2.0_<os>_<arch>.tar.gz` and contain `routetus`. Verify its
+v0.2.0, archives use `routetus_<version>_<os>_<arch>.tar.gz` and contain `routetus`. Verify its
 SHA-256 checksum before extracting it. Archives contain the binary, examples, and
 public documentation; they do not include the source Makefile. Check the version:
 
