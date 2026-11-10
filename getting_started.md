@@ -3,15 +3,17 @@
 Routetus needs PostgreSQL and an explicitly published revision before `serve`
 accepts traffic. `manage` can start with an empty, migrated database.
 
-Upgrading from v0.2.0 to v0.3.0 requires `routetus migrate` (database schema version 2)
-before the new `serve` and `manage` processes start; see
-[release notes](docs/release_notes.md#v030--2026-11-10). Upgrading from v0.1.1 also
-crosses the v0.2.0 [breaking rename](docs/release_notes.md#v020--2026-11-09): use a fresh
-demo database and the `ROUTETUS_` environment prefix. For source builds after v0.3.0,
-[replace the test handler](#replace-the-test-powered_by-handler), stop old processes,
-run `routetus migrate` to schema version 3, and restart all management/serving processes.
-Migration preserves existing revisions and initializes their optional Service IDs as empty.
-Old binaries refuse schema version 3; new binaries refuse older schemas.
+Upgrading to v0.4.0 requires replacing the test `powered_by` handler with `headers`
+while the old Management API is still available; follow the
+[migration steps](#replace-the-test-powered_by-handler). Remove the obsolete bootstrap
+key, stop old processes, run `routetus migrate` to database schema version 3, then
+restart all management/serving processes on v0.4.0. Migration preserves existing
+revisions and initializes their optional Service IDs as empty. Old binaries refuse
+schema version 3; new binaries refuse older schemas.
+
+Upgrading from v0.1.x also crosses the v0.2.0
+[breaking rename](docs/release_notes.md#v020--2026-11-09): use a fresh demo database and
+the `ROUTETUS_` environment prefix.
 
 ## Install
 
@@ -205,7 +207,7 @@ See [the API examples](docs/api.md), [configuration reference](docs/reference.md
 
 ## Replace the test powered_by handler
 
-Source builds after v0.3.0 remove `powered_by` and its bootstrap ceiling
+v0.4.0 removes `powered_by` and its bootstrap ceiling
 `limits.max_powered_characters`. Stop using that key in every bootstrap file.
 Before replacing old binaries, use the existing Management API to migrate active
 handler definitions. Preserve their IDs and route/global bindings; change only:

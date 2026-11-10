@@ -1,6 +1,6 @@
 # Release notes
 
-## Unreleased
+## v0.4.0 — 2026-11-10
 
 - Add optional `service_id` metadata to routes and upstreams, including GUI creation,
   editing, display, and search. It preserves case and accepts ASCII letters, digits,
