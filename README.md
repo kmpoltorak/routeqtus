@@ -32,7 +32,7 @@ flowchart LR
 Follow [getting_started.md](getting_started.md) for installation, the Docker demo,
 and native processes. Download binaries from
 [GitHub Releases](https://github.com/kmpoltorak/routetus/releases).
-An optional [local configuration GUI](getting_started.md#local-route-gui) runs in a separate container.
+An optional [local configuration GUI](getting_started.md#local-route-gui) runs in a separate container and follows the system's light/dark theme.
 
 ## Documentation
 

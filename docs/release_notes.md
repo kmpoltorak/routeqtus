@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The local GUI automatically follows the system's light/dark appearance.
+
 - Add an optional, separate local route GUI container using the Management API. It
   provides Routes and Upstreams tabs with list/add/edit/delete, and creates configured handlers with generation
   preconditions. Handler forms use their schemas, and a small guide shows registry

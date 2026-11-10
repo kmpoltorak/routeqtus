@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
+const checkSystemTheme = require("./theme.cjs");
 
 async function run() {
   if (process.env.ROUTETUS_UI_TEST_DISPOSABLE !== "1") throw new Error("This test creates routes. Set ROUTETUS_UI_TEST_DISPOSABLE=1 only for a disposable deployment.");
@@ -32,6 +33,7 @@ async function run() {
     await page.goto(base);
     await page.getByRole("status").filter({ hasText: "Connected" }).waitFor();
     assert.equal(await page.locator('input[type="password"]').count(), 0);
+    await checkSystemTheme(page);
     await page.getByRole("button", { name: "Upstreams", exact: true }).click();
     await page.getByRole("heading", { name: "Configured upstreams", exact: true }).waitFor();
     assert.equal(await page.locator("#upstreams tr").count(), before.body.upstreams.length);
