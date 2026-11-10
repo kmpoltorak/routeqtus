@@ -90,7 +90,8 @@ docker compose --profile ui up -d --build ui
 ```
 
 Open **http://127.0.0.1:9180**. The Routes and Upstreams tabs let you list, add, edit,
-and delete each resource. Delete referring routes before deleting an upstream. The route
+and delete each resource. Add upstreams in the Upstreams tab, then select one in the route
+form. Delete referring routes before deleting an upstream. The route
 form attaches existing route handler configurations; it does not create or edit handlers.
 The top-bar **Handler guide** describes only those available route handlers.
 Choose **Light**, **Dark**, or **System** in the header's Theme selector.

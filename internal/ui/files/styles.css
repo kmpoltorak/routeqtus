@@ -726,8 +726,6 @@ a:focus-visible {
 .theme-control { display:flex; align-items:center; gap:8px; font-size:11px; color:inherit; }
 .theme-control select { font-size:11px; padding:5px 8px; min-height:32px; }
 .text-button { border:0; padding:0; background:none; color:#38684e; font:inherit; font-size:11px; font-weight:600; cursor:pointer; text-decoration:underline; text-decoration-color:#b9cdbf; text-underline-offset:3px; }
-.field-caption { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:15px 0 6px; }
-.field-caption label { font-size:11px; font-weight:650; color:#46614e; }
 dialog { color:#243e31; border:1px solid #dce6df; border-radius:14px; padding:24px; width:min(500px,calc(100vw - 32px)); max-height:88vh; overflow-y:auto; box-shadow:0 24px 80px #173b2833; }
 dialog::backdrop { background:#18352c55; backdrop-filter:blur(3px); }
 .dialog-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; }
@@ -771,7 +769,7 @@ textarea:focus { border-color:#668f77; box-shadow:0 0 0 3px #eaf3ed; }
   .route-path, .route-match, .handler-summary, .empty, .form-intro,
   .hint, .optional, .form-footer, footer, .dialog-intro,
   .guide-item p, .guide-item li, .table-wrap td:nth-child(n):before { color:#9bafa4; }
-  .stat>span, form>label, legend, .field-caption label, dialog label,
+  .stat>span, form>label, legend, dialog label,
   .check, .empty h3 { color:#c0d1c7; }
   .badge, .empty-symbol, .close-button, .delete-target, .tabs,
   .method-options span, .handler-choice { background:#202f28; border-color:#375044; color:#b5c8bc; }

@@ -381,7 +381,6 @@ function openUpstream(upstream = null) {
   $("#upstream-dialog").showModal();
 }
 
-$("#new-upstream").addEventListener("click", () => openUpstream());
 $("#add-upstream").addEventListener("click", () => openUpstream());
 
 function addTarget(id, url = "") {
