@@ -371,6 +371,9 @@ request collection. There is no synchronous SQL or database log write per reques
 
 ## Local GUI
 
+The panel follows the system's light/dark appearance automatically, including changes
+made while it is open. Forms, tables, dialogs, and status messages use the same theme.
+
 The optional Compose `ui` profile runs a separate `routetus-ui` executable in its own
 scratch image. It communicates with `manage` over verified HTTPS; it has no database
 credentials or direct PostgreSQL access. The gateway production image contains neither

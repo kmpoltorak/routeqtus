@@ -391,6 +391,10 @@ and invalid-backend rejection, safe rendering of path text, and mobile layout in
 Playwright is test tooling only; it is not a Go/runtime dependency and adds no frontend
 build step. The production image check rejects a leaked GUI executable.
 
+`tests/ui/theme.cjs`, called by the browser check, emulates light, dark, then light
+again without reloading. It checks the rendered page, cards, inputs, dialogs, and tabs.
+The check failed against the light-only stylesheet before the system theme was added.
+
 To repeat the browser check, install Playwright into an ignored or temporary tool directory,
 initialize a disposable demo with the GUI profile, and run from the repository root:
 

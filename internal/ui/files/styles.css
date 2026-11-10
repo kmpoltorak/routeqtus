@@ -2,6 +2,7 @@
   box-sizing: border-box;
 }
 :root {
+  color-scheme: light dark;
   font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #172a28;
   background: #f4f7f6;
@@ -758,4 +759,46 @@ textarea:focus { border-color:#668f77; box-shadow:0 0 0 3px #eaf3ed; }
   #upstreams-panel td:nth-child(2):before { content:"Backend URLs"; }
   #upstreams-panel td:nth-child(3):before { content:"Used by routes"; }
   #upstreams-panel td:nth-child(4):before { content:none; }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root { color:#e1ebe7; background:#101815; }
+  .topbar, .card, .stat, dialog { background:#18231f; border-color:#2e4238; color:inherit; }
+  .brand { color:#e1ebe7; }
+  .brand-section, .connection, .eyebrow, .subtitle, .stat small,
+  .route-path, .route-match, .handler-summary, .empty, .form-intro,
+  .hint, .optional, .form-footer, footer, .dialog-intro,
+  .guide-item p, .guide-item li, .table-wrap td:nth-child(n):before { color:#9bafa4; }
+  .stat>span, form>label, legend, .field-caption label, dialog label,
+  .parameter-fields label, .check, .empty h3 { color:#c0d1c7; }
+  .badge, .empty-symbol, .close-button, .delete-target, .tabs,
+  .method-options span, .handler-choice { background:#202f28; border-color:#375044; color:#b5c8bc; }
+  .tabs button { color:#9bafa4; }
+  .tabs button:hover { background:#273e32; color:#dcf3e4; }
+  .tabs button[aria-current] { background:#2d4539; color:#dcf3e4; border-color:#486350; }
+  .button.secondary { background:#202f28; color:#d0e2d6; border-color:#405649; }
+  .button.secondary:hover:enabled { background:#2d4539; }
+  .button.primary { background:#287b57; }
+  .button.primary:hover:enabled { background:#326e50; }
+  .text-button { color:#90c8a8; text-decoration-color:#537d63; }
+  .delete-link { color:#f1ae95; text-decoration-color:#8d5f50; }
+  input, select, textarea { background:#111d17; color:#e1ebe7; border-color:#405649; }
+  input::placeholder, textarea::placeholder { color:#93a89a; }
+  input[readonly] { background:#23332b; color:#abc0b2; }
+  .search-wrap input, th { background:#152019; border-color:#304238; }
+  th { color:#abc0b2; }
+  td, .table-wrap tr, .matching-options, .parameter-fields, .guide-item { border-color:#304238; }
+  tbody tr:hover { background:#203329; }
+  .method-tag { background:#1d3b2b; color:#9fd9b3; }
+  .method-tag.post { background:#25324b; color:#aec5ff; }
+  .method-tag.delete { background:#482c25; color:#ffc2aa; }
+  .method-options input:checked+span, .handler-choice:has(input:checked) { background:#294737; border-color:#547e62; color:#c9ead3; }
+  .upstream-name { color:#b0c8b8; }
+  .notice { background:#203d2b; color:#b7dfc2; border-color:#416b4d; }
+  .notice.error { background:#412820; color:#ffc6ae; border-color:#744a37; }
+  input[type=checkbox] { accent-color:#70b68a; }
+  input:focus, select:focus, textarea:focus { border-color:#87b89b; box-shadow:0 0 0 3px #507d6240; }
+  button:focus-visible, a:focus-visible, .method-options input:focus-visible+span { outline-color:#87bf9a; }
+  .connection.connected:before { box-shadow:0 0 0 4px #234236; }
+  dialog::backdrop { background:#0009; }
 }
