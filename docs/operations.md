@@ -379,7 +379,8 @@ the UI executable nor its static assets. See [startup instructions](../getting_s
 The browser talks only to the GUI's origin. The GUI process attaches its environment-backed
 Management API token to narrowly scoped operations: reading `/v1/config` and
 `/v1/handler-types`, and creating routes, upstreams, and configured handlers through
-their collection endpoints, plus deleting one route through `/v1/routes/{id}`. It forwards the observed generation precondition, status,
+their collection endpoints, plus editing and deleting individual routes/upstreams through
+`/v1/routes/{id}` and `/v1/upstreams/{id}`. It forwards the observed generation precondition, status,
 field errors, and ETag. The browser receives no token, login cookie, or stored credentials.
 
 The upstream form accepts one backend URL per line and uses transport defaults. The
@@ -396,9 +397,25 @@ independent per route as described in [extensions](extensions.md#handler-scope).
 A newly created upstream/handler is selected automatically, preserving the pending
 route form. Each creation is a separate publication, with fresh generation reads.
 
-Route deletion uses a confirmation dialog and the current generation. A conflict refreshes
-the selected route for review before another confirmation. Deletion preserves upstreams
-and handler definitions. Route editing is not implemented in this initial GUI.
+The Routes and Upstreams tabs each list, filter, add, edit, and delete resources. The
+route form stays beside the route list; Cancel edit returns it to creation mode. Each
+upstream has its own edit dialog. IDs are read-only during editing. PATCH sends only
+changed form fields, preserving unshown route deadlines, host, priority, metrics, and
+upstream transport/TLS options. Existing handler order, custom HTTP methods, and disabled
+handler bindings remain intact. An empty method selection during editing matches any method.
+Upstream edits preserve target IDs/order and allow adding/removing individual backends.
+
+Deletion uses a confirmation dialog and the generation observed when it opened. A
+conflict refreshes the selected resource for review before another confirmation. Route
+deletion preserves upstreams and handler definitions. Upstream deletion is blocked while
+any route refers to it; the dialog lists those route IDs. Delete the routes first. The
+Management API also validates dependencies, including ones created by another writer.
+There is no cascading deletion.
+
+Edit forms retain drafts after a 412 and require another save after review. Unedited
+fields changed by another writer are preserved. If another writer changed an upstream's
+target array, saving is blocked until its dialog is reopened with the latest targets;
+the old draft remains visible for copying. No automatic mutation retry is performed.
 
 Compose publishes the panel only at `127.0.0.1:9180` and places it on a dedicated network
 shared only with `manage`. It mounts the demo public certificate, not its private key,

@@ -89,9 +89,11 @@ After initializing the Docker demo, start the optional, separate GUI container:
 docker compose --profile ui up -d --build ui
 ```
 
-Open **http://127.0.0.1:9180**. The panel lists routes and lets you add or delete a route,
-register an upstream with backend URLs, and create a configured handler from a type
-registered by the server. Handler options use typed fields derived from its schema;
+Open **http://127.0.0.1:9180**. The Routes and Upstreams tabs let you list, add, edit,
+and delete each resource. Delete referring routes before deleting an upstream. The route
+form's **Configure handler** action creates settings for a type already registered by
+the server. New handler types require Go code, registration, and a rebuilt server.
+Handler options use typed fields derived from its schema;
 structured map/array options use JSON fields. The top-bar **Handler guide** explains
 the available types and their options.
 
