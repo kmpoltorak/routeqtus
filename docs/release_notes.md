@@ -1,6 +1,11 @@
 # Release notes
 
-## Unreleased
+## v0.3.0 — 2026-11-10
+
+- Upgrade from v0.2.0: run `routetus migrate`, then restart every `serve` and `manage`
+  process on v0.3.0. Release archives are named `routetus_v0.3.0_<os>_<arch>.tar.gz`.
+  The optional GUI is not in the archives or gateway image; build it from a source
+  checkout (see getting_started.md, Local route GUI).
 
 - Configuration limits move from code constants to the bootstrap `limits` section:
   `max_entities`, `max_targets`, `max_connections`, `max_priority`, `max_sample_every`,
