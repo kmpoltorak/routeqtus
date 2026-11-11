@@ -3,13 +3,17 @@
 Routetus needs PostgreSQL and an explicitly published revision before `serve`
 accepts traffic. `manage` can start with an empty, migrated database.
 
-Upgrading to v0.4.0 requires replacing the test `powered_by` handler with `headers`
+v0.4.1 rebuilds the executables with Go 1.27.4 security fixes. From v0.4.0, replace
+the binaries or rebuild the container images and restart the processes; no additional
+database migration or configuration conversion is needed.
+
+Upgrading from before v0.4.0 requires replacing the test `powered_by` handler with `headers`
 while the old Management API is still available; follow the
 [migration steps](#replace-the-test-powered_by-handler). Remove the obsolete bootstrap
 key, stop old processes, run `routetus migrate` to database schema version 3, then
-restart all management/serving processes on v0.4.0. Migration preserves existing
-revisions and initializes their optional Service IDs as empty. Old binaries refuse
-schema version 3; new binaries refuse older schemas.
+restart all management/serving processes on v0.4.1. Migration preserves existing
+revisions and initializes their optional Service IDs as empty. Pre-v0.4.0 binaries
+refuse schema version 3; v0.4.x binaries refuse older schemas.
 
 Upgrading from v0.1.x also crosses the v0.2.0
 [breaking rename](docs/release_notes.md#v020--2026-11-09): use a fresh demo database and
@@ -28,7 +32,7 @@ public documentation; they do not include the source Makefile. Check the version
 ```
 
 The Docker demo and source-build commands below use a Git checkout. PostgreSQL 17
-or later is required. Native source builds use Go 1.27.3 and make. The production
+or later is required. Native source builds use Go 1.27.4 and make. The production
 container includes CA certificates, runs without root, and excludes the demo backend.
 
 ## Local Docker demo
@@ -94,7 +98,15 @@ After initializing the Docker demo, start the optional, separate GUI container:
 
 ```sh
 docker compose --profile ui up -d --build ui
+curl --fail --silent --show-error --retry 20 --retry-connrefused \
+  --retry-delay 1 --retry-max-time 40 --max-time 5 \
+  http://127.0.0.1:9180/api/config > /dev/null
 ```
+
+The GET check waits for the GUI to reach the Management API. Compose starting a
+container does not mean its API is ready. During a management restart the panel can
+temporarily return 502; once management is available, use **Refresh**. For a persistent
+failure, follow [local demo troubleshooting](docs/operations.md#local-demo-troubleshooting).
 
 Open **http://127.0.0.1:9180**. The Routes and Upstreams tabs let you list, add, edit,
 and delete each resource. Add upstreams in the Upstreams tab, then select one in the route

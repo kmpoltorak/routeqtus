@@ -1,5 +1,13 @@
 # Release notes
 
+## v0.4.1 — 2026-11-11
+
+- Build with Go 1.27.4, including the `net/http` security fix for
+  [GO-2026-6859](https://pkg.go.dev/vuln/GO-2026-6859). The Docker builder is pinned to
+  the corresponding image digest. Rebuild native executables and container images;
+  no database migration or operational configuration change is needed from v0.4.0.
+- Add a bounded GUI startup check and document temporary Management API unavailability.
+
 ## v0.4.0 — 2026-11-10
 
 - Add optional `service_id` metadata to routes and upstreams, including GUI creation,
