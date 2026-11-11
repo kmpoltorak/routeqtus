@@ -1,5 +1,5 @@
 VERSION ?= dev
-.PHONY: build build-ui run check test test-race test-integration fuzz bench loadbench vuln docs demo sabotage
+.PHONY: build build-ui run check test test-ui test-race test-integration fuzz bench loadbench vuln docs demo sabotage
 build:
 	CGO_ENABLED=0 go build -trimpath -ldflags='-s -w -X github.com/kmpoltorak/routetus/internal/cli.Version=$(VERSION)' -o bin/routetus ./cmd/routetus
 build-ui:
@@ -12,6 +12,8 @@ check:
 	go vet ./...
 test:
 	go test ./...
+test-ui:
+	node --test tests/ui/policies.test.cjs
 test-race:
 	go test -race ./...
 test-integration:

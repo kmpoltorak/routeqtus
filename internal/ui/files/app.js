@@ -1,8 +1,11 @@
 "use strict";
 
+import { PolicyEditor, candidate } from "./policies.mjs";
+
 const $ = (selector) => document.querySelector(selector);
 const form = $("#route-form");
 const state = { config: null, etag: "", saving: false, loading: false, deleting: null, routeEdit: null, upstreamEdit: null };
+const policies = new PolicyEditor($("#handler-options"));
 
 function notice(message, error = false) {
   const box = $("#notice");
@@ -76,7 +79,7 @@ function renderRoutes() {
     row.insertCell().append(destination);
     const handlers = document.createElement("span");
     handlers.className = "handler-summary";
-    handlers.textContent = route.handlers.filter((id) => visibleHandlers.has(id)).join(", ") || "None";
+    handlers.textContent = route.handlers.filter((id) => visibleHandlers.has(id)).map(id => state.config.handlers.find(handler => handler.id === id)?.type || id).join(", ") || "None";
     row.insertCell().append(handlers);
     row.insertCell().append(action("Edit", "route " + route.id, () => editRoute(route)), action("Delete", "route " + route.id, () => openDelete("routes", route.id)));
     body.append(row);
@@ -88,36 +91,12 @@ function routeHandlers() {
   return (state.config?.handlers || []).filter((handler) => !globals.has(handler.id));
 }
 
-function renderChoices(selectedHandlers = null) {
+function renderChoices() {
   const previousUpstream = $("#upstream").value;
-  const selected = new Set(selectedHandlers || [...form.querySelectorAll('input[name="handlers"]:checked')].map((input) => input.value));
-  const previousChoices = new Set([...form.querySelectorAll('input[name="handlers"]')].map((input) => input.value));
   $("#upstream").replaceChildren(new Option("Choose an upstream", ""));
   for (const upstream of state.config.upstreams) $("#upstream").append(new Option(upstream.id, upstream.id));
   if (state.config.upstreams.some((item) => item.id === previousUpstream)) $("#upstream").value = previousUpstream;
   $("#upstream-hint").textContent = state.config.upstreams.length ? "Destination groups come from the Management API." : "No upstreams configured. Add one through the Management API first.";
-  const choices = $("#handler-options");
-  choices.replaceChildren();
-  const original = new Set(state.routeEdit?.original.handlers || []);
-  for (const handler of routeHandlers()) {
-    const label = document.createElement("label");
-    label.className = "handler-choice";
-    label.title = handler.type + (handler.enabled === false ? " (disabled)" : "");
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.name = "handlers";
-    input.value = handler.id;
-    input.disabled = handler.enabled === false;
-    input.checked = selected.has(handler.id) || (!previousChoices.has(handler.id) && original.has(handler.id));
-    label.append(input, document.createTextNode(handler.id + (input.disabled ? " · disabled" : "")));
-    choices.append(label);
-  }
-  if (!choices.children.length) {
-    const empty = document.createElement("p");
-    empty.className = "hint";
-    empty.textContent = "No route handlers configured.";
-    choices.append(empty);
-  }
 }
 
 async function load(announce = false) {
@@ -125,14 +104,18 @@ async function load(announce = false) {
   $("#refresh").disabled = true;
   updateSubmit();
   try {
-    const response = await fetch("/api/config", { cache: "no-store" });
+    const [response, types, contract] = await Promise.all([
+      fetch("/api/config", { cache: "no-store" }), handlerTypes(),
+      fetch("/api/openapi", { cache: "no-store" }).then(readResponse),
+    ]);
     const config = await readResponse(response);
     if (![config.routes, config.upstreams, config.handlers].every(Array.isArray)) throw new Error("The configuration response is incomplete.");
+    policies.configure(types, contract, config);
     state.config = config;
     state.etag = response.headers.get("ETag") || "";
     $("#route-count").textContent = String(config.routes.length);
     $("#upstream-count").textContent = String(config.upstreams.length);
-    $("#handler-count").textContent = String(routeHandlers().length);
+    $("#handler-count").textContent = String(policies.types.length);
     renderRoutes();
     renderUpstreams();
     renderChoices();
@@ -171,15 +154,10 @@ form.addEventListener("submit", async (event) => {
   const route = {
     id: $("#route-id").value.trim(), service_id: $("#route-service-id").value.trim(), path: $("#route-path").value.trim(), methods,
     upstream: $("#upstream").value,
-    handlers: [...form.querySelectorAll('input[name="handlers"]:checked')].map((input) => input.value),
     prefix: $("#prefix").checked, strip_prefix: $("#prefix").checked && $("#strip-prefix").checked,
   };
   const editing = state.routeEdit;
-  const selected = new Set(route.handlers);
   if (editing) {
-    const visible = new Set(routeHandlers().map((handler) => handler.id));
-    for (const id of editing.original.handlers) if (!visible.has(id)) selected.add(id);
-    route.handlers = [...editing.original.handlers.filter((id) => selected.has(id)), ...route.handlers.filter((id) => !editing.original.handlers.includes(id))];
     route.methods = [...(editing.original.methods || []).filter((method) => methods.includes(method)), ...methods.filter((method) => !(editing.original.methods || []).includes(method))];
   }
   const payload = editing ? changedFields(route, editing.original) : route;
@@ -189,7 +167,8 @@ form.addEventListener("submit", async (event) => {
   updateSubmit();
   notice("");
   try {
-    const response = await fetch("/api/routes" + (editing ? "/" + encodeURIComponent(editing.id) : ""), { method: editing ? "PATCH" : "POST", headers: { "Content-Type": "application/json", "If-Match": editing ? editing.etag : state.etag }, body: JSON.stringify(payload) });
+    const document = candidate(state.config, payload, editing?.original || null, policies.values(), policies.maximumIDLength);
+    const response = await fetch("/api/config", { method: "PUT", headers: { "Content-Type": "application/json", "If-Match": editing ? editing.etag : state.etag }, body: JSON.stringify(document) });
     await readResponse(response);
     resetRoute();
     if (await load()) notice('Route "' + route.id + '" ' + (editing ? "updated" : "created") + '. Serving instances apply the change in the background.');
@@ -252,14 +231,15 @@ function resetRoute() {
   $("#strip-prefix").disabled = true;
   $("#form-heading").textContent = "Add a route";
   $("#cancel-route-edit").hidden = true;
-  if (state.config) renderChoices();
+  if (state.config) { renderChoices(); policies.render(state.config); }
   updateSubmit();
 }
 
 function editRoute(route) {
   resetRoute();
   state.routeEdit = { id: route.id, original: structuredClone(route), etag: state.etag };
-  renderChoices(route.handlers);
+  renderChoices();
+  policies.render(state.config, route);
   $("#route-id").value = route.id;
   $("#route-service-id").value = route.service_id || "";
   $("#route-id").readOnly = true;
@@ -349,12 +329,9 @@ $("#handler-guide").addEventListener("click", async () => {
   $("#guide-dialog").showModal();
   try {
     content.replaceChildren();
-    const configured = routeHandlers();
-    const names = new Set(configured.map((handler) => handler.type));
-    for (const type of (await handlerTypes()).filter((type) => names.has(type.name))) {
+    for (const type of policies.types) {
       const card = element("section", undefined, "guide-item");
       card.append(element("h3", type.name), element("p", type.description || "Custom registered handler. Review its option descriptions before use."));
-      card.append(element("p", "Configurations: " + configured.filter((handler) => handler.type === type.name).map((handler) => handler.id).join(", ")));
       const options = Object.entries(type.schema?.properties || {});
       if (!options.length) card.append(element("p", "No options."));
       else {
@@ -364,7 +341,7 @@ $("#handler-guide").addEventListener("click", async () => {
       }
       content.append(card);
     }
-    if (!content.children.length) content.append(element("p", "No route-specific handlers configured.", "hint"));
+    if (!content.children.length) content.append(element("p", "No supported route policies are registered on the server.", "hint"));
   } catch (error) { content.replaceChildren(element("p", error.message, "notice error")); }
 });
 

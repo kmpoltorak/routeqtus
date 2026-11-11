@@ -60,6 +60,42 @@ func TestConfigReadUsesServerToken(t *testing.T) {
 	}
 }
 
+func TestAtomicConfigurationSave(t *testing.T) {
+	for _, status := range []int{200, 412, 422} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			const body = `{"schema_version":1,"routes":[{"id":"a","handlers":["limit-a"]}],"handlers":[{"id":"limit-a","type":"concurrency_limit","version":1,"options":{"limit":2}}]}`
+			var calls atomic.Int32
+			api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				got, err := io.ReadAll(r.Body)
+				if err != nil || string(got) != body || r.Method != "PUT" || r.URL.Path != "/v1/config" || r.Header.Get("If-Match") != `"g-7"` || r.Header.Get("Authorization") != "Bearer "+strings.Repeat("t", 32) || r.Header.Get("Content-Type") != "application/json" {
+					t.Error("atomic publication lost its document, generation, or server credentials")
+				}
+				w.Header().Set("ETag", `"g-8"`)
+				w.WriteHeader(status)
+				io.WriteString(w, `{"message":"publication result","fields":[]}`)
+			}))
+			defer api.Close()
+			server := localUI(t, api.URL, strings.Repeat("t", 32))
+			request, err := http.NewRequest("PUT", server.URL+"/api/config", strings.NewReader(body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			request.Header.Set("Origin", server.URL)
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("If-Match", `"g-7"`)
+			response, err := server.Client().Do(request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer response.Body.Close()
+			if response.StatusCode != status || response.Header.Get("ETag") != `"g-8"` || calls.Load() != 1 {
+				t.Fatalf("publication = %d, calls = %d", response.StatusCode, calls.Load())
+			}
+		})
+	}
+}
+
 func TestRouteCreationPreservesPreconditionAndErrors(t *testing.T) {
 	for _, status := range []int{201, 412, 422} {
 		t.Run(http.StatusText(status), func(t *testing.T) {
@@ -114,6 +150,10 @@ func TestBrowserRequestsCannotUseLocalCredentials(t *testing.T) {
 		{name: "missing origin", method: "POST", path: "/api/routes", contentType: "application/json", body: `{}`, status: 403},
 		{name: "null origin", method: "POST", path: "/api/routes", origin: "null", contentType: "application/json", body: `{}`, status: 403},
 		{name: "cross origin write", method: "POST", path: "/api/routes", origin: "https://example.net", contentType: "application/json", body: `{}`, status: 403},
+		{name: "config missing origin", method: "PUT", path: "/api/config", contentType: "application/json", body: `{}`, status: 403},
+		{name: "config cross origin", method: "PUT", path: "/api/config", origin: "https://example.net", contentType: "application/json", body: `{}`, status: 403},
+		{name: "config form content", method: "PUT", path: "/api/config", origin: server.URL, contentType: "text/plain", body: `{}`, status: 415},
+		{name: "config document limit", method: "PUT", path: "/api/config", origin: server.URL, contentType: "application/json", body: strings.Repeat(" ", (4<<20)+1), status: 413},
 		{name: "duplicate origin", method: "POST", path: "/api/routes", origin: server.URL, duplicateOrigin: true, contentType: "application/json", body: `{}`, status: 403},
 		{name: "form content", method: "POST", path: "/api/routes", origin: server.URL, contentType: "application/x-www-form-urlencoded", body: "id=hello", status: 415},
 		{name: "untrusted host", method: "GET", path: "/api/config", host: "example.net:9180", status: 403},
@@ -194,7 +234,7 @@ func TestLocalGUIConfiguration(t *testing.T) {
 func TestStaticAssetsHaveNoCredentials(t *testing.T) {
 	token := strings.Repeat("server-only-token", 3)
 	server := localUI(t, "http://127.0.0.1:9080", token)
-	for _, path := range []string{"/", "/app.js", "/theme.js", "/styles.css"} {
+	for _, path := range []string{"/", "/app.js", "/policies.mjs", "/theme.js", "/styles.css"} {
 		response, err := server.Client().Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -253,6 +293,8 @@ func TestResourceCreationAndHandlerDiscovery(t *testing.T) {
 		switch r.Method + " " + r.URL.Path {
 		case "GET /v1/handler-types":
 			io.WriteString(w, `[{"name":"access_log","version":1,"description":"Logs requests","schema":{"type":"object","properties":{"sample_every":{"type":"integer","default":1}}}}]`)
+		case "GET /openapi.json":
+			io.WriteString(w, `{"openapi":"3.0.3","components":{"schemas":{}}}`)
 		case "POST /v1/upstreams":
 			io.WriteString(w, `{"status":"committed"}`)
 		default:
@@ -261,7 +303,7 @@ func TestResourceCreationAndHandlerDiscovery(t *testing.T) {
 	}))
 	defer api.Close()
 	server := localUI(t, api.URL, token)
-	for _, tc := range []struct{ method, path, body string }{{"GET", "/api/handler-types", ""}, {"POST", "/api/upstreams", `{"id":"demo","targets":[{"id":"a","url":"http://example.com"}]}`}} {
+	for _, tc := range []struct{ method, path, body string }{{"GET", "/api/handler-types", ""}, {"GET", "/api/openapi", ""}, {"POST", "/api/upstreams", `{"id":"demo","targets":[{"id":"a","url":"http://example.com"}]}`}} {
 		request, err := http.NewRequest(tc.method, server.URL+tc.path, strings.NewReader(tc.body))
 		if err != nil {
 			t.Fatal(err)

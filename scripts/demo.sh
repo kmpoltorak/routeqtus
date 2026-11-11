@@ -1,18 +1,24 @@
 #!/bin/sh
 set -eu
+umask 077
 cd "$(dirname "$0")/.."
 if [ "$(id -u)" = 0 ]; then
   echo 'Run the local demo as a non-root user.' >&2
   exit 1
 fi
 if [ ! -f .env ]; then
-  umask 077
   {
-    for name in POSTGRES_PASSWORD SERVE_DB_PASSWORD MANAGE_DB_PASSWORD ROUTETUS_MANAGEMENT_TOKEN ROUTETUS_ADMIN_TOKEN; do
+    for name in POSTGRES_PASSWORD SERVE_DB_PASSWORD MANAGE_DB_PASSWORD ROUTETUS_MANAGEMENT_TOKEN ROUTETUS_ADMIN_TOKEN ROUTETUS_ROUTE_TOKEN; do
       printf '%s=%s\n' "$name" "$(openssl rand -hex 32)"
     done
     printf 'ROUTETUS_UID=%s\nROUTETUS_GID=%s\n' "$(id -u)" "$(id -g)"
   } > .env
+fi
+if ! grep -q '^ROUTETUS_ROUTE_TOKEN=' .env; then
+  chmod 600 .env
+  route_token=$(openssl rand -hex 32)
+  printf '\nROUTETUS_ROUTE_TOKEN=%s\n' "$route_token" >> .env
+  unset route_token
 fi
 mkdir -p .demo/tls
 if [ ! -f .demo/tls/key.pem ]; then

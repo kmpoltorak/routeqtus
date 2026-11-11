@@ -53,6 +53,7 @@ services:
     environment:
       DATABASE_URL: postgres://routetus_manage:${MANAGE_DB_PASSWORD}@postgres:5432/routetus?sslmode=disable
       ROUTETUS_MANAGEMENT_TOKEN: ${ROUTETUS_MANAGEMENT_TOKEN:?Run make demo first}
+      ROUTETUS_ROUTE_TOKEN: ${ROUTETUS_ROUTE_TOKEN:-}
     ports: ["127.0.0.1:9080:9080"]
     networks: [default, ui]
     depends_on:
@@ -89,6 +90,7 @@ services:
     environment:
       DATABASE_URL: postgres://routetus_serve:${SERVE_DB_PASSWORD}@postgres:5432/routetus?sslmode=disable
       ROUTETUS_ADMIN_TOKEN: ${ROUTETUS_ADMIN_TOKEN:?Run make demo first}
+      ROUTETUS_ROUTE_TOKEN: ${ROUTETUS_ROUTE_TOKEN:-}
     ports: ["127.0.0.1:8080:8080", "127.0.0.1:9090:9090"]
     depends_on:
       postgres: {condition: service_healthy}

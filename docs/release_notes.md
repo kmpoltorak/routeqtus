@@ -1,5 +1,15 @@
 # Release notes
 
+## Unreleased
+
+- Add per-route option forms for registered headers, concurrency, rate, body, and token
+  allowlist policies. The GUI publishes route and policy changes atomically, clones
+  edited shared definitions, and requires review after conflicting policy edits.
+- Show all five supported registered types even without configured instances; global
+  bindings remain hidden. New types still require code and registration.
+- Fresh demos generate a separate `ROUTETUS_ROUTE_TOKEN` and provision it in management
+  and serving containers. The GUI accepts environment names only, never token values.
+
 ## v0.4.1 — 2026-11-11
 
 - Build with Go 1.27.4, including the `net/http` security fix for

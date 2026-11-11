@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 const checkSystemTheme = require("./theme.cjs");
 const checkHandlerChoices = require("./handlers.cjs");
+const checkPolicyOptions = require("./policy-options.cjs");
 
 async function run() {
   if (process.env.ROUTETUS_UI_TEST_DISPOSABLE !== "1") throw new Error("This test creates routes. Set ROUTETUS_UI_TEST_DISPOSABLE=1 only for a disposable deployment.");
@@ -43,7 +44,7 @@ async function run() {
     await page.getByRole("button", { name: "Routes", exact: true }).click();
     await page.getByRole("button", { name: "Handler guide", exact: true }).click();
     await page.getByRole("heading", { name: "headers", exact: true }).waitFor();
-    await page.getByText("Adds or removes permitted request and response headers.", { exact: true }).waitFor();
+    await page.locator("#guide-content").getByText("Adds or removes permitted request and response headers.", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Close handler guide" }).click();
     const suffix = Date.now().toString(36);
     const id = "ui-" + suffix;
@@ -70,12 +71,10 @@ async function run() {
     assert.equal(await page.getByLabel("Request path", { exact: true }).inputValue(), "/" + id);
     assert.equal(await page.locator("#route-service-id").inputValue(), "Orders-API01");
     assert.equal(await page.getByLabel("Upstream", { exact: true }).inputValue(), selectedUpstream);
-    const routeHandler = before.body.handlers.find((handler) => !(before.body.global_handlers || []).includes(handler.id) && handler.enabled !== false);
-    assert.ok(routeHandler, "An existing route handler is required");
     const created = await config();
     assert.equal(created.body.upstreams.find((upstream) => upstream.id === selectedUpstream).targets[0].url, before.body.upstreams[0].targets[0].url);
     await fill(id, "/" + id);
-    await page.locator('input[name="handlers"][value="' + routeHandler.id + '"]').check();
+    await page.locator('[data-policy-type="headers"] input[name="policies"]').check();
     await submit.click();
     await page.locator("#notice").filter({ hasText: `Route "${id}" created.` }).waitFor();
     await page.locator("#routes").getByText(id, { exact: true }).waitFor();
@@ -87,7 +86,9 @@ async function run() {
     assert.equal(await page.locator("#routes tr").count(), 1);
     await page.getByRole("searchbox", { name: "Search routes" }).fill("");
     assert.equal(saved.upstream, selectedUpstream);
-    assert.deepEqual(saved.handlers, [routeHandler.id]);
+    assert.equal(saved.handlers.length, 1);
+    const routeHandler = (await config()).body.handlers.find(handler => handler.id === saved.handlers[0]);
+    assert.equal(routeHandler.type, "headers");
     assert.deepEqual(saved.methods, ["GET"]);
     const legacyGlobal = before.body.global_handlers[0];
     const handlerOrder = [routeHandler.id, legacyGlobal];
@@ -98,7 +99,7 @@ async function run() {
     await page.getByLabel("Request path", { exact: true }).fill("/" + id + "-edited");
     assert.equal(await page.locator("#route-service-id").inputValue(), "Orders-API01");
     await page.locator("#route-service-id").fill("Orders-API02");
-    assert.equal(await page.locator('input[name="handlers"][value="' + legacyGlobal + '"]').count(), 0);
+    assert.equal(await page.locator('input[name="policies"][value="' + legacyGlobal + '"]').count(), 0);
     await page.locator('input[name="methods"][value="POST"]').check();
     await page.locator("#prefix").check();
     await page.locator("#strip-prefix").check();
@@ -125,8 +126,8 @@ async function run() {
     await page.getByRole("button", { name: "Edit route " + id, exact: true }).click();
     await page.getByLabel("Request path", { exact: true }).fill("/" + id + "-any");
     await page.locator("#route-service-id").fill("");
-    assert.equal(await page.locator('input[name="handlers"][value="' + legacyGlobal + '"]').count(), 0);
-    await page.locator('input[name="handlers"][value="' + routeHandler.id + '"]').uncheck();
+    assert.equal(await page.locator('input[name="policies"][value="' + legacyGlobal + '"]').count(), 0);
+    await page.locator('input[name="policies"][value="' + routeHandler.id + '"]').uncheck();
     await page.getByRole("button", { name: "Save route", exact: true }).click();
     await page.locator("#notice").filter({ hasText: `Route "${id}" updated.` }).waitFor();
     assert.equal((await config()).body.routes.find((route) => route.id === id).methods?.length || 0, 0);
@@ -259,6 +260,7 @@ async function run() {
     await page.locator("#route-form").evaluate((form) => form.reset());
     await page.getByRole("button", { name: "Refresh" }).click();
     await page.locator("#notice").filter({ hasText: "Configuration refreshed." }).waitFor();
+    await checkPolicyOptions(page, base);
     await page.getByLabel("Theme", { exact: true }).selectOption("dark");
     if (process.env.ROUTETUS_UI_SCREENSHOT_DIR) await page.screenshot({ path: process.env.ROUTETUS_UI_SCREENSHOT_DIR + "/desktop.png", fullPage: true });
     await page.setViewportSize({ width: 390, height: 844 });

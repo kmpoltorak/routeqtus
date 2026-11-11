@@ -111,15 +111,21 @@ failure, follow [local demo troubleshooting](docs/operations.md#local-demo-troub
 Open **http://127.0.0.1:9180**. The Routes and Upstreams tabs let you list, add, edit,
 and delete each resource. Add upstreams in the Upstreams tab, then select one in the route
 form. Delete referring routes before deleting an upstream. The route
-form attaches existing route handler configurations; it does not create or edit handlers.
-The top-bar **Handler guide** describes only those available route handlers.
+form offers `headers`, `concurrency_limit`, `rate_limit`, `body_limit`, and
+`token_allowlist` when registered on the server. Select a policy to reveal its option
+fields. Save publishes the route and its policy definitions together; changing shared
+options creates a separate definition for this route. The **Handler guide** describes
+these route policies. New handler types still require code and registration.
 Choose **Light**, **Dark**, or **System** in the header's Theme selector.
 Your browser remembers the choice when local storage is available.
 
 It has no login screen; the Management API token stays in the GUI container.
 Configuration conflicts refresh the list and preserve your form for review and retry.
-Selecting a configured handler ID attaches it to the route. New handler
-types still require code registration and a binary deployment.
+Fresh demos generate a separate `ROUTETUS_ROUTE_TOKEN` in `.env` and pass it to both
+`manage` and `serve`. For the token policy, enter that variable name in the form;
+never enter the token value. Existing demos need that variable provisioned in `.env`
+and both processes recreated before using the policy. Other variable names require
+explicit container environment/Secrets wiring; see [route tokens](docs/extensions.md#token-allowlist).
 
 The `ui` profile builds its own image from this checkout. It is not part of the
 production gateway image or the gateway release archive. No Node.js installation is

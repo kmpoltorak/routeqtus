@@ -396,30 +396,38 @@ credentials or direct PostgreSQL access. The gateway production image contains n
 the UI executable nor its static assets. See [startup instructions](../getting_started.md#local-route-gui).
 
 The browser talks only to the GUI's origin. The GUI process attaches its environment-backed
-Management API token to narrowly scoped operations: reading `/v1/config` and
-`/v1/handler-types`, and creating routes and upstreams through
-their collection endpoints, plus editing and deleting individual routes/upstreams through
-`/v1/routes/{id}` and `/v1/upstreams/{id}`. It forwards the observed generation precondition, status,
+Management API token to reading `/v1/config`, `/v1/handler-types`, and `/openapi.json`,
+publishing route/policy candidates with `PUT /v1/config`, and creating/editing/deleting
+individual routes and upstreams through their resource endpoints. The configuration
+PUT uses the token's complete publication authority; this is not a restricted user role.
+The proxy forwards the observed generation precondition, status,
 field errors, and ETag. The browser receives no token, login cookie, or stored credentials.
 
 The upstream form accepts one backend URL per line and uses transport defaults.
-The route form only attaches existing handler configurations. The GUI does not create,
-edit, or delete handlers, and its API proxy rejects handler creation. New types require
-code and registration as described in [extensions](extensions.md); publish their
-configuration through the Management API before attaching them in the panel.
-The Handler guide uses registry descriptions and option schemas for types used by
-existing route handler configurations, with a generic fallback for missing descriptions.
-Types used only by global configurations are omitted.
+The route form offers the registered `headers`, `concurrency_limit`, `rate_limit`,
+`body_limit`, and `token_allowlist` types. Selecting a policy reveals its option fields;
+numeric bounds and examples come from the server registry and current OpenAPI contract.
+Header maps use one `Header-Name: value` per line; removal lists and token environment
+references use one name per line. Values are validated by the Management API before commit.
+The Handler guide describes these five route types, including types without configured
+instances. New types require code and registration as described in [extensions](extensions.md).
 
-Selecting an existing configured handler attaches its ID without changing its options.
 Global handler IDs are omitted from choices, route-table summaries, the handler count,
 and the guide. Existing explicit global+route bindings are also hidden and are preserved
 when saving a route, including when its visible handler selection changes. Use the
 Management API to change those bindings. Disabled route configurations remain marked
 disabled; their existing bindings are preserved.
-Create a new configured ID for different option values on another route; editing a
-shared definition would otherwise change all of its users. Runtime state is still
-independent per route as described in [extensions](extensions.md#handler-scope).
+The form loads attached policy options when editing. A changed definition used by
+another route is copied under a collision-free ID and rebound only on this route;
+an exclusive definition is updated in place. Unchanged definitions keep their IDs
+and binding order. Detached definitions remain available through the API as presets.
+Other/custom bindings are preserved but edited through the Management API. Runtime
+state remains independent per route as described in [extensions](extensions.md#handler-scope).
+Detached token presets still require their environment references; delete an unused
+definition through the Management API before removing its secrets.
+Route and policy changes publish one complete candidate against one `If-Match` value.
+A rejected candidate creates neither a route nor partial policy definitions. The GUI
+write limit is 4 MiB for this complete document; management has its own request budget.
 Create upstreams using Add upstream in the Upstreams tab. The route form only selects
 an existing upstream. Switching tabs preserves the route draft; a newly created upstream
 is selected automatically when returning to it.
@@ -427,9 +435,10 @@ Each creation is a separate publication, with fresh generation reads.
 
 The Routes and Upstreams tabs each list, filter, add, edit, and delete resources. The
 route form stays beside the route list; Cancel edit returns it to creation mode. Each
-upstream has its own edit dialog. IDs are read-only during editing. PATCH sends only
-changed form fields, preserving unshown route deadlines, host, priority, metrics, and
-upstream transport/TLS options. Existing handler order, custom HTTP methods, and disabled
+upstream has its own edit dialog. IDs are read-only during editing. Route saves merge
+changed form fields into the observed configuration before the conditional PUT;
+upstream PATCH sends only changed fields. Both preserve unshown route deadlines, host,
+priority, metrics, and upstream transport/TLS options. Existing handler order, custom HTTP methods, and disabled
 handler bindings remain intact. An empty method selection during editing matches any method.
 Upstream edits preserve target IDs/order and allow adding/removing individual backends.
 
@@ -442,7 +451,8 @@ There is no cascading deletion.
 
 Edit forms retain drafts after a 412 and require another save after review. Unedited
 fields changed by another writer are preserved. If another writer changed an upstream's
-target array, saving is blocked until its dialog is reopened with the latest targets;
+target array, or policy options/bindings being edited, saving is blocked until the
+form is reopened with the latest values;
 the old draft remains visible for copying. No automatic mutation retry is performed.
 
 Compose publishes the panel only at `127.0.0.1:9180` and places it on a dedicated network

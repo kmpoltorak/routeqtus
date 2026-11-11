@@ -1,8 +1,10 @@
 # Route handlers
 
 Handlers are implemented and registered in Go. The Management API creates configured
-instances of those types; the local GUI only attaches existing route-specific instances.
-It does not create handler code or configurations. The GUI guide omits global bindings.
+instances of those types. The local GUI provides option fields for the five route
+policies below, even before any instances exist. It saves the route and definitions
+atomically and separates edited shared definitions so other routes keep their options.
+New handler types require code. The GUI and its guide omit global bindings.
 
 ## Available route policies
 
@@ -72,8 +74,10 @@ Bearer token, JSON content type, and current `If-Match` generation:
 {"id":"api-concurrency","type":"concurrency_limit","version":1,"options":{"limit":16}}
 ```
 
-Then include `api-concurrency` in the route's `handlers` list through the API or select
-it in the local GUI. The registered schema is available at
+Then include `api-concurrency` in the route's `handlers` list through the API. In the
+GUI, select `concurrency_limit` and enter its limit directly in the route form;
+the panel creates its definition automatically. Editing a route loads its existing
+options. The registered schema is available at
 `GET /v1/handler-types/concurrency_limit/schema`; new types also appear automatically
 in OpenAPI. A useful entry order is:
 
@@ -152,8 +156,9 @@ example, read `internal/extensions/concurrency.go`; registration is explicit in
 5. Test public HTTP behavior, malformed options, disabled instances, parallel requests,
    per-route isolation, and cleanup on cancellation/panic. Deliberately break a guard
    and confirm its test fails, restore it, then run `make check test test-race docs`.
-6. Create an instance through the API and attach its ID to a route. Keep the GUI as
-   an attachment tool, and update this guide and the release notes.
+6. Create an instance through the API and attach its ID to a route. To expose the type
+   in the GUI, add it to `policyNames` in `internal/ui/files/policies.mjs` and provide
+   form controls for its option schema. Update this guide and the release notes.
 
 Wrap writers only when necessary; provide `Unwrap()` and preserve flushing/hijacking.
 Use shared writer/state operations for headers and `middleware.LimitBody` for body
