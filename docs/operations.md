@@ -479,12 +479,13 @@ The listener addresses below belong to the Docker demo. They are distinct servic
 | `http://127.0.0.1:8080` | Public proxy traffic, including `/api` |
 | `https://127.0.0.1:9080` | Management API; configuration endpoints require the management token |
 | `http://127.0.0.1:9090` | Serving diagnostics; requires the admin token |
+| `http://127.0.0.1:9180` | Optional local GUI; its process calls the Management API |
 
 Inspect container state and recent logs from the repository root:
 
 ```sh
-docker compose ps -a
-docker compose logs --tail=100 postgres manage serve backend-a backend-b
+docker compose --profile ui ps -a
+docker compose logs --tail=100 postgres manage serve ui backend-a backend-b
 ```
 
 | Symptom | What to check |
@@ -494,6 +495,7 @@ docker compose logs --tail=100 postgres manage serve backend-a backend-b
 | Management certificate verification fails | Trust `.demo/tls/cert.pem` with `CURL_CA_BUNDLE` for curl or `SSL_CERT_FILE` for the native CLI. Check expiry; the generated certificate lasts seven days. |
 | Public HTTP 503 or `serve` fails to start | Inspect serving status/logs for a missing valid revision, expired configuration freshness, or the in-flight request limit. See [failure behavior](#synchronization-and-failure). |
 | Public HTTP 502/504 | Check the configured backend addresses, Docker service networking, backend availability, and request/transport deadlines. Successful configuration validation does not prove reachability. |
+| GUI `/api/config` returns 502 | Read the response's safe connection category and inspect `manage` and `ui` logs. During management startup/restart, wait for it and use **Refresh**. Persistent DNS/refused errors require checking service availability/networking; TLS errors require checking the mounted CA, certificate expiry, and the `manage` certificate name. Do not disable TLS verification. |
 | Editing JSON has no effect | Publish through the Management API; `serve` does not watch the import file. Editing bootstrap YAML instead requires a process restart. |
 | `make demo` fails on an existing database | It intentionally publishes against generation 0. Restart an initialized demo using the commands in [getting started](../getting_started.md#local-docker-demo). |
 

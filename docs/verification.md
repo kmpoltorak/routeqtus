@@ -1,9 +1,27 @@
 # Verification
 
-Local verification was performed on 2026-11-08, with follow-up checks on 2026-11-10,
+Initial local verification was performed on 2026-11-08, with follow-up checks on 2026-11-10,
 using Go 1.27.3, macOS/amd64,
 Docker Engine 29.8.0, and real PostgreSQL 17.11. CI repeats correctness and container
 checks on Ubuntu. Run commands from the repository root.
+
+## Go 1.27.4 and demo lifecycle follow-up
+
+On 2026-11-11, `make check test test-race fuzz vuln`, PostgreSQL normal/race integration,
+and the full Chrome GUI checks passed with Go 1.27.4. Source and compiled-binary
+govulncheck scans reported no vulnerabilities. Sabotage: a private source copy with
+Go 1.27.3 restored reported GO-2026-6859 and the text-mode scan exited unsuccessfully.
+The Docker builder uses the verified Go 1.27.4 image digest; production-image checks passed.
+Existing benchmark records retain their original toolchain information.
+
+The initialized demo preserved revision/generation 18 across an image rebuild. Both
+readiness endpoints, GUI assets/configuration/type discovery, and public demo traffic
+returned 200. Stopping management deliberately produced GUI 502 with a safe DNS error;
+the documented bounded GET check recovered after management restarted. Ten subsequent
+GUI reads succeeded without restarting the panel. This verifies outage recovery;
+the cause of the earlier isolated 502 was not established.
+
+## Original verification results
 
 | Check | Command / evidence | Local result |
 | --- | --- | --- |
