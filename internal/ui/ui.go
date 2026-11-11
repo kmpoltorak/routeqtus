@@ -90,7 +90,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch r.URL.Path {
-	case "/", "/app.js", "/theme.js", "/styles.css":
+	case "/", "/app.js", "/policies.mjs", "/theme.js", "/styles.css":
 		if r.Method != "GET" && r.Method != "HEAD" {
 			w.Header().Set("Allow", "GET, HEAD")
 			problem(w, 405, "Method not allowed")
@@ -100,7 +100,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		contentType := "text/html; charset=utf-8"
 		if name == "" {
 			name = "index.html"
-		} else if strings.HasSuffix(name, ".js") {
+		} else if strings.HasSuffix(name, ".js") || strings.HasSuffix(name, ".mjs") {
 			contentType = "application/javascript; charset=utf-8"
 		} else {
 			contentType = "text/css; charset=utf-8"
@@ -112,13 +112,32 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", contentType)
 		http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(content))
-	case "/api/config", "/api/handler-types":
+	case "/api/config":
+		if r.Method == "PUT" {
+			if r.Header.Get("Origin") != "http://"+h.host {
+				problem(w, 403, "A same-origin request is required")
+				return
+			}
+			h.writeJSON(w, r, "/v1/config")
+			return
+		}
+		if r.Method != "GET" {
+			w.Header().Set("Allow", "GET, PUT")
+			problem(w, 405, "Method not allowed")
+			return
+		}
+		h.proxy(w, r, "/v1/config", nil)
+	case "/api/handler-types", "/api/openapi":
 		if r.Method != "GET" {
 			w.Header().Set("Allow", "GET")
 			problem(w, 405, "Method not allowed")
 			return
 		}
-		h.proxy(w, r, "/v1/"+strings.TrimPrefix(r.URL.Path, "/api/"), nil)
+		path := "/v1/handler-types"
+		if r.URL.Path == "/api/openapi" {
+			path = "/openapi.json"
+		}
+		h.proxy(w, r, path, nil)
 	case "/api/routes", "/api/upstreams":
 		if r.Method != "POST" {
 			w.Header().Set("Allow", "POST")
@@ -159,10 +178,10 @@ func (h *Handler) proxy(w http.ResponseWriter, r *http.Request, path string, req
 	}
 	request.Header.Set("Authorization", "Bearer "+h.token)
 	request.Header.Set("Accept", "application/json")
-	if r.Method == "POST" || r.Method == "PATCH" {
+	if r.Method == "POST" || r.Method == "PATCH" || r.Method == "PUT" {
 		request.Header.Set("Content-Type", "application/json")
 	}
-	if r.Method == "POST" || r.Method == "PATCH" || r.Method == "DELETE" {
+	if r.Method == "POST" || r.Method == "PATCH" || r.Method == "PUT" || r.Method == "DELETE" {
 		request.Header.Set("If-Match", r.Header.Get("If-Match"))
 	}
 	response, err := h.client.Do(request)

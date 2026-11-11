@@ -8,7 +8,7 @@
   <title>Routes · Routetus</title>
   <script src="/theme.js"></script>
   <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <script type="module" src="/app.js"></script>
 </head>
 
 <body>
@@ -97,9 +97,9 @@
           <fieldset>
             <legend>Route handlers <span class="optional">optional</span></legend>
             <div class="handler-options" id="handler-options">
-              <p class="hint">Loading configured handlers.</p>
+              <p class="hint">Loading registered route policies.</p>
             </div>
-            <p class="hint">Existing bindings keep their order; new selections append in the order shown.</p>
+            <p class="hint">Choose a registered policy and set its options for this route. Existing bindings keep their order; new selections append in the order shown.</p>
           </fieldset>
           <div class="matching-options"><label class="check"><input type="checkbox" id="prefix">Match path
               prefix</label><label class="check"><input type="checkbox" id="strip-prefix" disabled>Remove matched
@@ -134,7 +134,7 @@
   </dialog>
   <dialog id="guide-dialog" class="guide-dialog" aria-labelledby="guide-heading">
     <div class="dialog-heading"><div><p class="eyebrow">ROUTE HANDLERS</p><h2 id="guide-heading">Handler guide</h2></div><button class="close-button" type="button" data-close="guide-dialog" aria-label="Close handler guide">×</button></div>
-    <p class="dialog-intro">Descriptions for existing route handler configurations. New types require server code and registration.</p>
+    <p class="dialog-intro">Registered route policies and their options. New types require server code and registration.</p>
     <div id="guide-content"></div>
   </dialog>
   <dialog id="delete-dialog" aria-labelledby="delete-heading">

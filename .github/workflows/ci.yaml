@@ -34,6 +34,10 @@ jobs:
           docker compose --profile ui up -d --build ui
           curl --fail --retry 20 --retry-connrefused --retry-delay 1 http://127.0.0.1:9180/api/config > /dev/null
           npm install --prefix "$RUNNER_TEMP/routetus-ui-browser" --no-audit --no-fund playwright@1.65.0
+          node --test tests/ui/policies.test.cjs
+          set -a
+          . ./.env
+          set +a
           NODE_PATH="$RUNNER_TEMP/routetus-ui-browser/node_modules" ROUTETUS_UI_TEST_DISPOSABLE=1 node tests/ui/browser.cjs
       - if: always()
         run: docker compose --profile ui down

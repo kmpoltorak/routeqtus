@@ -88,6 +88,7 @@ build output, and scratch files are ignored; they are not application source.
 | --- | --- |
 | `make build`, `make run` | Static binary; run native `serve` |
 | `make build-ui` | Build the separate optional local GUI executable |
+| `make test-ui` | Node.js route-policy candidate, isolation, conflict, and ID-limit tests |
 | `make check`, `make test` | Publication manifest, documentation links, formatting/vet; unit and HTTP tests |
 | `make test-race`, `make test-integration` | Race checks; disposable real PostgreSQL |
 | `make fuzz`, `make vuln` | Bounded fuzzing; govulncheck |
@@ -411,7 +412,7 @@ Management API TLS. They use real HTTP servers and do not need the application d
 
 CI starts the optional GUI container after initializing its disposable demo, verifies
 its API connection, and runs `tests/ui/browser.cjs` with Playwright 1.65.0 and Chrome.
-Browser checks exercise the route handler guide, existing-handler attachment, upstream registration,
+Browser checks exercise the route handler guide, typed route-policy options, upstream registration,
 Routes/Upstreams tabs, CRUD and filtering, cancellation, stale generation refresh and retry,
 preserved advanced fields, handler/method order, stable target IDs, target-array conflicts,
 referenced-upstream deletion rejection (including a late concurrent reference), invalid-route
@@ -423,10 +424,12 @@ build step. The production image check rejects a leaked GUI executable.
 mode, explicit overrides, persistence after reload, invalid preferences, and blocked
 storage. It checks rendered page/card/input/dialog/tab/error colors. The selector
 regression failed before the control existed. `tests/ui/handlers.cjs` checks that handler
-creation and global information are absent, choices/count/guide contain only route
-configurations, disabled bindings remain checked, and the empty-handler state is usable.
+type creation and global information are absent, choices/count/guide contain the five
+supported registered route types even without instances, disabled bindings remain
+checked, and a server without supported registrations remains usable.
 The CRUD flow verifies that changing visible bindings preserves hidden legacy bindings.
-HTTP tests reject handler creation through the GUI proxy. Sabotage overrides restoring
+HTTP tests reject standalone handler creation through the GUI proxy; conditional
+configuration PUT supports the route editor's atomic candidates. Earlier sabotage overrides restoring
 global types in the guide or dropping hidden bindings failed the guide and preservation
 checks respectively. Overrides and screenshots remain private working material.
 
@@ -435,10 +438,16 @@ initialize a disposable demo with the GUI profile, and run from the repository r
 
 ```sh
 npm install --prefix /private/tmp/routetus-ui-browser --no-audit --no-fund playwright@1.65.0
+set -a
+. ./.env
+set +a
 NODE_PATH=/private/tmp/routetus-ui-browser/node_modules ROUTETUS_UI_TEST_DISPOSABLE=1 node tests/ui/browser.cjs
 ```
 
 Chrome must be installed. `ROUTETUS_UI_URL` overrides the default `http://127.0.0.1:9180`.
+`ROUTETUS_PUBLIC_TEST_URL` overrides the serving URL (default `http://127.0.0.1:8080`).
+The test environment needs the disposable demo's `ROUTETUS_ROUTE_TOKEN`; it is used
+for direct proxy requests and never passed to the browser or printed.
 The test creates routes and intentionally triggers conflicts/validation errors; use only
 a disposable configuration. Optional screenshots go to `ROUTETUS_UI_SCREENSHOT_DIR`.
 It does not establish production capacity or support a public GUI deployment.
@@ -448,6 +457,22 @@ overlay: `TestResourceEditsAndUpstreamDeletion` failed for both resource types. 
 temporary browser response override replaced the edited-field PATCH with the full old
 route: the concurrent-priority assertion failed (`42` instead of `43`). The unchanged
 implementation passes both checks. Working overlays and screenshots are not published.
+
+### Per-route policy option forms
+
+`TestAtomicConfigurationSave` checks one conditional configuration PUT and propagation
+of publication/conflict/validation responses. Origin, media-type, size, and server-only
+credential checks cover this write path too. `make test-ui` verifies shared/global
+definition isolation, exclusive updates, preset retention on detach, bounded unique
+IDs, concurrent policy edits, and preservation of unrelated configuration.
+
+`tests/ui/policy-options.cjs` creates a route with all five policies in one generation,
+observes 401/200/413 and its custom response header, edits a shared policy without
+changing another route, rejects invalid headers and unknown types without publication,
+and preserves a conflicting draft for review. Existing CRUD/theme/mobile checks also run.
+Sabotage: disabling shared-definition cloning in a private module copy failed the
+isolation tests; dropping PUT If-Match forwarding through a Go overlay failed
+`TestAtomicConfigurationSave`. Sources were unchanged by these private mutations.
 
 ## Route policy verification
 

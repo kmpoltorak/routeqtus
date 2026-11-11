@@ -480,10 +480,15 @@ legend {
   outline-offset: 2px;
 }
 .handler-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+  display: grid;
+  gap: 12px;
 }
+.policy-card { min-width:0; }
+.policy-card>.hint { margin:5px 0; }
+.policy-fields { margin:10px 0 0; padding-left:12px; border-left:2px solid #dce5de; }
+.policy-fields label { display:block; margin:10px 0 5px; font-size:11px; }
+.policy-fields input,.policy-fields textarea { display:block; width:100%; font-size:12px; box-sizing:border-box; }
+.policy-fields .hint { overflow-wrap:anywhere; }
 .handler-choice {
   border: 1px solid #e3eae4;
   background: #fafcfa;
@@ -788,7 +793,7 @@ textarea:focus { border-color:#668f77; box-shadow:0 0 0 3px #eaf3ed; }
   input[readonly] { background:#292e39; color:#b5bdcc; }
   .search-wrap input, th { background:#171b22; border-color:#343a46; }
   th { color:#b5bdcc; }
-  td, .table-wrap tr, .matching-options, .guide-item { border-color:#343a46; }
+  td, .table-wrap tr, .matching-options, .guide-item, .policy-fields { border-color:#343a46; }
   tbody tr:hover { background:#252b36; }
   .method-tag { background:#1d3b2b; color:#9fd9b3; }
   .method-tag.post { background:#25324b; color:#aec5ff; }
